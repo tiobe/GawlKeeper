@@ -1,2 +1,2 @@
-# Hawl
+# CCAWL
 Code checker for AWL

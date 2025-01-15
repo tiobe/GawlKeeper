@@ -1,0 +1,282 @@
+%% SIEMENS AWL LANGUAGE DEFINITION
+%% Author: Paul Jansen
+%% Date: 11-Jan-2025
+
+CCAWL ::= 
+  block_type : Block 
+  eof : EOF
+;
+
+Block ::= <
+  DataBlock
+| FunctionBlock
+> ;
+
+DataBlock < Block ::= 
+  "DATA_BLOCK" block_name: StringLiteral
+  header: HeaderBlock
+  "NON_RETAIN"
+  "STRUCT" struct: { Field } "END_STRUCT" ";"
+  "BEGIN"
+  "END_DATA_BLOCK"
+;
+
+FunctionBlock < Block ::= 
+  "FUNCTION_BLOCK" block_name: StringLiteral
+  header: HeaderBlock
+  "VAR_INPUT" inputs: { Field } "END_VAR"
+  "VAR_OUTPUT" outputs: { Field } "END_VAR"
+  "VAR" locals: { Field } "END_VAR"
+  "VAR_TEMP" temps: { Field } "END_VAR"
+  "BEGIN"
+  networks: { Network }
+  "END_FUNCTION_BLOCK"
+;
+
+HeaderBlock ::=
+  title: Title
+  pragma: Pragma 
+  "FAMILY" ":" family: Identifier
+  "VERSION" ":" version: Version
+;
+
+Title ::= title: TitleName ;
+
+SCAN TYPE String TitleName ::= "TITLE" { Space } "=" { AnyCharExceptNewline } ; 
+
+SCAN Space = < SP | HT | VT | FF > ;
+
+Version < Expression ::= 
+  head: IntegerLiteral
+  tail: { "." IntegerLiteral }
+;
+
+Network ::= 
+   "NETWORK" title: Title 
+   instructions: { Instruction }
+;
+
+Instruction ::= instr: [ RealInstruction ] ";" ;
+
+RealInstruction ::= 
+  label : [ Identifier ":" ]
+  instruction: InstructionName
+  arg: [ InstructionArgument ]
+; 
+
+InstructionName ::= <
+  AInstruction
+| AnInstruction
+| AssignInstruction
+| BeuInstruction
+| CallInstruction
+| DivRInstruction
+| DtrInstruction
+| EqualsIntInstruction
+| FpInstruction
+| GreaterThanIntInstruction
+| GreaterThanEqualsIntInstruction
+| ItdInstruction
+| JcInstruction
+| JcnInstruction
+| JuInstruction
+| LessEqualsIntInstruction
+| LInstruction
+| Lar1Instruction
+| Lar2Instruction
+| MultRInstruction
+| NopInstruction
+| OInstruction
+| OpnInstruction
+| PlusDoubleInstruction
+| PlusIntInstruction
+| RInstruction
+| RndInstruction
+| SInstruction
+| SetInstruction
+| SlwInstruction
+| TInstruction
+| Tar1Instruction
+| Tar2Instruction
+> ;
+
+AInstruction < InstructionName ::= "A" ;
+
+AnInstruction < InstructionName ::= "AN" ;
+
+AssignInstruction < InstructionName ::= "=" ;
+
+BeuInstruction < InstructionName ::= "BEU" ;
+
+CallInstruction < InstructionName ::= 
+  "CALL" name: StringLiteral 
+  "(" args: { CallArgumentList } ")"
+;
+
+DivRInstruction < InstructionName ::= "/R" NAME DivFloatOp ;
+
+DtrInstruction < InstructionName ::= "DTR" ;
+
+EqualsIntInstruction < InstructionName ::= "==I" NAME EqualsIntOp ;
+
+FpInstruction < InstructionName ::= "FP" ;
+
+GreaterThanIntInstruction < InstructionName ::= ">I" NAME GreaterThanIntOp ;
+
+GreaterThanEqualsIntInstruction < InstructionName ::= ">=I" NAME GreaterEqualsIntOp ;
+
+ItdInstruction < InstructionName ::= "ITD" ;
+
+JcInstruction < InstructionName ::= "JC" ;
+
+JcnInstruction < InstructionName ::= "JCN" ;
+
+JuInstruction < InstructionName ::= "JU" ;
+
+LessEqualsIntInstruction < InstructionName ::= "<=" NAME LessEqualsIntOp ;
+
+LInstruction < InstructionName ::= "L" ;
+
+Lar1Instruction < InstructionName ::= "LAR1" ;
+
+Lar2Instruction < InstructionName ::= "LAR2" ;
+
+MultRInstruction < InstructionName ::= "*R" NAME MultFloatOp ;
+
+NopInstruction < InstructionName ::= "NOP" ;
+
+OInstruction < InstructionName ::= "O" ;
+
+OpnInstruction < InstructionName ::= "OPN" ;
+
+PlusDoubleInstruction < InstructionName ::= "+D" NAME PlusDoubleOp ;
+
+PlusIntInstruction < InstructionName ::= "+I" NAME PlusIntOp ;
+
+RInstruction < InstructionName ::= "R" ;
+
+RndInstruction < InstructionName ::= "RND" ;
+
+SInstruction < InstructionName ::= "S" ;
+
+SetInstruction < InstructionName ::= "SET" ;
+
+SlwInstruction < InstructionName ::= "SLW" ;
+
+TInstruction < InstructionName ::= "T" ;
+
+Tar1Instruction < InstructionName ::= "TAR1" ;
+
+Tar2Instruction < InstructionName ::= "TAR2" ;
+
+InstructionArgument ::= <
+  Argument
+| ParenthesizedArgument
+> ;
+
+Argument < InstructionArgument ::= 
+  prefix: [ "%" ] 
+  arg: Expression 
+  index: [ "[" IndexExpression "]" ] 
+;
+
+ParenthesizedArgument < InstructionArgument ::= "(" args : { Instruction }+ ")" ;
+
+IndexExpression ::=
+  head : Argument
+  tail : [ "," Argument ]
+;
+
+CallArgumentList ::=
+  head : CallArgument 
+  tail : [ "," CallArgumentList ]
+;
+
+CallArgument ::=
+  name: Identifier
+  ":=" NAME AssignOp value: Expression
+;
+  
+SCAN TYPE String StringLiteral ::= '"' { AnyCharExceptDoubleQuoteNewline } '"' ;
+
+SCAN AnyCharExceptDoubleQuoteNewline ::= < NUL .. HT | VT | FF | SO .. '!' | '#' .. DEL > ;
+
+SCAN TYPE String Pragma ::= '{' { AnyCharExceptCloseBraceNewline } '}' ;
+
+SCAN AnyCharExceptCloseBraceNewline ::= < NUL .. HT | VT | FF | SO .. '|' | '~' .. DEL > ;
+
+Struct ::= fields: { Field ";" } ;
+
+Field ::= 
+  name: Identifier ":" 
+  type: Type
+  init: [ Initialization ] ";" 
+;
+
+Type ::= <
+  AnyType
+| BoolType
+| DwordType
+| IntegerType
+| RealType
+| StringType
+| WordType
+> ;  
+
+AnyType < Type ::= "DB_ANY" ;
+
+BoolType < Type ::= "Bool" ;
+
+DwordType < Type ::= "DWord" ;
+
+IntegerType < Type ::= "Int" ;
+
+RealType < Type ::= "Real" ;
+
+StringType < Type ::= str: StringLiteral ;
+
+WordType < Type ::= "Word" ;
+
+Initialization ::= 
+  ":=" NAME AssignOp
+  expr: Expression
+;
+
+Expression ::= <
+  Version
+| SimpleIdentifier
+| StringConstant
+> ;
+
+SimpleIdentifier < Expression ::= id: Identifier ;
+
+StringConstant < Expression ::= 
+  str: StringLiteral
+  field: [ "." Identifier ]
+;
+
+SCAN TYPE Ident Identifier ::= IdentifierStart { IdentifierChar } ;
+
+SCAN IdentifierChar = < IdentifierStart | Digit | "." > ;
+
+SCAN IdentifierStart ::= < '#' | '_' | 'a' .. 'z' | 'A' .. 'Z' > ;
+
+SCAN TYPE String IntegerLiteral ::= < '0' | NonzeroInteger > ;
+
+SCAN NonzeroInteger = NonzeroDigit { Digit } ;
+
+SCAN NonzeroDigit ::= < '1' .. '9' > ;
+
+SCAN Digit ::= < '0' .. '9' > ;
+
+SCAN EOF ::= "$" "$" "$" "$" "$" "$" ;
+
+SCAN COMMENT LineComment ::= "//" NAME SlashSlashOp{ AnyCharExceptNewline } ;
+
+SCAN AnyCharExceptNewline ::= < NUL .. HT | VT | FF | SO .. DEL > ;
+
+SCAN COMMENT Whitespace ::= < SP | HT | VT | FF > ;
+
+SCAN COMMENT LineTerm ::= { Newline }+ ;
+
+SCAN Newline = < CR | LF | CR LF > ;

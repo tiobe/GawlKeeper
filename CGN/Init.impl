@@ -1,0 +1,23 @@
+//
+// $Id: Init.impl 28823 2015-03-30 09:25:16Z stappers $
+//
+// (c) 2000-2005  Tiobe Software BV -- All rights reserved
+//
+
+impl unit Init
+
+import
+
+CGNInit
+
+use
+
+Switches
+
+functions
+
+init()
+{
+  CGNInit.Init()
+  Switches.Init()
+}

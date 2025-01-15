@@ -1,0 +1,78 @@
+//
+// $Id: Switches.impl 43941 2021-07-30 15:01:55Z stappers $
+//
+// (c) 2003-2021  Tiobe Software BV -- All rights reserved
+//
+
+impl unit Switches
+
+use
+
+FileStream. Create, Close
+ScanIO. AddInputFile, AddInputString
+TextIO. Read, Eof
+UnixArgs. NoOfArguments, GetArgument
+UnixProcess. Exit, Failure, Success
+
+RuleChecker
+RuleConfig. InitRules
+StringTokenizer. Trim, Join
+Version. LongVersion
+
+typedef
+
+Eof = {
+  str : String = "\n$$$$$$\n"
+  len : Int = #str
+}
+
+constant
+
+EOF : Eof = Eof()
+
+global
+
+SRCFILE : String|NIL := NIL
+
+functions
+
+Init()
+{
+  InitRules()
+  ReadSwitches()
+}
+
+ReadSwitches()
+{
+  [ { ReadSwitch(GetArgument(i)) } | i : Int <- 1 .. (NoOfArguments() - 1) ]
+  if SRCFILE = NIL then
+    { "Usage: CCAWL <inputfile>\n" } astype Message
+    Exit(Failure)
+  fi
+}
+
+ReadSwitch(sw : String)
+{
+  if sw@0 = '-' then
+    GetSwitch(sw)
+  else
+    GetFile(sw)
+  fi
+}
+
+GetSwitch(opt : String) {
+}
+
+GetFile(file : String)
+conditions SRCFILE = NIL
+{
+  filename : Ident = Ident(file)
+
+  AddInputFile(filename)
+  AddInputString(EOF.str, EOF.len, filename)
+  SRCFILE := file
+}
+
+GetFile(file : String)
+{ { "E002: Only one input file is allowed\n"  } astype Message }
+

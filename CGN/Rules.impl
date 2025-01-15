@@ -1,0 +1,14 @@
+//
+// $Id: Rules.impl 51965 2024-12-23 18:06:10Z jansen $
+//
+// (c) 2003-2021  Tiobe Software BV -- All rights reserved
+//
+
+impl unit Rules
+
+use
+
+KMPMatch. Match
+
+functions
+

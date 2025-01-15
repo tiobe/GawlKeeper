@@ -1,0 +1,52 @@
+//
+// $Id: RuleConfig.impl 51954 2024-12-22 22:37:11Z jansen $
+//
+// (c) 2000-2021  Tiobe Software BV -- All rights reserved
+//
+
+impl unit RuleConfig
+
+use
+
+FunctionPrelude. $$
+UnixProcess. Exit, Failure
+
+StringTokenizer. Split, Trim
+TextFile. SplitKeyValue, Pair, ApplyCommonFilters, GetLinesFromFile
+
+typedef
+
+RuleInfo = {
+  id : Int
+  apply : Bool := FALSE
+  parameters : List(String) := NIL
+  synopsis : String
+  message: (List(String))            // template message string
+}
+
+//
+// map rule number to rule info
+//
+
+memo RuleInfoMap = { id : Int  ruleinfo : RuleInfo|NIL := NIL }
+RulesShown = enum { RS_IMPLEMENTED | RS_RESERVED | RS_ALL }
+
+functions
+
+GetRules() : [([String])]
+{
+  rules : [([String])] := NIL
+  return rules
+}
+
+InitRules()
+{ InitRulesSet(RS_IMPLEMENTED) }
+
+InitRulesSet(rs : RulesShown)
+{
+  [ { }
+  | r : ([String]) <- GetRules()
+  , { Assert(#r = 3) }
+  ]
+}
+

@@ -1,0 +1,28 @@
+impl unit GenCode
+
+use
+
+ScanIO. OpenInputs
+UnixProcess. Exit, Failure, Success
+
+import
+
+CCAWL0
+
+functions
+
+root
+Start()
+{
+  OpenInputs()
+  if
+    CCAWL0.EntryPoint()
+  then
+    Exit(Success)
+  else
+    Exit(Failure)
+  fi
+}
+
+Eval(x : CCAWL) {
+}

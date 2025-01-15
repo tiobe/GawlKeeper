@@ -1,0 +1,24 @@
+//
+// $Id: RuleChecker.impl 51954 2024-12-22 22:37:11Z jansen $
+//
+// (c) 2003-2021  Tiobe Software BV -- All rights reserved
+//
+
+impl unit RuleChecker
+
+use
+
+print_support
+ScanIO. OpenError
+
+Rules
+
+global
+
+
+functions
+
+Check(me : CCAWL)
+{
+}
+

@@ -18,7 +18,7 @@ DataBlock < Block ::=
   "DATA_BLOCK" block_name: StringLiteral
   header: HeaderBlock
   [ non_retain: "NON_RETAIN" ]
-  "STRUCT" struct: Struct
+  struct: Struct ";"
   "BEGIN"
   fields : { Field } %% TODO these fields are different from a struct's
   "END_DATA_BLOCK"
@@ -38,10 +38,10 @@ FunctionBlock < Block ::=
 
 FunctionBody ::= 
   header: HeaderBlock
-  [ "VAR_INPUT"  inputs:  { Field } "END_VAR" ]
-  [ "VAR_OUTPUT" outputs: { Field } "END_VAR" ]
-  [ "VAR"        locals:  { Field } "END_VAR" ]
-  [ "VAR_TEMP"   temps:   { Field } "END_VAR" ]
+  [ "VAR_INPUT"  inputs:  { Field }+ "END_VAR" ]
+  [ "VAR_OUTPUT" outputs: { Field }+ "END_VAR" ]
+  [ "VAR"        locals:  { Field }+ "END_VAR" ]
+  [ "VAR_TEMP"   temps:   { Field }+ "END_VAR" ]
   "BEGIN"
   networks: { Network }
 ;
@@ -49,7 +49,7 @@ FunctionBody ::=
 TypeBlock < Block ::=
   "TYPE" type_name: StringLiteral
   header: HeaderBlock
-  "STRUCT" struct: Struct
+  struct: Struct ";"
   "END_TYPE"
 ;
 
@@ -60,12 +60,9 @@ HeaderBlock ::=
   "VERSION" ":" version: Version
 ;
 
-Title ::= title: TitleName ;
+Version ::= ints: IntegerLiteral // "." ;
 
-Version < Expression ::= 
-  head: IntegerLiteral
-  tail: { "." IntegerLiteral }
-;
+Title ::= title: TitleName ;
 
 Network ::= 
    "NETWORK" title: Title 
@@ -98,8 +95,14 @@ InstructionName ::= <
   | BeInstruction
   | BeuInstruction
   | BecInstruction
+  | CadInstruction
   | CallInstruction
   | ClearInstruction
+  | CompDblEqInstruction
+  | CompDblGtInstruction
+  | CompDblGEInstruction
+  | CompDblLtInstruction
+  | CompDblNEInstruction
   | CompIntEqInstruction
   | CompIntGtInstruction
   | CompIntGEInstruction
@@ -114,8 +117,10 @@ InstructionName ::= <
   | JcInstruction
   | JcbInstruction
   | JcnInstruction
+  | JmInstruction
   | JmzInstruction
   | JnbiInstruction
+  | JoInstruction
   | JpInstruction
   | JpzInstruction
   | JuInstruction
@@ -137,7 +142,10 @@ InstructionName ::= <
   | RndInstruction
   | SInstruction
   | SetInstruction
-  | SlwInstruction
+  | ShiftLeftDblInstruction
+  | ShiftLeftWordInstruction
+  | ShiftRightDblInstruction
+  | ShiftRightWordInstruction
   | TInstruction
   | Tar1Instruction
   | Tar2Instruction
@@ -165,12 +173,23 @@ BeInstruction  < InstructionName ::= "BE" ;
 BeuInstruction < InstructionName ::= "BEU" ;
 BecInstruction < InstructionName ::= "BEC" ;
 
+CadInstruction < InstructionName ::= "CAD" ;
+
 CallInstruction < InstructionName ::= 
-  "CALL" name: StringLiteral 
+  "CALL" callee: Callee
   "(" args: { CallArgumentList } ")"
 ;
+Callee ::= < StringCallee | IdentCallee > ;
+StringCallee < Callee ::= strCallee: StringLiteral ;
+IdentCallee  < Callee ::= identCallee: Identifier ;
 
 ClearInstruction < InstructionName ::= "CLR" ;
+
+CompDblEqInstruction < InstructionName ::= "==D" NAME EqualsDblOp ;
+CompDblGtInstruction < InstructionName ::= ">D"  NAME GreaterThanDblOp ;
+CompDblGEInstruction < InstructionName ::= ">=D" NAME GreaterEqualsDblOp ;
+CompDblLtInstruction < InstructionName ::= "<D"  NAME LessThanDblOp ;
+CompDblNEInstruction < InstructionName ::= "<>D" NAME NotEqDblOp ;
 
 CompIntEqInstruction < InstructionName ::= "==I" NAME EqualsIntOp ;
 CompIntGtInstruction < InstructionName ::= ">I"  NAME GreaterThanIntOp ;
@@ -191,8 +210,10 @@ JbiInstruction  < InstructionName ::= "JBI" ;
 JcInstruction   < InstructionName ::= "JC" ;
 JcbInstruction  < InstructionName ::= "JCB" ;
 JcnInstruction  < InstructionName ::= "JCN" ;
+JmInstruction   < InstructionName ::= "JM" ;
 JmzInstruction  < InstructionName ::= "JMZ" ;
 JnbiInstruction < InstructionName ::= "JNBI" ;
+JoInstruction   < InstructionName ::= "JO" ;
 JpInstruction   < InstructionName ::= "JP" ;
 JpzInstruction  < InstructionName ::= "JPZ" ;
 JuInstruction   < InstructionName ::= "JU" ;
@@ -225,7 +246,10 @@ SInstruction < InstructionName ::= "S" ;
 
 SetInstruction < InstructionName ::= "SET" ;
 
-SlwInstruction < InstructionName ::= "SLW" ;
+ShiftLeftDblInstruction   < InstructionName ::= "SLD" ;
+ShiftLeftWordInstruction  < InstructionName ::= "SLW" ;
+ShiftRightDblInstruction  < InstructionName ::= "SRD" ;
+ShiftRightWordInstruction < InstructionName ::= "SRW" ;
 
 TInstruction < InstructionName ::= "T" ;
 
@@ -245,17 +269,13 @@ Argument < InstructionArgument ::=
 
 ParenthesizedArgument < InstructionArgument ::= "(" args : { Instruction }+ ")" ;
 
-CallArgumentList ::=
-  head : CallArgument 
-  tail : [ "," CallArgumentList ]
-;
-
+CallArgumentList ::= args: CallArgument // "," ;
 CallArgument ::=
   name: Identifier
   value: Initialization
 ;
 
-Struct ::= fields: { Field } "END_STRUCT" ";" ;
+Struct ::= "STRUCT" fields: { Field }+ "END_STRUCT" ;
 
 Field ::= 
   name: Identifier ":" 
@@ -265,39 +285,65 @@ Field ::=
 
 Type ::= <
   AnyType
+| AnyDbType
+| AnyHwType
 | BoolType
+| ByteType
 | DwordType
 | IntegerType
 | DIntegerType
 | RealType
 | StringType
+| StrLitAsType
 | StructType
+| VectorType
 | VoidType
 | WordType
 > ;  
 
-AnyType      < Type ::= "DB_ANY" ;
+AnyType      < Type ::= "Any" ;
+AnyDbType    < Type ::= "DB_ANY" ;
+AnyHwType    < Type ::= "HW_ANY" ;
 BoolType     < Type ::= "Bool" ;
+ByteType     < Type ::= "Byte" ;
 DwordType    < Type ::= "DWord" ;
 IntegerType  < Type ::= "Int" ;
 DIntegerType < Type ::= "DInt" ;
 RealType     < Type ::= "Real" ;
-StringType   < Type ::= str: StringLiteral ;
-StructType   < Type ::= "STRUCT" struct: Struct;
+StringType   < Type ::= "String" ;
+StrLitAsType < Type ::= str: StringLiteral ;
+StructType   < Type ::= struct: Struct ;
+VectorType   < Type ::= vector: VectorDecl ;
 VoidType     < Type ::= "Void" ;
 WordType     < Type ::= "Word" ;
 
 Initialization ::= 
   ":=" NAME AssignOp
-  expr: Expression
+  expr: [ Expression ]
 ;
 
 Expression ::= <
-    Version
+    IndexExpression
+  | IntegerNumber
+  | RealNumber
   | SimpleIdentifier
   | StringConstant
-  | IndexExpression
 > ;
+
+IndexExpression < Expression ::=
+  array: [ Identifier ]
+  "[" head: Argument  tail: { "," Argument } "]"
+;
+
+IntegerNumber < Expression ::= intValue: NumConstant ;
+NumConstant ::= < DecimalLiteral | HexadecimalLiteral > ;
+DecimalLiteral     < NumConstant ::= sign: ["-"] decLit: IntegerLiteral ;
+HexadecimalLiteral < NumConstant ::= hexLit: HexIntegerLiteral ;
+
+RealNumber < Expression ::=
+  intPart: DecimalLiteral
+  "." fracPart: IntegerLiteral
+;
 
 SimpleIdentifier < Expression ::= id: Identifier ;
 
@@ -306,10 +352,7 @@ StringConstant < Expression ::=
   field: [ "." Identifier ]
 ;
 
-IndexExpression < Expression ::=
-  array: [ Identifier ]
-  "[" head: Argument  tail: { "," Argument } "]"
-;
+VectorDecl ::= type: Type "[" dimension: IntegerLiteral "]" ;
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -320,26 +363,29 @@ SCAN TYPE String TitleName ::= "TITLE" { Space } "=" { AnyCharExceptNewline } ;
 SCAN Space = < SP | HT | VT | FF > ;
 
 SCAN TYPE String StringLiteral ::= '"' { AnyCharExceptDoubleQuoteNewline } '"' ;
-SCAN AnyCharExceptDoubleQuoteNewline ::= < NUL .. HT | VT | FF | SO .. '!' | '#' .. DEL > ;
+SCAN AnyCharExceptDoubleQuoteNewline ::= < NUL .. HT | VT | FF | SO .. '!' | '#' .. EOF > ;
 
 SCAN TYPE String Pragma ::= '{' { AnyCharExceptCloseBraceNewline } '}' ;
-SCAN AnyCharExceptCloseBraceNewline ::= < NUL .. HT | VT | FF | SO .. '|' | '~' .. DEL > ;
+SCAN AnyCharExceptCloseBraceNewline ::= < NUL .. HT | VT | FF | SO .. '|' | '~' .. EOF > ;
 
 SCAN TYPE Ident Identifier ::= IdentifierStart { IdentifierChar } ;
 SCAN IdentifierChar = < IdentifierStart | Digit | "." > ;
 SCAN IdentifierStart ::= < '#' | '_' | 'a' .. 'z' | 'A' .. 'Z' > ;
 
-SCAN TYPE String IntegerLiteral ::= [Sign] < '0' | NonzeroInteger > ;
-SCAN Sign = < '+' | '-' > ;
+SCAN TYPE String IntegerLiteral ::= < '0' | NonzeroInteger > ;
+%%SCAN TYPE Char Sign ::= < '+' | '-' > ;
 
 SCAN NonzeroInteger = NonzeroDigit { Digit } ;
 SCAN NonzeroDigit ::= < '1' .. '9' > ;
 SCAN Digit ::= < '0' .. '9' > ;
 
+SCAN TYPE String HexIntegerLiteral ::= "16#" NAME HexPrefix { HexDigit }+ ;
+SCAN HexDigit ::= < '0' .. '9' | 'A' .. 'F' > ;
+
 SCAN EOF ::= "$" "$" "$" "$" "$" "$" ;
 
 SCAN COMMENT LineComment ::= "//" NAME SlashSlashOp{ AnyCharExceptNewline } ;
-SCAN AnyCharExceptNewline ::= < NUL .. HT | VT | FF | SO .. DEL > ;
+SCAN AnyCharExceptNewline ::= < NUL .. HT | VT | FF | SO .. EOF > ;
 
 SCAN COMMENT Whitespace ::= Space ;
 SCAN COMMENT LineTerm ::= { Newline }+ ;

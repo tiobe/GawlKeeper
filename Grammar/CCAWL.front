@@ -15,23 +15,23 @@ Block ::= <
 > ;
 
 DataBlock < Block ::= 
-  "DATA_BLOCK" block_name: StringLiteral
+  "DATA_BLOCK" block_name: Identifier
   header: HeaderBlock
   [ non_retain: "NON_RETAIN" ]
   struct: Struct ";"
   "BEGIN"
-  fields : { Field } %% TODO these fields are different from a struct's
+  assignments: { ArgumentAssignment ";" }
   "END_DATA_BLOCK"
 ;
 
 Function < Block ::=
-  "FUNCTION" function_name: StringLiteral ":" return_type: Type
+  "FUNCTION" function_name: Identifier ":" return_type: Type
   body: FunctionBody
   "END_FUNCTION"
 ;
 
 FunctionBlock < Block ::= 
-  "FUNCTION_BLOCK" function_name: StringLiteral
+  "FUNCTION_BLOCK" function_name: Identifier
   body: FunctionBody
   "END_FUNCTION_BLOCK"
 ;
@@ -40,6 +40,7 @@ FunctionBody ::=
   header: HeaderBlock
   [ "VAR_INPUT"  inputs:  { Field }+ "END_VAR" ]
   [ "VAR_OUTPUT" outputs: { Field }+ "END_VAR" ]
+  [ "VAR_IN_OUT" in_outs: { Field }+ "END_VAR" ]
   [ "VAR"        locals:  { Field }+ "END_VAR" ]
   [ "VAR_TEMP"   temps:   { Field }+ "END_VAR" ]
   "BEGIN"
@@ -47,7 +48,7 @@ FunctionBody ::=
 ;
 
 TypeBlock < Block ::=
-  "TYPE" type_name: StringLiteral
+  "TYPE" type_name: Identifier
   header: HeaderBlock
   struct: Struct ";"
   "END_TYPE"
@@ -55,7 +56,7 @@ TypeBlock < Block ::=
 
 HeaderBlock ::=
   title: Title
-  pragma: Pragma 
+  params: ParamsInit
   "FAMILY" ":" family: Identifier
   "VERSION" ":" version: Version
 ;
@@ -69,193 +70,203 @@ Network ::=
    instructions: { Instruction }
 ;
 
-Instruction ::= instr: [ RealInstruction ] ";" ;
+Instruction ::= instr: [ RealInstr ] ";" ;
 
-RealInstruction ::= 
+RealInstr ::= 
   label : [ Identifier ":" ]
   instruction: InstructionName
   arg: [ InstructionArgument ]
 ; 
 
 InstructionName ::= <
-    ArithSumInstruction
-  | ArithDblSumInstruction
-  | ArithDblSubInstruction
-  | ArithDblMultInstruction
-  | ArithDblDivInstruction
-  | ArithIntSumInstruction
-  | ArithIntSubInstruction
-  | ArithIntMultInstruction
-  | ArithIntDivInstruction
-  | ArithRealSumInstruction
-  | ArithRealSubInstruction
-  | ArithRealMultInstruction
-  | ArithRealDivInstruction
-  | AssignInstruction
-  | BeInstruction
-  | BeuInstruction
-  | BecInstruction
-  | CadInstruction
-  | CallInstruction
-  | ClearInstruction
-  | CompDblEqInstruction
-  | CompDblGtInstruction
-  | CompDblGEInstruction
-  | CompDblLtInstruction
-  | CompDblNEInstruction
-  | CompIntEqInstruction
-  | CompIntGtInstruction
-  | CompIntGEInstruction
-  | CompIntLtInstruction
-  | CompIntNEInstruction
-  | CompLEInstruction
-  | DtrInstruction
-  | FpInstruction
-  | FnInstruction
-  | ItdInstruction
-  | JbiInstruction
-  | JcInstruction
-  | JcbInstruction
-  | JcnInstruction
-  | JmInstruction
-  | JmzInstruction
-  | JnbiInstruction
-  | JoInstruction
-  | JpInstruction
-  | JpzInstruction
-  | JuInstruction
-  | LInstruction
-  | Lar1Instruction
-  | Lar2Instruction
-  | LogicAndInstruction
-  | LogicAndNotInstruction
-  | LogicAndWordInstruction
-  | LogicOrInstruction
-  | LogicOrNotInstruction
-  | LogicOrDblInstruction
-  | NegDblInstruction
-  | NegIntInstruction
-  | NegRealInstruction
-  | NoOpInstruction
-  | OpnInstruction
-  | RInstruction
-  | RndInstruction
-  | SInstruction
-  | SetInstruction
-  | ShiftLeftDblInstruction
-  | ShiftLeftWordInstruction
-  | ShiftRightDblInstruction
-  | ShiftRightWordInstruction
-  | TInstruction
-  | Tar1Instruction
-  | Tar2Instruction
+    ArithSumInstr
+  | ArithDblSumInstr
+  | ArithDblSubInstr
+  | ArithDblMultInstr
+  | ArithDblDivInstr
+  | ArithIntSumInstr
+  | ArithIntSubInstr
+  | ArithIntMultInstr
+  | ArithIntDivInstr
+  | ArithRealSumInstr
+  | ArithRealSubInstr
+  | ArithRealMultInstr
+  | ArithRealDivInstr
+  | AssignInstr
+  | BeInstr
+  | BeuInstr
+  | BecInstr
+  | CadInstr
+  | CallInstr
+  | ClearInstr
+  | CompDblEqInstr
+  | CompDblGtInstr
+  | CompDblGEInstr
+  | CompDblLtInstr
+  | CompDblNEInstr
+  | CompIntEqInstr
+  | CompIntGtInstr
+  | CompIntGEInstr
+  | CompIntLtInstr
+  | CompIntNEInstr
+  | CompLEInstr
+  | DtbInstr
+  | DtrInstr
+  | FpInstr
+  | FnInstr
+  | ItdInstr
+  | JbiInstr
+  | JcInstr
+  | JcbInstr
+  | JcnInstr
+  | JmInstr
+  | JmzInstr
+  | JnbiInstr
+  | JoInstr
+  | JpInstr
+  | JpzInstr
+  | JuInstr
+  | LInstr
+  | Lar1Instr
+  | Lar2Instr
+  | LogicAndInstr
+  | LogicAndNotInstr
+  | LogicAndDblInstr
+  | LogicAndWordInstr
+  | LogicOrInstr
+  | LogicOrNotInstr
+  | LogicOrDblInstr
+  | LogicOrWordInstr
+  | LoopInstr
+  | NegDblInstr
+  | NegIntInstr
+  | NegRealInstr
+  | NoOpInstr
+  | OpnInstr
+  | RInstr
+  | RndInstr
+  | SInstr
+  | SetInstr
+  | ShiftLeftDblInstr
+  | ShiftLeftWordInstr
+  | ShiftRightDblInstr
+  | ShiftRightWordInstr
+  | TInstr
+  | Tar1Instr
+  | Tar2Instr
 > ;
 
-ArithSumInstruction     < InstructionName ::= "+" ;
-ArithDblSumInstruction  < InstructionName ::= "+D" NAME SumDblOp ;
-ArithDblSubInstruction  < InstructionName ::= "-D" NAME SubDblOp ;
-ArithDblMultInstruction < InstructionName ::= "*D" NAME MulDblOp ;
-ArithDblDivInstruction  < InstructionName ::= "/D" NAME DivDblOp ;
+ArithSumInstr     < InstructionName ::= "+" ;
+ArithDblSumInstr  < InstructionName ::= "+D" NAME SumDblOp ;
+ArithDblSubInstr  < InstructionName ::= "-D" NAME SubDblOp ;
+ArithDblMultInstr < InstructionName ::= "*D" NAME MulDblOp ;
+ArithDblDivInstr  < InstructionName ::= "/D" NAME DivDblOp ;
 
-ArithIntSumInstruction  < InstructionName ::= "+I" NAME SumIntOp ;
-ArithIntSubInstruction  < InstructionName ::= "-I" NAME SubIntOp ;
-ArithIntMultInstruction < InstructionName ::= "*I" NAME MulIntOp ;
-ArithIntDivInstruction  < InstructionName ::= "/I" NAME DivIntOp ;
+ArithIntSumInstr  < InstructionName ::= "+I" NAME SumIntOp ;
+ArithIntSubInstr  < InstructionName ::= "-I" NAME SubIntOp ;
+ArithIntMultInstr < InstructionName ::= "*I" NAME MulIntOp ;
+ArithIntDivInstr  < InstructionName ::= "/I" NAME DivIntOp ;
 
-ArithRealSumInstruction  < InstructionName ::= "+R" NAME SumFloatOp ;
-ArithRealSubInstruction  < InstructionName ::= "-R" NAME SubFloatOp ;
-ArithRealMultInstruction < InstructionName ::= "*R" NAME MulFloatOp ;
-ArithRealDivInstruction  < InstructionName ::= "/R" NAME DivFloatOp ;
+ArithRealSumInstr  < InstructionName ::= "+R" NAME SumFloatOp ;
+ArithRealSubInstr  < InstructionName ::= "-R" NAME SubFloatOp ;
+ArithRealMultInstr < InstructionName ::= "*R" NAME MulFloatOp ;
+ArithRealDivInstr  < InstructionName ::= "/R" NAME DivFloatOp ;
 
-AssignInstruction < InstructionName ::= "=" ;
+AssignInstr < InstructionName ::= "=" ;
 
-BeInstruction  < InstructionName ::= "BE" ;
-BeuInstruction < InstructionName ::= "BEU" ;
-BecInstruction < InstructionName ::= "BEC" ;
+BeInstr  < InstructionName ::= "BE" ;
+BeuInstr < InstructionName ::= "BEU" ;
+BecInstr < InstructionName ::= "BEC" ;
 
-CadInstruction < InstructionName ::= "CAD" ;
+CadInstr < InstructionName ::= "CAD" ;
 
-CallInstruction < InstructionName ::= 
+CallInstr < InstructionName ::= 
   "CALL" callee: Callee
-  "(" args: { CallArgumentList } ")"
+  paramsInit: [ ParamsInit ]
+  "(" args: ArgumentsList ")"
 ;
 Callee ::= < StringCallee | IdentCallee > ;
-StringCallee < Callee ::= strCallee: StringLiteral ;
+StringCallee < Callee ::= strCallee: Identifier ;
 IdentCallee  < Callee ::= identCallee: Identifier ;
 
-ClearInstruction < InstructionName ::= "CLR" ;
+ClearInstr < InstructionName ::= "CLR" ;
 
-CompDblEqInstruction < InstructionName ::= "==D" NAME EqualsDblOp ;
-CompDblGtInstruction < InstructionName ::= ">D"  NAME GreaterThanDblOp ;
-CompDblGEInstruction < InstructionName ::= ">=D" NAME GreaterEqualsDblOp ;
-CompDblLtInstruction < InstructionName ::= "<D"  NAME LessThanDblOp ;
-CompDblNEInstruction < InstructionName ::= "<>D" NAME NotEqDblOp ;
+CompDblEqInstr < InstructionName ::= "==D" NAME EqualsDblOp ;
+CompDblGtInstr < InstructionName ::= ">D"  NAME GreaterThanDblOp ;
+CompDblGEInstr < InstructionName ::= ">=D" NAME GreaterEqualsDblOp ;
+CompDblLtInstr < InstructionName ::= "<D"  NAME LessThanDblOp ;
+CompDblNEInstr < InstructionName ::= "<>D" NAME NotEqDblOp ;
 
-CompIntEqInstruction < InstructionName ::= "==I" NAME EqualsIntOp ;
-CompIntGtInstruction < InstructionName ::= ">I"  NAME GreaterThanIntOp ;
-CompIntGEInstruction < InstructionName ::= ">=I" NAME GreaterEqualsIntOp ;
-CompIntLtInstruction < InstructionName ::= "<I"  NAME LessThanIntOp ;
-CompIntNEInstruction < InstructionName ::= "<>I" NAME NotEqIntOp ;
+CompIntEqInstr < InstructionName ::= "==I" NAME EqualsIntOp ;
+CompIntGtInstr < InstructionName ::= ">I"  NAME GreaterThanIntOp ;
+CompIntGEInstr < InstructionName ::= ">=I" NAME GreaterEqualsIntOp ;
+CompIntLtInstr < InstructionName ::= "<I"  NAME LessThanIntOp ;
+CompIntNEInstr < InstructionName ::= "<>I" NAME NotEqIntOp ;
 
-CompLEInstruction < InstructionName ::= "<="  NAME LessEqualsOp ;
+CompLEInstr < InstructionName ::= "<="  NAME LessEqualsOp ;
 
-DtrInstruction < InstructionName ::= "DTR" ;
+DtbInstr < InstructionName ::= "DTB" ;
+DtrInstr < InstructionName ::= "DTR" ;
 
-FpInstruction < InstructionName ::= "FP" ;
-FnInstruction < InstructionName ::= "FN" ;
+FpInstr < InstructionName ::= "FP" ;
+FnInstr < InstructionName ::= "FN" ;
 
-ItdInstruction < InstructionName ::= "ITD" ;
+ItdInstr < InstructionName ::= "ITD" ;
 
-JbiInstruction  < InstructionName ::= "JBI" ;
-JcInstruction   < InstructionName ::= "JC" ;
-JcbInstruction  < InstructionName ::= "JCB" ;
-JcnInstruction  < InstructionName ::= "JCN" ;
-JmInstruction   < InstructionName ::= "JM" ;
-JmzInstruction  < InstructionName ::= "JMZ" ;
-JnbiInstruction < InstructionName ::= "JNBI" ;
-JoInstruction   < InstructionName ::= "JO" ;
-JpInstruction   < InstructionName ::= "JP" ;
-JpzInstruction  < InstructionName ::= "JPZ" ;
-JuInstruction   < InstructionName ::= "JU" ;
+JbiInstr  < InstructionName ::= "JBI" ;
+JcInstr   < InstructionName ::= "JC" ;
+JcbInstr  < InstructionName ::= "JCB" ;
+JcnInstr  < InstructionName ::= "JCN" ;
+JmInstr   < InstructionName ::= "JM" ;
+JmzInstr  < InstructionName ::= "JMZ" ;
+JnbiInstr < InstructionName ::= "JNBI" ;
+JoInstr   < InstructionName ::= "JO" ;
+JpInstr   < InstructionName ::= "JP" ;
+JpzInstr  < InstructionName ::= "JPZ" ;
+JuInstr   < InstructionName ::= "JU" ;
 
-LInstruction < InstructionName ::= "L" ;
+LInstr < InstructionName ::= "L" ;
 
-Lar1Instruction < InstructionName ::= "LAR1" ;
-Lar2Instruction < InstructionName ::= "LAR2" ;
+Lar1Instr < InstructionName ::= "LAR1" ;
+Lar2Instr < InstructionName ::= "LAR2" ;
 
-LogicAndInstruction    < InstructionName ::= "A" ;
-LogicAndNotInstruction < InstructionName ::= "AN" ;
-LogicAndWordInstruction< InstructionName ::= "AW" ;
-LogicOrInstruction     < InstructionName ::= "O" ;
-LogicOrNotInstruction  < InstructionName ::= "ON" ;
-LogicOrDblInstruction  < InstructionName ::= "OD" ;
+LogicAndInstr    < InstructionName ::= "A" ;
+LogicAndNotInstr < InstructionName ::= "AN" ;
+LogicAndDblInstr < InstructionName ::= "AD" ;
+LogicAndWordInstr< InstructionName ::= "AW" ;
+LogicOrInstr     < InstructionName ::= "O" ;
+LogicOrNotInstr  < InstructionName ::= "ON" ;
+LogicOrDblInstr  < InstructionName ::= "OD" ;
+LogicOrWordInstr < InstructionName ::= "OW" ;
 
-NegDblInstruction  < InstructionName ::= "NEGD" ;
-NegIntInstruction  < InstructionName ::= "NEGI" ;
-NegRealInstruction < InstructionName ::= "NEGR" ;
+LoopInstr < InstructionName ::= "LOOP" ;
 
-NoOpInstruction < InstructionName ::= "NOP" ;
+NegDblInstr  < InstructionName ::= "NEGD" ;
+NegIntInstr  < InstructionName ::= "NEGI" ;
+NegRealInstr < InstructionName ::= "NEGR" ;
 
-OpnInstruction < InstructionName ::= "OPN" ;
+NoOpInstr < InstructionName ::= "NOP" ;
 
-RInstruction < InstructionName ::= "R" ;
+OpnInstr < InstructionName ::= "OPN" ;
 
-RndInstruction < InstructionName ::= "RND" ;
+RInstr < InstructionName ::= "R" ;
 
-SInstruction < InstructionName ::= "S" ;
+RndInstr < InstructionName ::= "RND" ;
 
-SetInstruction < InstructionName ::= "SET" ;
+SInstr < InstructionName ::= "S" ;
 
-ShiftLeftDblInstruction   < InstructionName ::= "SLD" ;
-ShiftLeftWordInstruction  < InstructionName ::= "SLW" ;
-ShiftRightDblInstruction  < InstructionName ::= "SRD" ;
-ShiftRightWordInstruction < InstructionName ::= "SRW" ;
+SetInstr < InstructionName ::= "SET" ;
 
-TInstruction < InstructionName ::= "T" ;
+ShiftLeftDblInstr   < InstructionName ::= "SLD" ;
+ShiftLeftWordInstr  < InstructionName ::= "SLW" ;
+ShiftRightDblInstr  < InstructionName ::= "SRD" ;
+ShiftRightWordInstr < InstructionName ::= "SRW" ;
 
-Tar1Instruction < InstructionName ::= "TAR1" ;
+TInstr < InstructionName ::= "T" ;
 
-Tar2Instruction < InstructionName ::= "TAR2" ;
+Tar1Instr < InstructionName ::= "TAR1" ;
+
+Tar2Instr < InstructionName ::= "TAR2" ;
 
 InstructionArgument ::= <
     Argument
@@ -269,90 +280,106 @@ Argument < InstructionArgument ::=
 
 ParenthesizedArgument < InstructionArgument ::= "(" args : { Instruction }+ ")" ;
 
-CallArgumentList ::= args: CallArgument // "," ;
-CallArgument ::=
+ArgumentsList ::= args: ArgumentAssignment // "," ;
+ArgumentAssignment ::=
   name: Identifier
-  value: Initialization
+  value: Assignment
 ;
+
+ParamsInit ::= '{' params: ArgumentsList '}' ;
 
 Struct ::= "STRUCT" fields: { Field }+ "END_STRUCT" ;
 
 Field ::= 
   name: Identifier ":" 
   type: Type
-  init: [ Initialization ] ";" 
+  init: [ Assignment ] ";" 
 ;
 
-Type ::= <
-  AnyType
-| AnyDbType
-| AnyHwType
-| BoolType
-| ByteType
-| DwordType
-| IntegerType
-| DIntegerType
-| RealType
-| StringType
-| StrLitAsType
-| StructType
-| VectorType
-| VoidType
-| WordType
-> ;  
-
-AnyType      < Type ::= "Any" ;
-AnyDbType    < Type ::= "DB_ANY" ;
-AnyHwType    < Type ::= "HW_ANY" ;
-BoolType     < Type ::= "Bool" ;
-ByteType     < Type ::= "Byte" ;
-DwordType    < Type ::= "DWord" ;
-IntegerType  < Type ::= "Int" ;
-DIntegerType < Type ::= "DInt" ;
-RealType     < Type ::= "Real" ;
-StringType   < Type ::= "String" ;
-StrLitAsType < Type ::= str: StringLiteral ;
-StructType   < Type ::= struct: Struct ;
-VectorType   < Type ::= vector: VectorDecl ;
-VoidType     < Type ::= "Void" ;
-WordType     < Type ::= "Word" ;
-
-Initialization ::= 
+Assignment ::= 
   ":=" NAME AssignOp
   expr: [ Expression ]
 ;
 
-Expression ::= <
-    IndexExpression
-  | IntegerNumber
-  | RealNumber
-  | SimpleIdentifier
-  | StringConstant
-> ;
+Type ::= <
+    AnyType
+  | AnyDbType
+  | AnyHwType
+  | ArrayRangeType
+  | BoolType
+  | ByteType
+  | DwordType
+  | IntegerType
+  | DIntegerType
+  | RealType
+  | StringType
+  | StrLitAsType
+  | StructType
+  | VectorType
+  | VoidType
+  | WordType
+  | WStringType
+> ;  
 
-IndexExpression < Expression ::=
-  array: [ Identifier ]
-  "[" head: Argument  tail: { "," Argument } "]"
+AnyType        < Type ::= "Any" ;
+AnyDbType      < Type ::= "DB_ANY" ;
+AnyHwType      < Type ::= "HW_ANY" ;
+ArrayRangeType < Type ::= range: ArrayRangeDecl ;
+BoolType       < Type ::= "Bool" ;
+ByteType       < Type ::= "Byte" ;
+DwordType      < Type ::= "DWord" ;
+IntegerType    < Type ::= "Int" ;
+DIntegerType   < Type ::= "DInt" ;
+RealType       < Type ::= "Real" ;
+StringType     < Type ::= "String" ;
+StrLitAsType   < Type ::= type: Identifier ; %% What to do with str: DblQuotedStringLiteral?
+StructType     < Type ::= struct: Struct ;
+VectorType     < Type ::= vector: VectorDecl ;
+VoidType       < Type ::= "Void" ;
+WordType       < Type ::= "Word" ;
+WStringType    < Type ::= "WString" ;
+
+ArrayRangeDecl ::= "Array" "[" range: Range "]" "of" type: Type ;
+Range ::=
+  start: IntegerLiteral
+  ".." NAME rangeOp
+  end: IntegerLiteral
 ;
+
+VectorDecl ::= type: Type "[" dimensions: IntegerLiteral "]" ;
+
+Expression ::= <
+    IntegerNumber
+  | RealNumber
+  | FieldAccessOrString
+> ;
 
 IntegerNumber < Expression ::= intValue: NumConstant ;
 NumConstant ::= < DecimalLiteral | HexadecimalLiteral > ;
 DecimalLiteral     < NumConstant ::= sign: ["-"] decLit: IntegerLiteral ;
 HexadecimalLiteral < NumConstant ::= hexLit: HexIntegerLiteral ;
 
-RealNumber < Expression ::=
-  intPart: DecimalLiteral
-  "." fracPart: IntegerLiteral
+RealNumber < Expression ::= intPart: DecimalLiteral "." fracPart: IntegerLiteral ;
+
+FieldAccessOrString < Expression ::= obj: Object // '.' ;
+Object ::= <
+    SimpleIdentifier
+  | StringLiteral
+  | IndexExpression
+  >
 ;
 
-SimpleIdentifier < Expression ::= id: Identifier ;
+SimpleIdentifier < Object ::= id: Identifier ;
 
-StringConstant < Expression ::= 
-  str: StringLiteral
-  field: [ "." Identifier ]
+StringLiteral < Object ::= str: StringConstant ;
+StringConstant ::= < DoubleQuotedString | SingleQuotedString > ;
+DoubleQuotedString < StringConstant ::= str: DblQuotedStringLiteral ;
+SingleQuotedString < StringConstant ::= str: SnglQuotedStringLiteral;
+
+IndexExpression < Object ::=
+  array: Identifier
+  "[" head: Argument  tail: { "," Argument } "]"
 ;
-
-VectorDecl ::= type: Type "[" dimension: IntegerLiteral "]" ;
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -362,25 +389,24 @@ VectorDecl ::= type: Type "[" dimension: IntegerLiteral "]" ;
 SCAN TYPE String TitleName ::= "TITLE" { Space } "=" { AnyCharExceptNewline } ;
 SCAN Space = < SP | HT | VT | FF > ;
 
-SCAN TYPE String StringLiteral ::= '"' { AnyCharExceptDoubleQuoteNewline } '"' ;
-SCAN AnyCharExceptDoubleQuoteNewline ::= < NUL .. HT | VT | FF | SO .. '!' | '#' .. EOF > ;
-
-SCAN TYPE String Pragma ::= '{' { AnyCharExceptCloseBraceNewline } '}' ;
-SCAN AnyCharExceptCloseBraceNewline ::= < NUL .. HT | VT | FF | SO .. '|' | '~' .. EOF > ;
-
-SCAN TYPE Ident Identifier ::= IdentifierStart { IdentifierChar } ;
+SCAN TYPE Ident Identifier ::= ['"'] IdentifierStart { IdentifierChar } ['"'] ;
 SCAN IdentifierChar = < IdentifierStart | Digit | "." > ;
 SCAN IdentifierStart ::= < '#' | '_' | 'a' .. 'z' | 'A' .. 'Z' > ;
 
+SCAN TYPE String DblQuotedStringLiteral ::= '"' { AnyCharExceptDoubleQuoteNewline } '"' ;
+SCAN AnyCharExceptDoubleQuoteNewline ::= < NUL .. HT | VT | FF | SO .. '!' | '#' .. EOF > ;
+SCAN TYPE String SnglQuotedStringLiteral::= "'" { AnyCharExceptSingleQuoteNewline } "'" ;
+SCAN AnyCharExceptSingleQuoteNewline ::= < NUL .. HT | VT | FF | SO .. '&' | '(' .. EOF > ;
+
 SCAN TYPE String IntegerLiteral ::= < '0' | NonzeroInteger > ;
-%%SCAN TYPE Char Sign ::= < '+' | '-' > ;
+%% TODO SCAN TYPE Char Sign ::= < '+' | '-' > ;
 
 SCAN NonzeroInteger = NonzeroDigit { Digit } ;
 SCAN NonzeroDigit ::= < '1' .. '9' > ;
 SCAN Digit ::= < '0' .. '9' > ;
 
 SCAN TYPE String HexIntegerLiteral ::= "16#" NAME HexPrefix { HexDigit }+ ;
-SCAN HexDigit ::= < '0' .. '9' | 'A' .. 'F' > ;
+SCAN HexDigit ::= < '0' .. '9' | 'A' .. 'F' | '_' > ;
 
 SCAN EOF ::= "$" "$" "$" "$" "$" "$" ;
 

@@ -19,8 +19,10 @@ DataBlock < Block ::=
   header: HeaderBlock
   [ non_retain: "NON_RETAIN" ]
   struct: Struct ";"
+  %% In 06_Function/10_Tools/DI_Tub_ID_Monitor_T.AWL, instead of a Struct there
+  %% is just an identifier (a double-quoted one) <== TODO
   "BEGIN"
-  assignments: { ArgumentAssignment ";" }
+  assignments: { ArgumentsAssignment ";" }
   "END_DATA_BLOCK"
 ;
 
@@ -56,12 +58,42 @@ TypeBlock < Block ::=
 
 HeaderBlock ::=
   title: Title
-  params: ParamsInit
-  "FAMILY" ":" family: Identifier
+  [ params: ParamsInitComma ]
+  [ "FAMILY" ":" family: Identifier ]
   "VERSION" ":" version: Version
 ;
 
+ParamsInitComma ::= '{' params: ParamsInitListComma '}' ;
+ParamsInitListComma ::= args: ArgumentsAssignment // "," ;
+
 Version ::= ints: IntegerLiteral // "." ;
+
+Struct ::= "STRUCT" fields: { Field }+ "END_STRUCT" ;
+
+Field ::=
+  name: Identifier [ params: ParamsInitSC ]
+  ":" type: Type
+  init: [ Assignment ] ";"
+;
+
+ParamsInitSC ::= '{' params: ParamsInitListSC '}' ;
+ParamsInitListSC ::= args: ArgumentsAssignment // ";" ;
+
+ArgumentsAssignment ::=
+  name: FieldAccessOrIdentifier
+  value: Assignment
+;
+%% LET OP: there is a reason not to merge the following rule with the one above:
+%% the field declarations in struct's have the type between the identifier and
+%% the initialization. We could use a separate assignment rule for those fields
+%% and merge "Identifier ':=' Expression" into one rule for the other use
+%% cases.
+
+Assignment ::=
+  ":=" NAME AssignOp
+  expr: [ Expression ]  %% This is optional only in a couple of cases, in CALLs
+                        %% arguments lists.
+;
 
 Title ::= title: TitleName ;
 
@@ -70,7 +102,7 @@ Network ::=
    instructions: { Instruction }
 ;
 
-Instruction ::= instr: [ RealInstr ] ";" ;
+Instruction ::= instr: RealInstr ";" ;
 
 RealInstr ::= 
   label : [ Identifier ":" ]
@@ -130,17 +162,25 @@ InstructionName ::= <
   | Lar1Instr
   | Lar2Instr
   | LogicAndInstr
+  | LogicAndNestInstr
   | LogicAndNotInstr
+  | LogicAndNotNestInstr
   | LogicAndDblInstr
   | LogicAndWordInstr
+  | LogicNestCloseInstr
   | LogicOrInstr
+  | LogicOrNestInstr
   | LogicOrNotInstr
+  | LogicorNotNestInstr
   | LogicOrDblInstr
   | LogicOrWordInstr
+  | LogicXorDblInstr
+  | LogicXorWordInstr
   | LoopInstr
   | NegDblInstr
   | NegIntInstr
   | NegRealInstr
+  | NotRLOInstr
   | NoOpInstr
   | OpnInstr
   | RInstr
@@ -181,13 +221,14 @@ BecInstr < InstructionName ::= "BEC" ;
 CadInstr < InstructionName ::= "CAD" ;
 
 CallInstr < InstructionName ::= 
-  "CALL" callee: Callee
-  paramsInit: [ ParamsInit ]
-  "(" args: ArgumentsList ")"
+  "CALL" callees: CalleeList    %% yes, this can be a list; go figure
+  paramsInit: [ ParamsInitComma ]
+  arguments: [ Arguments ]
 ;
-Callee ::= < StringCallee | IdentCallee > ;
-StringCallee < Callee ::= strCallee: Identifier ;
-IdentCallee  < Callee ::= identCallee: Identifier ;
+CalleeList ::= callee: Identifier // ',' ;
+
+Arguments ::= '(' args: ArgumentsList ')' ;
+ArgumentsList ::= args: ArgumentsAssignment // ',' ;
 
 ClearInstr < InstructionName ::= "CLR" ;
 
@@ -230,20 +271,28 @@ LInstr < InstructionName ::= "L" ;
 Lar1Instr < InstructionName ::= "LAR1" ;
 Lar2Instr < InstructionName ::= "LAR2" ;
 
-LogicAndInstr    < InstructionName ::= "A" ;
-LogicAndNotInstr < InstructionName ::= "AN" ;
-LogicAndDblInstr < InstructionName ::= "AD" ;
-LogicAndWordInstr< InstructionName ::= "AW" ;
-LogicOrInstr     < InstructionName ::= "O" ;
-LogicOrNotInstr  < InstructionName ::= "ON" ;
-LogicOrDblInstr  < InstructionName ::= "OD" ;
-LogicOrWordInstr < InstructionName ::= "OW" ;
+LogicAndInstr        < InstructionName ::= "A" ;
+LogicAndNestInstr    < InstructionName ::= "A(" NAME andOpenNest ;
+LogicAndNotInstr     < InstructionName ::= "AN" ;
+LogicAndNotNestInstr < InstructionName ::= "AN(" NAME andNotOpenNest ;
+LogicAndDblInstr     < InstructionName ::= "AD" ;
+LogicAndWordInstr    < InstructionName ::= "AW" ;
+LogicNestCloseInstr  < InstructionName ::= ")" ;
+LogicOrInstr         < InstructionName ::= "O" ;
+LogicOrNestInstr     < InstructionName ::= "O(" NAME orOpenNest ;
+LogicOrNotInstr      < InstructionName ::= "ON" ;
+LogicorNotNestInstr  < InstructionName ::= "ON(" NAME orNotOpenNest ;
+LogicOrDblInstr      < InstructionName ::= "OD" ;
+LogicOrWordInstr     < InstructionName ::= "OW" ;
+LogicXorDblInstr     < InstructionName ::= "XOD" ;
+LogicXorWordInstr    < InstructionName ::= "XOW" ;
 
 LoopInstr < InstructionName ::= "LOOP" ;
 
 NegDblInstr  < InstructionName ::= "NEGD" ;
 NegIntInstr  < InstructionName ::= "NEGI" ;
 NegRealInstr < InstructionName ::= "NEGR" ;
+NotRLOInstr  < InstructionName ::= "NOT" ;
 
 NoOpInstr < InstructionName ::= "NOP" ;
 
@@ -270,36 +319,10 @@ Tar2Instr < InstructionName ::= "TAR2" ;
 
 InstructionArgument ::= <
     Argument
-  | ParenthesizedArgument
+  | ParenthesizedList
 > ;
-
-Argument < InstructionArgument ::= 
-  prefix: [ "%" ]
-  arg: Expression
-;
-
-ParenthesizedArgument < InstructionArgument ::= "(" args : { Instruction }+ ")" ;
-
-ArgumentsList ::= args: ArgumentAssignment // "," ;
-ArgumentAssignment ::=
-  name: Identifier
-  value: Assignment
-;
-
-ParamsInit ::= '{' params: ArgumentsList '}' ;
-
-Struct ::= "STRUCT" fields: { Field }+ "END_STRUCT" ;
-
-Field ::= 
-  name: Identifier ":" 
-  type: Type
-  init: [ Assignment ] ";" 
-;
-
-Assignment ::= 
-  ":=" NAME AssignOp
-  expr: [ Expression ]
-;
+Argument          < InstructionArgument ::= prefix: [ "%" ] arg: Expression ;
+ParenthesizedList < InstructionArgument ::= "(" args: { Instruction }+ ")" ;
 
 Type ::= <
     AnyType
@@ -351,7 +374,7 @@ VectorDecl ::= type: Type "[" dimensions: IntegerLiteral "]" ;
 Expression ::= <
     IntegerNumber
   | RealNumber
-  | FieldAccessOrString
+  | FieldAccessOrIdentifier
 > ;
 
 IntegerNumber < Expression ::= intValue: NumConstant ;
@@ -361,25 +384,22 @@ HexadecimalLiteral < NumConstant ::= hexLit: HexIntegerLiteral ;
 
 RealNumber < Expression ::= intPart: DecimalLiteral "." fracPart: IntegerLiteral ;
 
-FieldAccessOrString < Expression ::= obj: Object // '.' ;
-Object ::= <
-    SimpleIdentifier
-  | StringLiteral
-  | IndexExpression
-  >
-;
+FieldAccessOrIdentifier < Expression ::= obj: FieldOrIdent // '.' ;
+FieldOrIdent ::= < IndexExpression | Identifier > ;
 
-SimpleIdentifier < Object ::= id: Identifier ;
-
-StringLiteral < Object ::= str: StringConstant ;
-StringConstant ::= < DoubleQuotedString | SingleQuotedString > ;
-DoubleQuotedString < StringConstant ::= str: DblQuotedStringLiteral ;
-SingleQuotedString < StringConstant ::= str: SnglQuotedStringLiteral;
-
-IndexExpression < Object ::=
-  array: Identifier
+IndexExpression < FieldOrIdent ::=
+  array: [ Identifier ]
   "[" head: Argument  tail: { "," Argument } "]"
 ;
+
+Identifier < FieldOrIdent ::= < RegularIdentifierRule | QuotedIdentifierRule > ;
+RegularIdentifierRule < Identifier ::= str: RegularIdentifier ;
+QuotedIdentifierRule  < Identifier ::= str: QuotedIdentifier ;
+
+%% StringLiteral < FieldOrIdent ::= str: StringConstant ;
+%% StringConstant ::= < DoubleQuotedString | SingleQuotedString > ;
+%% DoubleQuotedString < StringConstant ::= str: DblQuotedStringLiteral ;
+%% SingleQuotedString < StringConstant ::= str: SnglQuotedStringLiteral;
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -389,14 +409,18 @@ IndexExpression < Object ::=
 SCAN TYPE String TitleName ::= "TITLE" { Space } "=" { AnyCharExceptNewline } ;
 SCAN Space = < SP | HT | VT | FF > ;
 
-SCAN TYPE Ident Identifier ::= ['"'] IdentifierStart { IdentifierChar } ['"'] ;
+SCAN TYPE Ident RegularIdentifier ::= IdentifierStart { IdentifierChar } ;
 SCAN IdentifierChar = < IdentifierStart | Digit | "." > ;
 SCAN IdentifierStart ::= < '#' | '_' | 'a' .. 'z' | 'A' .. 'Z' > ;
 
-SCAN TYPE String DblQuotedStringLiteral ::= '"' { AnyCharExceptDoubleQuoteNewline } '"' ;
-SCAN AnyCharExceptDoubleQuoteNewline ::= < NUL .. HT | VT | FF | SO .. '!' | '#' .. EOF > ;
-SCAN TYPE String SnglQuotedStringLiteral::= "'" { AnyCharExceptSingleQuoteNewline } "'" ;
-SCAN AnyCharExceptSingleQuoteNewline ::= < NUL .. HT | VT | FF | SO .. '&' | '(' .. EOF > ;
+SCAN TYPE Ident QuotedIdentifier ::= Quote { IdentExtendedChar } Quote ;
+SCAN IdentExtendedChar = < IdentifierChar | '/' | '-' > ;
+SCAN Quote = < '"' | "'" > ;
+
+%% SCAN TYPE String DblQuotedStringLiteral ::= '"' { AnyCharExceptDoubleQuoteNewline } '"' ;
+%% SCAN AnyCharExceptDoubleQuoteNewline ::= < NUL .. HT | VT | FF | SO .. '!' | '#' .. EOF > ;
+%% SCAN TYPE String SnglQuotedStringLiteral::= "'" { AnyCharExceptSingleQuoteNewline } "'" ;
+%% SCAN AnyCharExceptSingleQuoteNewline ::= < NUL .. HT | VT | FF | SO .. '&' | '(' .. EOF > ;
 
 SCAN TYPE String IntegerLiteral ::= < '0' | NonzeroInteger > ;
 %% TODO SCAN TYPE Char Sign ::= < '+' | '-' > ;
@@ -410,7 +434,7 @@ SCAN HexDigit ::= < '0' .. '9' | 'A' .. 'F' | '_' > ;
 
 SCAN EOF ::= "$" "$" "$" "$" "$" "$" ;
 
-SCAN COMMENT LineComment ::= "//" NAME SlashSlashOp{ AnyCharExceptNewline } ;
+SCAN COMMENT LineComment ::= "//" NAME SlashSlashOp { AnyCharExceptNewline } ;
 SCAN AnyCharExceptNewline ::= < NUL .. HT | VT | FF | SO .. EOF > ;
 
 SCAN COMMENT Whitespace ::= Space ;

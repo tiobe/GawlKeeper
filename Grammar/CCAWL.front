@@ -18,13 +18,14 @@ DataBlock < Block ::=
   "DATA_BLOCK" block_name: Identifier
   header: HeaderBlock
   [ non_retain: "NON_RETAIN" ]
-  struct: Struct ";"
-  %% In 06_Function/10_Tools/DI_Tub_ID_Monitor_T.AWL, instead of a Struct there
-  %% is just an identifier (a double-quoted one) <== TODO
+  data: DataForBlock
   "BEGIN"
   assignments: { ArgumentsAssignment ";" }
   "END_DATA_BLOCK"
 ;
+DataForBlock ::= < ImportedIdentifier | StructForDataBlock > ;
+ImportedIdentifier < DataForBlock ::= id: Identifier ;
+StructForDataBlock < DataForBlock ::= struct: Struct ";" ;
 
 Function < Block ::=
   "FUNCTION" function_name: Identifier ":" return_type: Type
@@ -107,11 +108,13 @@ Instruction ::= instr: RealInstr ";" ;
 RealInstr ::= 
   label : [ Identifier ":" ]
   instruction: InstructionName
-  arg: [ InstructionArgument ]
+  arg: [ Argument ]
 ; 
 
 InstructionName ::= <
-    ArithSumInstr
+    AccuDecInstr
+  | AccuIncInstr
+  | ArithSumInstr
   | ArithDblSumInstr
   | ArithDblSubInstr
   | ArithDblMultInstr
@@ -195,6 +198,9 @@ InstructionName ::= <
   | Tar1Instr
   | Tar2Instr
 > ;
+
+AccuDecInstr < InstructionName ::= "DEC" ;
+AccuIncInstr < InstructionName ::= "INC" ;
 
 ArithSumInstr     < InstructionName ::= "+" ;
 ArithDblSumInstr  < InstructionName ::= "+D" NAME SumDblOp ;
@@ -317,12 +323,7 @@ Tar1Instr < InstructionName ::= "TAR1" ;
 
 Tar2Instr < InstructionName ::= "TAR2" ;
 
-InstructionArgument ::= <
-    Argument
-  | ParenthesizedList
-> ;
-Argument          < InstructionArgument ::= prefix: [ "%" ] arg: Expression ;
-ParenthesizedList < InstructionArgument ::= "(" args: { Instruction }+ ")" ;
+Argument ::= prefix: [ "%" ] arg: Expression ;
 
 Type ::= <
     AnyType
@@ -338,7 +339,7 @@ Type ::= <
   | StringType
   | StrLitAsType
   | StructType
-  | VectorType
+  %%| VectorType
   | VoidType
   | WordType
   | WStringType
@@ -354,13 +355,18 @@ DwordType      < Type ::= "DWord" ;
 IntegerType    < Type ::= "Int" ;
 DIntegerType   < Type ::= "DInt" ;
 RealType       < Type ::= "Real" ;
-StringType     < Type ::= "String" ;
+%% StringType     < Type ::= "String" ;
+StringType     < Type ::= "String" array: [ VectorDecl ] ;
 StrLitAsType   < Type ::= type: Identifier ; %% What to do with str: DblQuotedStringLiteral?
 StructType     < Type ::= struct: Struct ;
-VectorType     < Type ::= vector: VectorDecl ;
+%% VectorType     < Type ::= vector: VectorDecl ;
 VoidType       < Type ::= "Void" ;
 WordType       < Type ::= "Word" ;
-WStringType    < Type ::= "WString" ;
+%% WStringType    < Type ::= "WString" ;
+WStringType    < Type ::= "WString" array: [ VectorDecl ] ;
+
+%% TODO Separate types in basic and composed, so that the type in the original
+%% definition of VectorDecl can refer to basic types only, and break the ambiguity
 
 ArrayRangeDecl ::= "Array" "[" range: Range "]" "of" type: Type ;
 Range ::=
@@ -369,7 +375,8 @@ Range ::=
   end: IntegerLiteral
 ;
 
-VectorDecl ::= type: Type "[" dimensions: IntegerLiteral "]" ;
+%% VectorDecl ::= type: Type "[" dimensions: IntegerLiteral "]" ;
+VectorDecl ::= "[" dimensions: IntegerLiteral "]" ;
 
 Expression ::= <
     IntegerNumber
@@ -379,7 +386,7 @@ Expression ::= <
 
 IntegerNumber < Expression ::= intValue: NumConstant ;
 NumConstant ::= < DecimalLiteral | HexadecimalLiteral > ;
-DecimalLiteral     < NumConstant ::= sign: ["-"] decLit: IntegerLiteral ;
+DecimalLiteral     < NumConstant ::= sign: [ Sign ]  decLit: IntegerLiteral ;
 HexadecimalLiteral < NumConstant ::= hexLit: HexIntegerLiteral ;
 
 RealNumber < Expression ::= intPart: DecimalLiteral "." fracPart: IntegerLiteral ;
@@ -392,14 +399,12 @@ IndexExpression < FieldOrIdent ::=
   "[" head: Argument  tail: { "," Argument } "]"
 ;
 
-Identifier < FieldOrIdent ::= < RegularIdentifierRule | QuotedIdentifierRule > ;
+Identifier < FieldOrIdent ::= < RegularIdentifierRule | StringLiteral > ;
 RegularIdentifierRule < Identifier ::= str: RegularIdentifier ;
-QuotedIdentifierRule  < Identifier ::= str: QuotedIdentifier ;
-
-%% StringLiteral < FieldOrIdent ::= str: StringConstant ;
-%% StringConstant ::= < DoubleQuotedString | SingleQuotedString > ;
-%% DoubleQuotedString < StringConstant ::= str: DblQuotedStringLiteral ;
-%% SingleQuotedString < StringConstant ::= str: SnglQuotedStringLiteral;
+StringLiteral         < Identifier ::= str: StringConstant ;
+StringConstant ::= < DoubleQuotedString | SingleQuotedString > ;
+DoubleQuotedString < StringConstant ::= str: DblQuotedStringLiteral ;
+SingleQuotedString < StringConstant ::= str: SnglQuotedStringLiteral;
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -410,21 +415,20 @@ SCAN TYPE String TitleName ::= "TITLE" { Space } "=" { AnyCharExceptNewline } ;
 SCAN Space = < SP | HT | VT | FF > ;
 
 SCAN TYPE Ident RegularIdentifier ::= IdentifierStart { IdentifierChar } ;
-SCAN IdentifierChar = < IdentifierStart | Digit | "." > ;
 SCAN IdentifierStart ::= < '#' | '_' | 'a' .. 'z' | 'A' .. 'Z' > ;
+SCAN IdentifierChar = < IdentifierStart | Digit | '.' > ;
 
-SCAN TYPE Ident QuotedIdentifier ::= Quote { IdentExtendedChar } Quote ;
-SCAN IdentExtendedChar = < IdentifierChar | '/' | '-' > ;
-SCAN Quote = < '"' | "'" > ;
+%% SCAN TYPE Ident QuotedIdentifier ::= Quote { IdentExtendedChar }+ Quote ;
+%% SCAN IdentExtendedChar = < IdentifierChar | '/' | '-' > ;
+%% SCAN Quote = < '"' | "'" > ;
 
-%% SCAN TYPE String DblQuotedStringLiteral ::= '"' { AnyCharExceptDoubleQuoteNewline } '"' ;
-%% SCAN AnyCharExceptDoubleQuoteNewline ::= < NUL .. HT | VT | FF | SO .. '!' | '#' .. EOF > ;
-%% SCAN TYPE String SnglQuotedStringLiteral::= "'" { AnyCharExceptSingleQuoteNewline } "'" ;
-%% SCAN AnyCharExceptSingleQuoteNewline ::= < NUL .. HT | VT | FF | SO .. '&' | '(' .. EOF > ;
+SCAN TYPE String DblQuotedStringLiteral ::= '"' { AnyCharExceptDoubleQuoteNewline } '"' ;
+SCAN AnyCharExceptDoubleQuoteNewline ::= < NUL .. HT | VT | FF | SO .. '!' | '#' .. EOF > ;
+SCAN TYPE String SnglQuotedStringLiteral::= "'" { AnyCharExceptSingleQuoteNewline } "'" ;
+SCAN AnyCharExceptSingleQuoteNewline ::= < NUL .. HT | VT | FF | SO .. '&' | '(' .. EOF > ;
 
 SCAN TYPE String IntegerLiteral ::= < '0' | NonzeroInteger > ;
-%% TODO SCAN TYPE Char Sign ::= < '+' | '-' > ;
-
+SCAN TYPE String Sign ::= < '+' | '-' > ;
 SCAN NonzeroInteger = NonzeroDigit { Digit } ;
 SCAN NonzeroDigit ::= < '1' .. '9' > ;
 SCAN Digit ::= < '0' .. '9' > ;

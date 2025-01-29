@@ -60,14 +60,12 @@ TypeBlock < Block ::=
 HeaderBlock ::=
   title: Title
   [ params: ParamsInitComma ]
-  [ "FAMILY" ":" family: Identifier ]
-  "VERSION" ":" version: Version
+  [ "FAMILY" ':' family: Identifier ]
+  "VERSION" ':' major: IntegerLiteral '.' minor: IntegerLiteral
 ;
 
 ParamsInitComma ::= '{' params: ParamsInitListComma '}' ;
 ParamsInitListComma ::= args: ArgumentsAssignment // "," ;
-
-Version ::= ints: IntegerLiteral // "." ;
 
 Struct ::= "STRUCT" fields: { Field }+ "END_STRUCT" ;
 
@@ -343,20 +341,20 @@ BasicType < Type ::= <
   | WStringType
 > ;
 
-AnyType        < BasicType ::= "Any" ;
-AnyDbType      < BasicType ::= "DB_ANY" ;
-AnyHwType      < BasicType ::= "HW_ANY" ;
-BoolType       < BasicType ::= "Bool" ;
-ByteType       < BasicType ::= "Byte" ;
-DwordType      < BasicType ::= "DWord" ;
-IntegerType    < BasicType ::= "Int" ;
-DIntegerType   < BasicType ::= "DInt" ;
-RealType       < BasicType ::= "Real" ;
-StringType     < BasicType ::= "String" ;
-StrLitAsType   < BasicType ::= type: Identifier ;
-VoidType       < BasicType ::= "Void" ;
-WordType       < BasicType ::= "Word" ;
-WStringType    < BasicType ::= "WString" ;
+AnyType      < BasicType ::= "Any" ;
+AnyDbType    < BasicType ::= "DB_ANY" ;
+AnyHwType    < BasicType ::= "HW_ANY" ;
+BoolType     < BasicType ::= "Bool" ;
+ByteType     < BasicType ::= "Byte" ;
+DwordType    < BasicType ::= "DWord" ;
+IntegerType  < BasicType ::= "Int" ;
+DIntegerType < BasicType ::= "DInt" ;
+RealType     < BasicType ::= "Real" ;
+StringType   < BasicType ::= "String" ;
+StrLitAsType < BasicType ::= type: Identifier ;
+VoidType     < BasicType ::= "Void" ;
+WordType     < BasicType ::= "Word" ;
+WStringType  < BasicType ::= "WString" ;
 
 ComplexType < Type ::= <
     ArrayRangeType

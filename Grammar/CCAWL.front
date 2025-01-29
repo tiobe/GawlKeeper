@@ -325,11 +325,11 @@ Tar2Instr < InstructionName ::= "TAR2" ;
 
 Argument ::= prefix: [ "%" ] arg: Expression ;
 
-Type ::= <
+Type ::= < BasicType | ComplexType > ;
+BasicType < Type ::= <
     AnyType
   | AnyDbType
   | AnyHwType
-  | ArrayRangeType
   | BoolType
   | ByteType
   | DwordType
@@ -338,35 +338,35 @@ Type ::= <
   | RealType
   | StringType
   | StrLitAsType
-  | StructType
-  %%| VectorType
   | VoidType
   | WordType
   | WStringType
-> ;  
+> ;
 
-AnyType        < Type ::= "Any" ;
-AnyDbType      < Type ::= "DB_ANY" ;
-AnyHwType      < Type ::= "HW_ANY" ;
-ArrayRangeType < Type ::= range: ArrayRangeDecl ;
-BoolType       < Type ::= "Bool" ;
-ByteType       < Type ::= "Byte" ;
-DwordType      < Type ::= "DWord" ;
-IntegerType    < Type ::= "Int" ;
-DIntegerType   < Type ::= "DInt" ;
-RealType       < Type ::= "Real" ;
-%% StringType     < Type ::= "String" ;
-StringType     < Type ::= "String" array: [ VectorDecl ] ;
-StrLitAsType   < Type ::= type: Identifier ; %% What to do with str: DblQuotedStringLiteral?
-StructType     < Type ::= struct: Struct ;
-%% VectorType     < Type ::= vector: VectorDecl ;
-VoidType       < Type ::= "Void" ;
-WordType       < Type ::= "Word" ;
-%% WStringType    < Type ::= "WString" ;
-WStringType    < Type ::= "WString" array: [ VectorDecl ] ;
+AnyType        < BasicType ::= "Any" ;
+AnyDbType      < BasicType ::= "DB_ANY" ;
+AnyHwType      < BasicType ::= "HW_ANY" ;
+BoolType       < BasicType ::= "Bool" ;
+ByteType       < BasicType ::= "Byte" ;
+DwordType      < BasicType ::= "DWord" ;
+IntegerType    < BasicType ::= "Int" ;
+DIntegerType   < BasicType ::= "DInt" ;
+RealType       < BasicType ::= "Real" ;
+StringType     < BasicType ::= "String" ;
+StrLitAsType   < BasicType ::= type: Identifier ;
+VoidType       < BasicType ::= "Void" ;
+WordType       < BasicType ::= "Word" ;
+WStringType    < BasicType ::= "WString" ;
 
-%% TODO Separate types in basic and composed, so that the type in the original
-%% definition of VectorDecl can refer to basic types only, and break the ambiguity
+ComplexType < Type ::= <
+    ArrayRangeType
+  | StructType
+  | VectorType
+> ;
+
+ArrayRangeType < ComplexType ::= range: ArrayRangeDecl ;
+StructType     < ComplexType ::= struct: Struct ;
+VectorType     < ComplexType ::= vector: VectorDecl ;
 
 ArrayRangeDecl ::= "Array" "[" range: Range "]" "of" type: Type ;
 Range ::=
@@ -375,8 +375,12 @@ Range ::=
   end: IntegerLiteral
 ;
 
-%% VectorDecl ::= type: Type "[" dimensions: IntegerLiteral "]" ;
-VectorDecl ::= "[" dimensions: IntegerLiteral "]" ;
+%% Struct is defined far above, beginning with "STRUCT", but the scanner is
+%% case-insensitive, so that definition is good for "Struct" as well.
+%% TODO: should we differentiate those 2 definitions and make the scanner
+%% case-sensitive?
+
+VectorDecl ::= type: BasicType "[" dimensions: IntegerLiteral "]" ;
 
 Expression ::= <
     IntegerNumber

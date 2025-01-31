@@ -25,7 +25,7 @@ DataBlock < Block ::=
 ;
 DataForBlock ::= < ImportedIdentifier | StructForDataBlock > ;
 ImportedIdentifier < DataForBlock ::= id: Identifier ;
-StructForDataBlock < DataForBlock ::= struct: Struct ";" ;
+StructForDataBlock < DataForBlock ::= struct: StructBlock ";" ;
 
 Function < Block ::=
   "FUNCTION" function_name: Identifier ":" return_type: Type
@@ -53,7 +53,7 @@ FunctionBody ::=
 TypeBlock < Block ::=
   "TYPE" type_name: Identifier
   header: HeaderBlock
-  struct: Struct ";"
+  struct: StructBlock ';'
   "END_TYPE"
 ;
 
@@ -67,7 +67,8 @@ HeaderBlock ::=
 ParamsInitComma ::= '{' params: ParamsInitListComma '}' ;
 ParamsInitListComma ::= args: ArgumentsAssignment // "," ;
 
-Struct ::= "STRUCT" fields: { Field }+ "END_STRUCT" ;
+StructBlock ::= "STRUCT" struct: StructBody ;
+StructBody  ::= fields: { Field }+ "END_STRUCT" ;
 
 Field ::=
   name: Identifier [ params: ParamsInitSC ]
@@ -79,14 +80,13 @@ ParamsInitSC ::= '{' params: ParamsInitListSC '}' ;
 ParamsInitListSC ::= args: ArgumentsAssignment // ";" ;
 
 ArgumentsAssignment ::=
-  name: FieldAccessOrIdentifier
+  name: Reference
+  index: [ '[' IntegerLiteral ']' ]
   value: Assignment
 ;
 %% LET OP: there is a reason not to merge the following rule with the one above:
-%% the field declarations in struct's have the type between the identifier and
-%% the initialization. We could use a separate assignment rule for those fields
-%% and merge "Identifier ':=' Expression" into one rule for the other use
-%% cases.
+%% in the struct's field declarations, the type goes between the identifier and
+%% the initialization.
 
 Assignment ::=
   ":=" NAME AssignOp
@@ -106,7 +106,7 @@ Instruction ::= instr: RealInstr ";" ;
 RealInstr ::= 
   label : [ Identifier ":" ]
   instruction: InstructionName
-  arg: [ Argument ]
+  arg: [ Expression ]
 ; 
 
 InstructionName ::= <
@@ -175,6 +175,7 @@ InstructionName ::= <
   | LogicorNotNestInstr
   | LogicOrDblInstr
   | LogicOrWordInstr
+  | LogicXorInstr
   | LogicXorDblInstr
   | LogicXorWordInstr
   | LoopInstr
@@ -229,7 +230,7 @@ CallInstr < InstructionName ::=
   paramsInit: [ ParamsInitComma ]
   arguments: [ Arguments ]
 ;
-CalleeList ::= callee: Identifier // ',' ;
+CalleeList ::= callee: Reference // ',' ;
 
 Arguments ::= '(' args: ArgumentsList ')' ;
 ArgumentsList ::= args: ArgumentsAssignment // ',' ;
@@ -288,6 +289,7 @@ LogicOrNotInstr      < InstructionName ::= "ON" ;
 LogicorNotNestInstr  < InstructionName ::= "ON(" NAME orNotOpenNest ;
 LogicOrDblInstr      < InstructionName ::= "OD" ;
 LogicOrWordInstr     < InstructionName ::= "OW" ;
+LogicXorInstr        < InstructionName ::= "X" ;
 LogicXorDblInstr     < InstructionName ::= "XOD" ;
 LogicXorWordInstr    < InstructionName ::= "XOW" ;
 
@@ -321,7 +323,6 @@ Tar1Instr < InstructionName ::= "TAR1" ;
 
 Tar2Instr < InstructionName ::= "TAR2" ;
 
-Argument ::= prefix: [ "%" ] arg: Expression ;
 
 Type ::= < BasicType | ComplexType > ;
 BasicType < Type ::= <
@@ -330,7 +331,7 @@ BasicType < Type ::= <
   | AnyHwType
   | BoolType
   | ByteType
-  | DwordType
+  | DWordType
   | IntegerType
   | DIntegerType
   | RealType
@@ -340,13 +341,12 @@ BasicType < Type ::= <
   | WordType
   | WStringType
 > ;
-
 AnyType      < BasicType ::= "Any" ;
 AnyDbType    < BasicType ::= "DB_ANY" ;
 AnyHwType    < BasicType ::= "HW_ANY" ;
 BoolType     < BasicType ::= "Bool" ;
 ByteType     < BasicType ::= "Byte" ;
-DwordType    < BasicType ::= "DWord" ;
+DWordType    < BasicType ::= "DWord" ;
 IntegerType  < BasicType ::= "Int" ;
 DIntegerType < BasicType ::= "DInt" ;
 RealType     < BasicType ::= "Real" ;
@@ -363,50 +363,60 @@ ComplexType < Type ::= <
 > ;
 
 ArrayRangeType < ComplexType ::= range: ArrayRangeDecl ;
-StructType     < ComplexType ::= struct: Struct ;
+StructType     < ComplexType ::= "Struct" struct: StructBody ;
 VectorType     < ComplexType ::= vector: VectorDecl ;
 
-ArrayRangeDecl ::= "Array" "[" range: Range "]" "of" type: Type ;
+ArrayRangeDecl ::= "Array" '[' range: Range ']' "of" type: Type ;
 Range ::=
   start: IntegerLiteral
   ".." NAME rangeOp
   end: IntegerLiteral
 ;
 
-%% Struct is defined far above, beginning with "STRUCT", but the scanner is
-%% case-insensitive, so that definition is good for "Struct" as well.
-%% TODO: should we differentiate those 2 definitions and make the scanner
-%% case-sensitive?
-
-VectorDecl ::= type: BasicType "[" dimensions: IntegerLiteral "]" ;
+VectorDecl ::= type: BasicType '[' dimensions: IntegerLiteral ']' ;
 
 Expression ::= <
-    IntegerNumber
-  | RealNumber
-  | FieldAccessOrIdentifier
+    SimpleExpression | RealNumber
+  | FieldAccess | MemoryAccess | PointerAccess
+  | ArrayAccess | Dereference
 > ;
+SimpleExpression < Expression ::= < IntegerNumber | Reference > ;
+Reference < SimpleExpression ::= < Identifier | SymbolAccess > ;
 
-IntegerNumber < Expression ::= intValue: NumConstant ;
-NumConstant ::= < DecimalLiteral | HexadecimalLiteral > ;
-DecimalLiteral     < NumConstant ::= sign: [ Sign ]  decLit: IntegerLiteral ;
-HexadecimalLiteral < NumConstant ::= hexLit: HexIntegerLiteral ;
+SymbolAccess < Reference ::= '#' id: Identifier ;
 
-RealNumber < Expression ::= intPart: DecimalLiteral "." fracPart: IntegerLiteral ;
-
-FieldAccessOrIdentifier < Expression ::= obj: FieldOrIdent // '.' ;
-FieldOrIdent ::= < IndexExpression | Identifier > ;
-
-IndexExpression < FieldOrIdent ::=
-  array: [ Identifier ]
-  "[" head: Argument  tail: { "," Argument } "]"
-;
-
-Identifier < FieldOrIdent ::= < RegularIdentifierRule | StringLiteral > ;
-RegularIdentifierRule < Identifier ::= str: RegularIdentifier ;
-StringLiteral         < Identifier ::= str: StringConstant ;
+Identifier < Reference ::= < RegularIdentifier | StringLiteral > ;
+RegularIdentifier < Identifier ::= str: Regular_Identifier ;
+StringLiteral     < Identifier ::= str: StringConstant ;
 StringConstant ::= < DoubleQuotedString | SingleQuotedString > ;
 DoubleQuotedString < StringConstant ::= str: DblQuotedStringLiteral ;
 SingleQuotedString < StringConstant ::= str: SnglQuotedStringLiteral;
+
+IntegerNumber < SimpleExpression ::= intValue: NumConstant ;
+NumConstant ::= < DecimalLiteral | HexadecimalLiteral > ;
+DecimalLiteral     < NumConstant ::= sign: [ Sign ]  decLit: IntegerLiteral ;
+HexadecimalLiteral < NumConstant ::= size: [ Size '#' ]  hexLit: HexIntegerLiteral ;
+
+RealNumber < Expression ::= intPart: DecimalLiteral '.' fracPart: IntegerLiteral ;
+
+FieldAccess < Expression ::= obj: Reference fields: { '.' Identifier }+ ;
+
+ArrayAccess < Expression ::=
+  array: Reference
+  '[' head: Expression  tail: { ',' Expression } ']'
+;
+
+Dereference < Expression ::=
+  size: [ Size ]
+  '[' head: Expression  tail: { ',' Expression } ']'
+;
+
+MemoryAccess < Expression ::= '%' id: Identifier [ '.' field: IntegerLiteral ] ;
+
+PointerAccess < Expression ::=
+  "P#" NAME ptrOp
+  ptr: SimpleExpression ['.' bit: IntegerLiteral]
+;
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -416,13 +426,13 @@ SingleQuotedString < StringConstant ::= str: SnglQuotedStringLiteral;
 SCAN TYPE String TitleName ::= "TITLE" { Space } "=" { AnyCharExceptNewline } ;
 SCAN Space = < SP | HT | VT | FF > ;
 
-SCAN TYPE Ident RegularIdentifier ::= IdentifierStart { IdentifierChar } ;
-SCAN IdentifierStart ::= < '#' | '_' | 'a' .. 'z' | 'A' .. 'Z' > ;
-SCAN IdentifierChar = < IdentifierStart | Digit | '.' > ;
+SCAN TYPE String Size ::= < "B" | "DB" | "W" | "WORD" | "DWORD" | "DW" | "DBW" |
+                                         "w"
+> ;
 
-%% SCAN TYPE Ident QuotedIdentifier ::= Quote { IdentExtendedChar }+ Quote ;
-%% SCAN IdentExtendedChar = < IdentifierChar | '/' | '-' > ;
-%% SCAN Quote = < '"' | "'" > ;
+SCAN TYPE Ident Regular_Identifier ::= IdentifierStart { IdentifierChar } ;
+SCAN IdentifierStart ::= < '_' | 'a' .. 'z' | 'A' .. 'Z' > ;
+SCAN IdentifierChar = < IdentifierStart | Digit > ;
 
 SCAN TYPE String DblQuotedStringLiteral ::= '"' { AnyCharExceptDoubleQuoteNewline } '"' ;
 SCAN AnyCharExceptDoubleQuoteNewline ::= < NUL .. HT | VT | FF | SO .. '!' | '#' .. EOF > ;

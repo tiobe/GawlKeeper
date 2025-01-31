@@ -155,11 +155,11 @@ Grammar/%.front:: %.front.patch
 	-patch -N -p0 -o $@ < $<
 	t=$<; t=$${t%.front.patch}; make TARGET=$${t} from_front
 
-patch_scanfile: $(addprefix $(GENERATED)/,$(addsuffix .scan,$(AGDLS))) $(addsuffix .scan.patch,$(AGDLS))
-	-patch -N -p0 -F0 < $(TARGET).scan.patch
-
-make_scanfile_patch: $(addprefix $(GENERATED)/,$(addsuffix .scan,$(AGDLS))) $(addprefix Grammar/,$(addsuffix .scan,$(AGDLS)))
-	-diff -Naur $(GENERATED)/$(TARGET).scan Grammar/$(TARGET).scan > $(TARGET).scan.patch
+# patch_scanfile: $(addprefix $(GENERATED)/,$(addsuffix .scan,$(AGDLS))) $(addsuffix .scan.patch,$(AGDLS))
+# 	-patch -N -p0 -F0 < $(TARGET).scan.patch
+# 
+# make_scanfile_patch: $(addprefix $(GENERATED)/,$(addsuffix .scan,$(AGDLS))) $(addprefix Grammar/,$(addsuffix .scan,$(AGDLS)))
+# 	-diff -Naur $(GENERATED)/$(TARGET).scan Grammar/$(TARGET).scan > $(TARGET).scan.patch
 
 info:
 	sed -E -n 's|^\s*\#define\s*Versions_date\s*\(.*\"(.*)\"\)$$|\1|p' ../version/Generated/$(ARCH)/O/Versions.h | jq -R "{date:.}|.revision=\"$(SVNVERSION)\"|.version=\"r$(SVNVERSION)  (\(.date))\"|.compatible[0]=\"2021.2.1.43807\"|.compatible[1]=\"2021.3\"" > info.json

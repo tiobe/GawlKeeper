@@ -1,6 +1,7 @@
 %% SIEMENS AWL LANGUAGE DEFINITION
-%% Author: Paul Jansen
+%% Authors: Juanma Bellon, Paul Jansen
 %% Date: 11-Jan-2025
+%% Copyright TIOBE Software BV, 2025
 
 CCAWL ::= 
   block_type : Block 
@@ -15,7 +16,7 @@ Block ::= <
 > ;
 
 DataBlock < Block ::= 
-  "DATA_BLOCK" block_name: Identifier
+  "DATA_BLOCK" block_name: StringLiteral
   header: HeaderBlock
   [ non_retain: "NON_RETAIN" ]
   data: DataForBlock
@@ -24,17 +25,17 @@ DataBlock < Block ::=
   "END_DATA_BLOCK"
 ;
 DataForBlock ::= < ImportedIdentifier | StructForDataBlock > ;
-ImportedIdentifier < DataForBlock ::= id: Identifier ;
+ImportedIdentifier < DataForBlock ::= id: Reference ;
 StructForDataBlock < DataForBlock ::= struct: StructBlock ";" ;
 
 Function < Block ::=
-  "FUNCTION" function_name: Identifier ":" return_type: Type
+  "FUNCTION" function_name: StringLiteral ":" return_type: Type
   body: FunctionBody
   "END_FUNCTION"
 ;
 
 FunctionBlock < Block ::= 
-  "FUNCTION_BLOCK" function_name: Identifier
+  "FUNCTION_BLOCK" function_name: StringLiteral
   body: FunctionBody
   "END_FUNCTION_BLOCK"
 ;
@@ -51,7 +52,7 @@ FunctionBody ::=
 ;
 
 TypeBlock < Block ::=
-  "TYPE" type_name: Identifier
+  "TYPE" type_name: StringLiteral
   header: HeaderBlock
   struct: StructBlock ';'
   "END_TYPE"
@@ -61,7 +62,7 @@ HeaderBlock ::=
   title: Title
   [ params: ParamsInitComma ]
   [ "FAMILY" ':' family: Identifier ]
-  "VERSION" ':' major: IntegerLiteral '.' minor: IntegerLiteral
+  "VERSION" ':' version: RealNumber
 ;
 
 ParamsInitComma ::= '{' params: ParamsInitListComma '}' ;
@@ -71,7 +72,7 @@ StructBlock ::= "STRUCT" struct: StructBody ;
 StructBody  ::= fields: { Field }+ "END_STRUCT" ;
 
 Field ::=
-  name: Identifier [ params: ParamsInitSC ]
+  name: Reference [ params: ParamsInitSC ]
   ":" type: Type
   init: [ Assignment ] ";"
 ;
@@ -80,8 +81,7 @@ ParamsInitSC ::= '{' params: ParamsInitListSC '}' ;
 ParamsInitListSC ::= args: ArgumentsAssignment // ";" ;
 
 ArgumentsAssignment ::=
-  name: Reference
-  index: [ '[' IntegerLiteral ']' ]
+  name: Expression
   value: Assignment
 ;
 %% LET OP: there is a reason not to merge the following rule with the one above:
@@ -98,16 +98,21 @@ Title ::= title: TitleName ;
 
 Network ::= 
    "NETWORK" title: Title 
-   instructions: { Instruction }
+   instructions: { Instruction ";" }
 ;
 
-Instruction ::= instr: RealInstr ";" ;
-
-RealInstr ::= 
+Instruction ::= 
   label : [ Identifier ":" ]
   instruction: InstructionName
-  arg: [ Expression ]
+  arg: [ InstrExpression ]
 ; 
+
+InstrExpression ::= <
+  Expression
+| AnonymousArray
+> ;
+
+AnonymousArray < InstrExpression ::= '[' head: Expression tail: { ',' Expression }']' ;
 
 InstructionName ::= <
     AccuDecInstr
@@ -230,7 +235,12 @@ CallInstr < InstructionName ::=
   paramsInit: [ ParamsInitComma ]
   arguments: [ Arguments ]
 ;
-CalleeList ::= callee: Reference // ',' ;
+CalleeList ::= callee: CalleeExpression // ',' ;
+
+CalleeExpression ::= < 
+  AtomicCallee ::= call: AtomicExpression 
+| HashedCallee ::= call: HashedExpression 
+> ;
 
 Arguments ::= '(' args: ArgumentsList ')' ;
 ArgumentsList ::= args: ArgumentsAssignment // ',' ;
@@ -351,7 +361,7 @@ IntegerType  < BasicType ::= "Int" ;
 DIntegerType < BasicType ::= "DInt" ;
 RealType     < BasicType ::= "Real" ;
 StringType   < BasicType ::= "String" ;
-StrLitAsType < BasicType ::= type: Identifier ;
+StrLitAsType < BasicType ::= type: Reference ;
 VoidType     < BasicType ::= "Void" ;
 WordType     < BasicType ::= "Word" ;
 WStringType  < BasicType ::= "WString" ;
@@ -375,49 +385,68 @@ Range ::=
 
 VectorDecl ::= type: BasicType '[' dimensions: IntegerLiteral ']' ;
 
-Expression ::= <
-    SimpleExpression | RealNumber
-  | FieldAccess | MemoryAccess | PointerAccess
-  | ArrayAccess | Dereference
+Expression < InstrExpression ::= <
+  AtomicExpression
+| ArrayExpression
+| FieldExpression
+| HashedExpression
+| MemoryAccess 
+| PointerAccess
+| SizeExpression
 > ;
-SimpleExpression < Expression ::= < IntegerNumber | Reference > ;
-Reference < SimpleExpression ::= < Identifier | SymbolAccess > ;
 
-SymbolAccess < Reference ::= '#' id: Identifier ;
+AtomicExpression < Expression ::= <
+  DecimalLiteral
+| HexadecimalLiteral
+| RealLiteral
+| Reference
+> ;
 
-Identifier < Reference ::= < RegularIdentifier | StringLiteral > ;
-RegularIdentifier < Identifier ::= str: Regular_Identifier ;
-StringLiteral     < Identifier ::= str: StringConstant ;
+SizeExpression < Expression ::= size: Size ;
+
+Reference < AtomicExpression ::= <
+  Identifier
+| StringLiteral
+> ;
+
+DecimalLiteral < AtomicExpression ::= 
+  sign: [ Sign ] 
+  decLit: IntegerLiteral  
+;
+
+RealLiteral < AtomicExpression ::= real: RealNumber ;
+
+FieldExpression < Expression ::= expr: Expression "." field: AtomicExpression ;
+
+ArrayExpression < Expression ::= 
+  expr: Expression '['
+  head: Expression
+  tail: { ',' Expression } ']' 
+;
+
+HashedExpression < Expression ::= size: [ Size ] '#' expr: AtomicExpression ;
+
+HexadecimalLiteral < AtomicExpression ::= hexLit: HexIntegerLiteral ;
+
+Identifier < Reference ::= id: Regular_Identifier ;
+
+MemoryAccess < Expression ::= '%' id: AtomicExpression ;
+
+PointerAccess < Expression ::= op: PointerAccessOp expr : PointerAccessExpression ;
+
+PointerAccessExpression ::= <
+  PointerAccessHash
+| PointerAccessReal
+> ; 
+
+PointerAccessHash < PointerAccessExpression ::= hash: HashedExpression ;
+
+PointerAccessReal < PointerAccessExpression ::= real: RealNumber ; 
+
+StringLiteral < Reference ::= str: StringConstant ;
 StringConstant ::= < DoubleQuotedString | SingleQuotedString > ;
 DoubleQuotedString < StringConstant ::= str: DblQuotedStringLiteral ;
 SingleQuotedString < StringConstant ::= str: SnglQuotedStringLiteral;
-
-IntegerNumber < SimpleExpression ::= intValue: NumConstant ;
-NumConstant ::= < DecimalLiteral | HexadecimalLiteral > ;
-DecimalLiteral     < NumConstant ::= sign: [ Sign ]  decLit: IntegerLiteral ;
-HexadecimalLiteral < NumConstant ::= size: [ Size '#' ]  hexLit: HexIntegerLiteral ;
-
-RealNumber < Expression ::= intPart: DecimalLiteral '.' fracPart: IntegerLiteral ;
-
-FieldAccess < Expression ::= obj: Reference fields: { '.' Identifier }+ ;
-
-ArrayAccess < Expression ::=
-  array: Reference
-  '[' head: Expression  tail: { ',' Expression } ']'
-;
-
-Dereference < Expression ::=
-  size: [ Size ]
-  '[' head: Expression  tail: { ',' Expression } ']'
-;
-
-MemoryAccess < Expression ::= '%' id: Identifier [ '.' field: IntegerLiteral ] ;
-
-PointerAccess < Expression ::=
-  "P#" NAME ptrOp
-  ptr: SimpleExpression ['.' bit: IntegerLiteral]
-;
-
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%                            Terminals                             %%
@@ -426,9 +455,9 @@ PointerAccess < Expression ::=
 SCAN TYPE String TitleName ::= "TITLE" { Space } "=" { AnyCharExceptNewline } ;
 SCAN Space = < SP | HT | VT | FF > ;
 
-SCAN TYPE String Size ::= < "B" | "DB" | "W" | "WORD" | "DWORD" | "DW" | "DBW" |
-                                         "w"
-> ;
+SCAN TYPE String Size ::= < "B" | "BYTE" | "DINT" | "DW" | "DWORD" |"DWORD" | "w" | "W" | "WORD" > ;
+
+SCAN TYPE String PointerAccessOp ::= "P#" NAME PhashOp [ "DBX" ] ;
 
 SCAN TYPE Ident Regular_Identifier ::= IdentifierStart { IdentifierChar } ;
 SCAN IdentifierStart ::= < '_' | 'a' .. 'z' | 'A' .. 'Z' > ;
@@ -438,6 +467,8 @@ SCAN TYPE String DblQuotedStringLiteral ::= '"' { AnyCharExceptDoubleQuoteNewlin
 SCAN AnyCharExceptDoubleQuoteNewline ::= < NUL .. HT | VT | FF | SO .. '!' | '#' .. EOF > ;
 SCAN TYPE String SnglQuotedStringLiteral::= "'" { AnyCharExceptSingleQuoteNewline } "'" ;
 SCAN AnyCharExceptSingleQuoteNewline ::= < NUL .. HT | VT | FF | SO .. '&' | '(' .. EOF > ;
+
+SCAN TYPE String RealNumber ::= { Digit }+ '.' { Digit }+ ;
 
 SCAN TYPE String IntegerLiteral ::= < '0' | NonzeroInteger > ;
 SCAN TYPE String Sign ::= < '+' | '-' > ;
@@ -456,3 +487,4 @@ SCAN AnyCharExceptNewline ::= < NUL .. HT | VT | FF | SO .. EOF > ;
 SCAN COMMENT Whitespace ::= Space ;
 SCAN COMMENT LineTerm ::= { Newline }+ ;
 SCAN Newline = < CR | LF | CR LF > ;
+

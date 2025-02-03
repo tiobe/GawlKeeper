@@ -1,5 +1,5 @@
 %% SIEMENS AWL LANGUAGE DEFINITION
-%% Authors: Juanma Bellon, Paul Jansen
+%% Authors: Paul Jansen, Juanma Bellon
 %% Date: 11-Jan-2025
 %% Copyright TIOBE Software BV, 2025
 
@@ -24,22 +24,16 @@ DataBlock < Block ::=
   assignments: { ArgumentsAssignment ";" }
   "END_DATA_BLOCK"
 ;
-DataForBlock ::= < ImportedIdentifier | StructForDataBlock > ;
-ImportedIdentifier < DataForBlock ::= id: Reference ;
-StructForDataBlock < DataForBlock ::= struct: StructBlock ";" ;
-
 Function < Block ::=
   "FUNCTION" function_name: StringLiteral ":" return_type: Type
   body: FunctionBody
   "END_FUNCTION"
 ;
-
 FunctionBlock < Block ::= 
   "FUNCTION_BLOCK" function_name: StringLiteral
   body: FunctionBody
   "END_FUNCTION_BLOCK"
 ;
-
 FunctionBody ::= 
   header: HeaderBlock
   [ "VAR_INPUT"  inputs:  { Field }+ "END_VAR" ]
@@ -50,34 +44,34 @@ FunctionBody ::=
   "BEGIN"
   networks: { Network }
 ;
-
 TypeBlock < Block ::=
   "TYPE" type_name: StringLiteral
   header: HeaderBlock
-  struct: StructBlock ';'
+  struct: StructBlock ";"
   "END_TYPE"
 ;
 
 HeaderBlock ::=
-  title: Title
+  title: TitleName
   [ params: ParamsInitComma ]
-  [ "FAMILY" ':' family: Identifier ]
-  "VERSION" ':' version: RealNumber
+  [ "FAMILY" ":" family: Identifier ]
+  "VERSION" ":" version: RealNumber
 ;
-
-ParamsInitComma ::= '{' params: ParamsInitListComma '}' ;
+ParamsInitComma ::= "{" params: ParamsInitListComma "}" ;
 ParamsInitListComma ::= args: ArgumentsAssignment // "," ;
 
+DataForBlock ::= <
+  ImportedIdentifier ::= id: Reference
+| StructForDataBlock ::= struct: StructBlock ";"
+> ;
 StructBlock ::= "STRUCT" struct: StructBody ;
-StructBody  ::= fields: { Field }+ "END_STRUCT" ;
 
 Field ::=
   name: Reference [ params: ParamsInitSC ]
   ":" type: Type
   init: [ Assignment ] ";"
 ;
-
-ParamsInitSC ::= '{' params: ParamsInitListSC '}' ;
+ParamsInitSC ::= "{" params: ParamsInitListSC "}" ;
 ParamsInitListSC ::= args: ArgumentsAssignment // ";" ;
 
 ArgumentsAssignment ::=
@@ -94,14 +88,44 @@ Assignment ::=
                         %% arguments lists.
 ;
 
-Title ::= title: TitleName ;
+
+Type ::= < BasicType | ComplexType > ;
+BasicType < Type ::= <
+    AnyType ::= "Any"
+  | AnyDbType ::= "DB_ANY"
+  | AnyHwType ::= "HW_ANY"
+  | BoolType ::= "Bool"
+  | ByteType ::= "Byte"
+  | DWordType ::= "DWord"
+  | IntegerType ::= "Int"
+  | DIntegerType ::= "DInt"
+  | RealType ::= "Real"
+  | StringType ::= "String"
+  | StrLitAsType ::= type: Reference
+  | VoidType ::= "Void"
+  | WordType ::= "Word"
+  | WStringType ::= "WString"
+> ;
+ComplexType < Type ::= <
+  ArrayRangeType ::= range: ArrayRangeDecl
+| StructType ::= "Struct" struct: StructBody
+| VectorType ::= vector: VectorDecl
+> ;
+ArrayRangeDecl ::= "Array" "[" range: Range "]" "of" type: Type ;
+Range ::=
+  start: IntegerLiteral
+  ".." NAME rangeOp
+  end: IntegerLiteral
+;
+VectorDecl ::= type: BasicType "[" dimensions: IntegerLiteral "]" ;
+
+StructBody  ::= fields: { Field }+ "END_STRUCT" ;
 
 Network ::= 
-   "NETWORK" title: Title 
+   "NETWORK" title: TitleName
    instructions: { Instruction ";" }
 ;
-
-Instruction ::= 
+Instruction ::=
   label : [ Identifier ":" ]
   instruction: InstructionName
   arg: [ InstrExpression ]
@@ -111,8 +135,7 @@ InstrExpression ::= <
   Expression
 | AnonymousArray
 > ;
-
-AnonymousArray < InstrExpression ::= '[' head: Expression tail: { ',' Expression }']' ;
+AnonymousArray < InstrExpression ::= "[" head: Expression  tail: { "," Expression } "]" ;
 
 InstructionName ::= <
     AccuDecInstr
@@ -235,15 +258,15 @@ CallInstr < InstructionName ::=
   paramsInit: [ ParamsInitComma ]
   arguments: [ Arguments ]
 ;
-CalleeList ::= callee: CalleeExpression // ',' ;
+CalleeList ::= callee: CalleeExpression // "," ;
 
 CalleeExpression ::= < 
-  AtomicCallee ::= call: AtomicExpression 
-| HashedCallee ::= call: HashedExpression 
+  AtomicCallee ::= callee: AtomicExpression
+| HashedCallee ::= callee: HashedExpression
 > ;
 
-Arguments ::= '(' args: ArgumentsList ')' ;
-ArgumentsList ::= args: ArgumentsAssignment // ',' ;
+Arguments ::= "(" args: ArgumentsList ")" ;
+ArgumentsList ::= args: ArgumentsAssignment // "," ;
 
 ClearInstr < InstructionName ::= "CLR" ;
 
@@ -334,57 +357,6 @@ Tar1Instr < InstructionName ::= "TAR1" ;
 Tar2Instr < InstructionName ::= "TAR2" ;
 
 
-Type ::= < BasicType | ComplexType > ;
-BasicType < Type ::= <
-    AnyType
-  | AnyDbType
-  | AnyHwType
-  | BoolType
-  | ByteType
-  | DWordType
-  | IntegerType
-  | DIntegerType
-  | RealType
-  | StringType
-  | StrLitAsType
-  | VoidType
-  | WordType
-  | WStringType
-> ;
-AnyType      < BasicType ::= "Any" ;
-AnyDbType    < BasicType ::= "DB_ANY" ;
-AnyHwType    < BasicType ::= "HW_ANY" ;
-BoolType     < BasicType ::= "Bool" ;
-ByteType     < BasicType ::= "Byte" ;
-DWordType    < BasicType ::= "DWord" ;
-IntegerType  < BasicType ::= "Int" ;
-DIntegerType < BasicType ::= "DInt" ;
-RealType     < BasicType ::= "Real" ;
-StringType   < BasicType ::= "String" ;
-StrLitAsType < BasicType ::= type: Reference ;
-VoidType     < BasicType ::= "Void" ;
-WordType     < BasicType ::= "Word" ;
-WStringType  < BasicType ::= "WString" ;
-
-ComplexType < Type ::= <
-    ArrayRangeType
-  | StructType
-  | VectorType
-> ;
-
-ArrayRangeType < ComplexType ::= range: ArrayRangeDecl ;
-StructType     < ComplexType ::= "Struct" struct: StructBody ;
-VectorType     < ComplexType ::= vector: VectorDecl ;
-
-ArrayRangeDecl ::= "Array" '[' range: Range ']' "of" type: Type ;
-Range ::=
-  start: IntegerLiteral
-  ".." NAME rangeOp
-  end: IntegerLiteral
-;
-
-VectorDecl ::= type: BasicType '[' dimensions: IntegerLiteral ']' ;
-
 Expression < InstrExpression ::= <
   AtomicExpression
 | ArrayExpression
@@ -419,18 +391,18 @@ RealLiteral < AtomicExpression ::= real: RealNumber ;
 FieldExpression < Expression ::= expr: Expression "." field: AtomicExpression ;
 
 ArrayExpression < Expression ::= 
-  expr: Expression '['
+  expr: Expression "["
   head: Expression
-  tail: { ',' Expression } ']' 
+  tail: { "," Expression } "]" 
 ;
 
-HashedExpression < Expression ::= size: [ Size ] '#' expr: AtomicExpression ;
+HashedExpression < Expression ::= size: [ Size ] "#" expr: AtomicExpression ;
 
 HexadecimalLiteral < AtomicExpression ::= hexLit: HexIntegerLiteral ;
 
 Identifier < Reference ::= id: Regular_Identifier ;
 
-MemoryAccess < Expression ::= '%' id: AtomicExpression ;
+MemoryAccess < Expression ::= "%" id: AtomicExpression ;
 
 PointerAccess < Expression ::= op: PointerAccessOp expr : PointerAccessExpression ;
 
@@ -455,7 +427,9 @@ SingleQuotedString < StringConstant ::= str: SnglQuotedStringLiteral;
 SCAN TYPE String TitleName ::= "TITLE" { Space } "=" { AnyCharExceptNewline } ;
 SCAN Space = < SP | HT | VT | FF > ;
 
-SCAN TYPE String Size ::= < "B" | "BYTE" | "DINT" | "DW" | "DWORD" |"DWORD" | "w" | "W" | "WORD" > ;
+SCAN TYPE String Size ::= <
+  "B" | "BYTE" | "DINT" | "DW" | "DWORD" |"DWORD" | "w" | "W" | "WORD"
+> ;
 
 SCAN TYPE String PointerAccessOp ::= "P#" NAME PhashOp [ "DBX" ] ;
 
@@ -487,4 +461,3 @@ SCAN AnyCharExceptNewline ::= < NUL .. HT | VT | FF | SO .. EOF > ;
 SCAN COMMENT Whitespace ::= Space ;
 SCAN COMMENT LineTerm ::= { Newline }+ ;
 SCAN Newline = < CR | LF | CR LF > ;
-

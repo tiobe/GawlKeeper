@@ -1,9 +1,10 @@
 %% SIEMENS AWL LANGUAGE DEFINITION
-%% Author: Paul Jansen
+%% Authors: Paul Jansen, Juanma Bellon
 %% Date: 11-Jan-2025
+%% Copyright TIOBE Software BV, 2025
 
-CCAWL ::= 
-  block_type : Block 
+CCAWL ::=
+  block_type : Block
   eof : EOF
 ;
 
@@ -14,8 +15,8 @@ Block ::= <
   | TypeBlock
 > ;
 
-DataBlock < Block ::= 
-  "DATA_BLOCK" block_name: Identifier
+DataBlock < Block ::=
+  "DATA_BLOCK" block_name: StringLiteral
   header: HeaderBlock
   [ non_retain: "NON_RETAIN" ]
   data: DataForBlock
@@ -23,23 +24,17 @@ DataBlock < Block ::=
   assignments: { ArgumentsAssignment ";" }
   "END_DATA_BLOCK"
 ;
-DataForBlock ::= < ImportedIdentifier | StructForDataBlock > ;
-ImportedIdentifier < DataForBlock ::= id: Identifier ;
-StructForDataBlock < DataForBlock ::= struct: Struct ";" ;
-
 Function < Block ::=
-  "FUNCTION" function_name: Identifier ":" return_type: Type
+  "FUNCTION" function_name: StringLiteral ":" return_type: Type
   body: FunctionBody
   "END_FUNCTION"
 ;
-
-FunctionBlock < Block ::= 
-  "FUNCTION_BLOCK" function_name: Identifier
+FunctionBlock < Block ::=
+  "FUNCTION_BLOCK" function_name: StringLiteral
   body: FunctionBody
   "END_FUNCTION_BLOCK"
 ;
-
-FunctionBody ::= 
+FunctionBody ::=
   header: HeaderBlock
   [ "VAR_INPUT"  inputs:  { Field }+ "END_VAR" ]
   [ "VAR_OUTPUT" outputs: { Field }+ "END_VAR" ]
@@ -49,44 +44,43 @@ FunctionBody ::=
   "BEGIN"
   networks: { Network }
 ;
-
 TypeBlock < Block ::=
-  "TYPE" type_name: Identifier
+  "TYPE" type_name: StringLiteral
   header: HeaderBlock
-  struct: Struct ";"
+  struct: StructBlock ";"
   "END_TYPE"
 ;
 
 HeaderBlock ::=
-  title: Title
+  title: TITLE
   [ params: ParamsInitComma ]
-  [ "FAMILY" ':' family: Identifier ]
-  "VERSION" ':' major: IntegerLiteral '.' minor: IntegerLiteral
+  [ "FAMILY" ":" family: Identifier ]
+  "VERSION" ":" version: REAL
 ;
-
-ParamsInitComma ::= '{' params: ParamsInitListComma '}' ;
+ParamsInitComma ::= "{" params: ParamsInitListComma "}" ;
 ParamsInitListComma ::= args: ArgumentsAssignment // "," ;
 
-Struct ::= "STRUCT" fields: { Field }+ "END_STRUCT" ;
+DataForBlock ::= <
+  ImportedIdentifier ::= id: Reference
+| StructForDataBlock ::= struct: StructBlock ";"
+> ;
+StructBlock ::= "STRUCT" struct: StructBody ;
 
 Field ::=
-  name: Identifier [ params: ParamsInitSC ]
+  name: Reference [ params: ParamsInitSC ]
   ":" type: Type
   init: [ Assignment ] ";"
 ;
-
-ParamsInitSC ::= '{' params: ParamsInitListSC '}' ;
+ParamsInitSC ::= "{" params: ParamsInitListSC "}" ;
 ParamsInitListSC ::= args: ArgumentsAssignment // ";" ;
 
 ArgumentsAssignment ::=
-  name: FieldAccessOrIdentifier
+  name: Expression
   value: Assignment
 ;
 %% LET OP: there is a reason not to merge the following rule with the one above:
-%% the field declarations in struct's have the type between the identifier and
-%% the initialization. We could use a separate assignment rule for those fields
-%% and merge "Identifier ':=' Expression" into one rule for the other use
-%% cases.
+%% in the struct's field declarations, the type goes between the identifier and
+%% the initialization.
 
 Assignment ::=
   ":=" NAME AssignOp
@@ -94,348 +88,232 @@ Assignment ::=
                         %% arguments lists.
 ;
 
-Title ::= title: TitleName ;
-
-Network ::= 
-   "NETWORK" title: Title 
-   instructions: { Instruction }
-;
-
-Instruction ::= instr: RealInstr ";" ;
-
-RealInstr ::= 
-  label : [ Identifier ":" ]
-  instruction: InstructionName
-  arg: [ Argument ]
-; 
-
-InstructionName ::= <
-    AccuDecInstr
-  | AccuIncInstr
-  | ArithSumInstr
-  | ArithDblSumInstr
-  | ArithDblSubInstr
-  | ArithDblMultInstr
-  | ArithDblDivInstr
-  | ArithIntSumInstr
-  | ArithIntSubInstr
-  | ArithIntMultInstr
-  | ArithIntDivInstr
-  | ArithRealSumInstr
-  | ArithRealSubInstr
-  | ArithRealMultInstr
-  | ArithRealDivInstr
-  | AssignInstr
-  | BeInstr
-  | BeuInstr
-  | BecInstr
-  | CadInstr
-  | CallInstr
-  | ClearInstr
-  | CompDblEqInstr
-  | CompDblGtInstr
-  | CompDblGEInstr
-  | CompDblLtInstr
-  | CompDblNEInstr
-  | CompIntEqInstr
-  | CompIntGtInstr
-  | CompIntGEInstr
-  | CompIntLtInstr
-  | CompIntNEInstr
-  | CompLEInstr
-  | DtbInstr
-  | DtrInstr
-  | FpInstr
-  | FnInstr
-  | ItdInstr
-  | JbiInstr
-  | JcInstr
-  | JcbInstr
-  | JcnInstr
-  | JmInstr
-  | JmzInstr
-  | JnbiInstr
-  | JoInstr
-  | JpInstr
-  | JpzInstr
-  | JuInstr
-  | LInstr
-  | Lar1Instr
-  | Lar2Instr
-  | LogicAndInstr
-  | LogicAndNestInstr
-  | LogicAndNotInstr
-  | LogicAndNotNestInstr
-  | LogicAndDblInstr
-  | LogicAndWordInstr
-  | LogicNestCloseInstr
-  | LogicOrInstr
-  | LogicOrNestInstr
-  | LogicOrNotInstr
-  | LogicorNotNestInstr
-  | LogicOrDblInstr
-  | LogicOrWordInstr
-  | LogicXorDblInstr
-  | LogicXorWordInstr
-  | LoopInstr
-  | NegDblInstr
-  | NegIntInstr
-  | NegRealInstr
-  | NotRLOInstr
-  | NoOpInstr
-  | OpnInstr
-  | RInstr
-  | RndInstr
-  | SInstr
-  | SetInstr
-  | ShiftLeftDblInstr
-  | ShiftLeftWordInstr
-  | ShiftRightDblInstr
-  | ShiftRightWordInstr
-  | TInstr
-  | Tar1Instr
-  | Tar2Instr
-> ;
-
-AccuDecInstr < InstructionName ::= "DEC" ;
-AccuIncInstr < InstructionName ::= "INC" ;
-
-ArithSumInstr     < InstructionName ::= "+" ;
-ArithDblSumInstr  < InstructionName ::= "+D" NAME SumDblOp ;
-ArithDblSubInstr  < InstructionName ::= "-D" NAME SubDblOp ;
-ArithDblMultInstr < InstructionName ::= "*D" NAME MulDblOp ;
-ArithDblDivInstr  < InstructionName ::= "/D" NAME DivDblOp ;
-
-ArithIntSumInstr  < InstructionName ::= "+I" NAME SumIntOp ;
-ArithIntSubInstr  < InstructionName ::= "-I" NAME SubIntOp ;
-ArithIntMultInstr < InstructionName ::= "*I" NAME MulIntOp ;
-ArithIntDivInstr  < InstructionName ::= "/I" NAME DivIntOp ;
-
-ArithRealSumInstr  < InstructionName ::= "+R" NAME SumFloatOp ;
-ArithRealSubInstr  < InstructionName ::= "-R" NAME SubFloatOp ;
-ArithRealMultInstr < InstructionName ::= "*R" NAME MulFloatOp ;
-ArithRealDivInstr  < InstructionName ::= "/R" NAME DivFloatOp ;
-
-AssignInstr < InstructionName ::= "=" ;
-
-BeInstr  < InstructionName ::= "BE" ;
-BeuInstr < InstructionName ::= "BEU" ;
-BecInstr < InstructionName ::= "BEC" ;
-
-CadInstr < InstructionName ::= "CAD" ;
-
-CallInstr < InstructionName ::= 
-  "CALL" callees: CalleeList    %% yes, this can be a list; go figure
-  paramsInit: [ ParamsInitComma ]
-  arguments: [ Arguments ]
-;
-CalleeList ::= callee: Identifier // ',' ;
-
-Arguments ::= '(' args: ArgumentsList ')' ;
-ArgumentsList ::= args: ArgumentsAssignment // ',' ;
-
-ClearInstr < InstructionName ::= "CLR" ;
-
-CompDblEqInstr < InstructionName ::= "==D" NAME EqualsDblOp ;
-CompDblGtInstr < InstructionName ::= ">D"  NAME GreaterThanDblOp ;
-CompDblGEInstr < InstructionName ::= ">=D" NAME GreaterEqualsDblOp ;
-CompDblLtInstr < InstructionName ::= "<D"  NAME LessThanDblOp ;
-CompDblNEInstr < InstructionName ::= "<>D" NAME NotEqDblOp ;
-
-CompIntEqInstr < InstructionName ::= "==I" NAME EqualsIntOp ;
-CompIntGtInstr < InstructionName ::= ">I"  NAME GreaterThanIntOp ;
-CompIntGEInstr < InstructionName ::= ">=I" NAME GreaterEqualsIntOp ;
-CompIntLtInstr < InstructionName ::= "<I"  NAME LessThanIntOp ;
-CompIntNEInstr < InstructionName ::= "<>I" NAME NotEqIntOp ;
-
-CompLEInstr < InstructionName ::= "<="  NAME LessEqualsOp ;
-
-DtbInstr < InstructionName ::= "DTB" ;
-DtrInstr < InstructionName ::= "DTR" ;
-
-FpInstr < InstructionName ::= "FP" ;
-FnInstr < InstructionName ::= "FN" ;
-
-ItdInstr < InstructionName ::= "ITD" ;
-
-JbiInstr  < InstructionName ::= "JBI" ;
-JcInstr   < InstructionName ::= "JC" ;
-JcbInstr  < InstructionName ::= "JCB" ;
-JcnInstr  < InstructionName ::= "JCN" ;
-JmInstr   < InstructionName ::= "JM" ;
-JmzInstr  < InstructionName ::= "JMZ" ;
-JnbiInstr < InstructionName ::= "JNBI" ;
-JoInstr   < InstructionName ::= "JO" ;
-JpInstr   < InstructionName ::= "JP" ;
-JpzInstr  < InstructionName ::= "JPZ" ;
-JuInstr   < InstructionName ::= "JU" ;
-
-LInstr < InstructionName ::= "L" ;
-
-Lar1Instr < InstructionName ::= "LAR1" ;
-Lar2Instr < InstructionName ::= "LAR2" ;
-
-LogicAndInstr        < InstructionName ::= "A" ;
-LogicAndNestInstr    < InstructionName ::= "A(" NAME andOpenNest ;
-LogicAndNotInstr     < InstructionName ::= "AN" ;
-LogicAndNotNestInstr < InstructionName ::= "AN(" NAME andNotOpenNest ;
-LogicAndDblInstr     < InstructionName ::= "AD" ;
-LogicAndWordInstr    < InstructionName ::= "AW" ;
-LogicNestCloseInstr  < InstructionName ::= ")" ;
-LogicOrInstr         < InstructionName ::= "O" ;
-LogicOrNestInstr     < InstructionName ::= "O(" NAME orOpenNest ;
-LogicOrNotInstr      < InstructionName ::= "ON" ;
-LogicorNotNestInstr  < InstructionName ::= "ON(" NAME orNotOpenNest ;
-LogicOrDblInstr      < InstructionName ::= "OD" ;
-LogicOrWordInstr     < InstructionName ::= "OW" ;
-LogicXorDblInstr     < InstructionName ::= "XOD" ;
-LogicXorWordInstr    < InstructionName ::= "XOW" ;
-
-LoopInstr < InstructionName ::= "LOOP" ;
-
-NegDblInstr  < InstructionName ::= "NEGD" ;
-NegIntInstr  < InstructionName ::= "NEGI" ;
-NegRealInstr < InstructionName ::= "NEGR" ;
-NotRLOInstr  < InstructionName ::= "NOT" ;
-
-NoOpInstr < InstructionName ::= "NOP" ;
-
-OpnInstr < InstructionName ::= "OPN" ;
-
-RInstr < InstructionName ::= "R" ;
-
-RndInstr < InstructionName ::= "RND" ;
-
-SInstr < InstructionName ::= "S" ;
-
-SetInstr < InstructionName ::= "SET" ;
-
-ShiftLeftDblInstr   < InstructionName ::= "SLD" ;
-ShiftLeftWordInstr  < InstructionName ::= "SLW" ;
-ShiftRightDblInstr  < InstructionName ::= "SRD" ;
-ShiftRightWordInstr < InstructionName ::= "SRW" ;
-
-TInstr < InstructionName ::= "T" ;
-
-Tar1Instr < InstructionName ::= "TAR1" ;
-
-Tar2Instr < InstructionName ::= "TAR2" ;
-
-Argument ::= prefix: [ "%" ] arg: Expression ;
 
 Type ::= < BasicType | ComplexType > ;
 BasicType < Type ::= <
-    AnyType
-  | AnyDbType
-  | AnyHwType
-  | BoolType
-  | ByteType
-  | DwordType
-  | IntegerType
-  | DIntegerType
-  | RealType
-  | StringType
-  | StrLitAsType
-  | VoidType
-  | WordType
-  | WStringType
+  AnyType ::= "Any"
+| AnyDbType ::= "DB_ANY"
+| AnyHwType ::= "HW_ANY"
+| BoolType ::= "Bool"
+| ByteType ::= "Byte"
+| DWordType ::= "DWord"
+| IntegerType ::= "Int"
+| DIntegerType ::= "DInt"
+| RealType ::= "Real"
+| StringType ::= "String"
+| StrLitAsType ::= type: Reference
+| VoidType ::= "Void"
+| WordType ::= "Word"
+| WStringType ::= "WString"
 > ;
-
-AnyType      < BasicType ::= "Any" ;
-AnyDbType    < BasicType ::= "DB_ANY" ;
-AnyHwType    < BasicType ::= "HW_ANY" ;
-BoolType     < BasicType ::= "Bool" ;
-ByteType     < BasicType ::= "Byte" ;
-DwordType    < BasicType ::= "DWord" ;
-IntegerType  < BasicType ::= "Int" ;
-DIntegerType < BasicType ::= "DInt" ;
-RealType     < BasicType ::= "Real" ;
-StringType   < BasicType ::= "String" ;
-StrLitAsType < BasicType ::= type: Identifier ;
-VoidType     < BasicType ::= "Void" ;
-WordType     < BasicType ::= "Word" ;
-WStringType  < BasicType ::= "WString" ;
-
 ComplexType < Type ::= <
-    ArrayRangeType
-  | StructType
-  | VectorType
+  ArrayRangeType ::= range: ArrayRangeDecl
+| StructType ::= "Struct" struct: StructBody
+| VectorType ::= vector: VectorDecl
 > ;
-
-ArrayRangeType < ComplexType ::= range: ArrayRangeDecl ;
-StructType     < ComplexType ::= struct: Struct ;
-VectorType     < ComplexType ::= vector: VectorDecl ;
-
 ArrayRangeDecl ::= "Array" "[" range: Range "]" "of" type: Type ;
 Range ::=
-  start: IntegerLiteral
+  start: INT
   ".." NAME rangeOp
-  end: IntegerLiteral
+  end: INT
+;
+VectorDecl ::= type: BasicType "[" dimensions: INT "]" ;
+
+StructBody  ::= fields: { Field }+ "END_STRUCT" ;
+
+Network ::=
+   "NETWORK" title: TITLE
+   instructions: { Instruction ";" }
+;
+Instruction ::=
+  label : [ Identifier ":" ]
+  instruction: InstructionName
+  arg: [ InstrExpression ]
 ;
 
-%% Struct is defined far above, beginning with "STRUCT", but the scanner is
-%% case-insensitive, so that definition is good for "Struct" as well.
-%% TODO: should we differentiate those 2 definitions and make the scanner
-%% case-sensitive?
-
-VectorDecl ::= type: BasicType "[" dimensions: IntegerLiteral "]" ;
-
-Expression ::= <
-    IntegerNumber
-  | RealNumber
-  | FieldAccessOrIdentifier
+InstrExpression ::= <
+  Expression
+| AnonymousArray ::= "[" head: Expression  tail: { "," Expression } "]"
 > ;
 
-IntegerNumber < Expression ::= intValue: NumConstant ;
-NumConstant ::= < DecimalLiteral | HexadecimalLiteral > ;
-DecimalLiteral     < NumConstant ::= sign: [ Sign ]  decLit: IntegerLiteral ;
-HexadecimalLiteral < NumConstant ::= hexLit: HexIntegerLiteral ;
+InstructionName ::= <
+  AccuDecInstr ::= "DEC"
+| AccuIncInstr ::= "INC"
+| ArithSumInstr ::= "+"
+| ArithDblSumInstr  ::= "+D" NAME SumDblOp
+| ArithDblSubInstr  ::= "-D" NAME SubDblOp
+| ArithDblMultInstr ::= "*D" NAME MulDblOp
+| ArithDblDivInstr  ::= "/D" NAME DivDblOp
+| ArithIntSumInstr  ::= "+I" NAME SumIntOp
+| ArithIntSubInstr  ::= "-I" NAME SubIntOp
+| ArithIntMultInstr ::= "*I" NAME MulIntOp
+| ArithIntDivInstr  ::= "/I" NAME DivIntOp
+| ArithRealSumInstr ::= "+R" NAME SumFloatOp
+| ArithRealSubInstr ::= "-R" NAME SubFloatOp
+| ArithRealMultInstr::= "*R" NAME MulFloatOp
+| ArithRealDivInstr ::= "/R" NAME DivFloatOp
+| AssignInstr ::= "="
+| BeInstr  ::= "BE"
+| BeuInstr ::= "BEU"
+| BecInstr ::= "BEC"
+| CadInstr ::= "CAD"
+| CallInstr ::= "CALL" args: FunctionCallParts
+| ClearInstr ::= "CLR"
+| CompDblEqInstr ::= "==D" NAME EqualsDblOp
+| CompDblGtInstr ::= ">D"  NAME GreaterThanDblOp
+| CompDblGEInstr ::= ">=D" NAME GreaterEqualsDblOp
+| CompDblLtInstr ::= "<D"  NAME LessThanDblOp
+| CompDblNEInstr ::= "<>D" NAME NotEqDblOp
+| CompIntEqInstr ::= "==I" NAME EqualsIntOp
+| CompIntGtInstr ::= ">I"  NAME GreaterThanIntOp
+| CompIntGEInstr ::= ">=I" NAME GreaterEqualsIntOp
+| CompIntLtInstr ::= "<I"  NAME LessThanIntOp
+| CompIntNEInstr ::= "<>I" NAME NotEqIntOp
+| CompLEInstr ::= "<="  NAME LessEqualsOp
+| DtbInstr ::= "DTB"
+| DtrInstr ::= "DTR"
+| FpInstr ::= "FP"
+| FnInstr ::= "FN"
+| ItdInstr ::= "ITD"
+| JbiInstr  ::= "JBI"
+| JcInstr   ::= "JC"
+| JcbInstr  ::= "JCB"
+| JcnInstr  ::= "JCN"
+| JmInstr   ::= "JM"
+| JmzInstr  ::= "JMZ"
+| JnbiInstr ::= "JNBI"
+| JoInstr   ::= "JO"
+| JpInstr   ::= "JP"
+| JpzInstr  ::= "JPZ"
+| JuInstr   ::= "JU"
+| LInstr ::= "L"
+| Lar1Instr ::= "LAR1"
+| Lar2Instr ::= "LAR2"
+| LogicAndInstr        ::= "A"
+| LogicAndNestInstr    ::= "A(" NAME andOpenNest
+| LogicAndNotInstr     ::= "AN"
+| LogicAndNotNestInstr ::= "AN(" NAME andNotOpenNest
+| LogicAndDblInstr     ::= "AD"
+| LogicAndWordInstr    ::= "AW"
+| LogicNestCloseInstr  ::= ")"
+| LogicOrInstr         ::= "O"
+| LogicOrNestInstr     ::= "O(" NAME orOpenNest
+| LogicOrNotInstr      ::= "ON"
+| LogicorNotNestInstr  ::= "ON(" NAME orNotOpenNest
+| LogicOrDblInstr      ::= "OD"
+| LogicOrWordInstr     ::= "OW"
+| LogicXorInstr        ::= "X"
+| LogicXorDblInstr     ::= "XOD"
+| LogicXorWordInstr    ::= "XOW"
+| LoopInstr ::= "LOOP"
+| NegDblInstr  ::= "NEGD"
+| NegIntInstr  ::= "NEGI"
+| NegRealInstr ::= "NEGR"
+| NotRLOInstr  ::= "NOT"
+| NoOpInstr ::= "NOP"
+| OpnInstr ::= "OPN"
+| RInstr ::= "R"
+| RndInstr ::= "RND"
+| SInstr ::= "S"
+| SetInstr ::= "SET"
+| ShiftLeftDblInstr   ::= "SLD"
+| ShiftLeftWordInstr  ::= "SLW"
+| ShiftRightDblInstr  ::= "SRD"
+| ShiftRightWordInstr ::= "SRW"
+| TInstr ::= "T"
+| Tar1Instr ::= "TAR1"
+| Tar2Instr ::= "TAR2"
+> ;
 
-RealNumber < Expression ::= intPart: DecimalLiteral "." fracPart: IntegerLiteral ;
+FunctionCallParts ::=
+  callees: CalleeList    %% yes, this can be a list; go figure
+  paramsInit: [ ParamsInitComma ]
+  arguments: [ Arguments ]
+;
+CalleeList ::= callee: CalleeExpression // "," ;
+CalleeExpression ::= <
+  AtomicCallee ::= callee: AtomicExpression
+| HashedCallee ::= callee: ConstExpression
+> ;
+Arguments ::= "(" args: ArgumentsList ")" ;
+ArgumentsList ::= args: ArgumentsAssignment // "," ;
 
-FieldAccessOrIdentifier < Expression ::= obj: FieldOrIdent // '.' ;
-FieldOrIdent ::= < IndexExpression | Identifier > ;
+Expression < InstrExpression ::= <
+  AtomicExpression
+| ArrayExpression
+| FieldExpression
+| ConstExpression
+| MemoryAccess
+| PointerAccess
+| SizeExpression
+> ;
 
-IndexExpression < FieldOrIdent ::=
-  array: [ Identifier ]
-  "[" head: Argument  tail: { "," Argument } "]"
+AtomicExpression < Expression ::= <
+  DecimalLiteral ::= sign: [ SIGN ] value: INT
+| HexadecimalLiteral ::= value: HEX_INT
+| RealLiteral ::= value: REAL
+| Reference
+> ;
+Reference < AtomicExpression ::= <
+  Identifier
+| StringLiteral
+> ;
+Identifier    < Reference ::= id: ID ;
+StringLiteral < Reference ::= str: StringConstant ;
+StringConstant ::= <
+  DoubleQuotedString ::= str: DOUBLE_QUOTED_STRING
+| SingleQuotedString ::= str: SINGLE_QUOTED_STRING
+> ;
+
+ArrayExpression < Expression ::=
+  array: Expression
+  "[" arg1: Expression  args: { "," Expression } "]"
 ;
 
-Identifier < FieldOrIdent ::= < RegularIdentifierRule | StringLiteral > ;
-RegularIdentifierRule < Identifier ::= str: RegularIdentifier ;
-StringLiteral         < Identifier ::= str: StringConstant ;
-StringConstant ::= < DoubleQuotedString | SingleQuotedString > ;
-DoubleQuotedString < StringConstant ::= str: DblQuotedStringLiteral ;
-SingleQuotedString < StringConstant ::= str: SnglQuotedStringLiteral;
+FieldExpression < Expression ::= expr: Expression "." field: AtomicExpression ;
+ConstExpression < Expression ::= size: [ SIZE ] "#" expr: AtomicExpression ;
+MemoryAccess    < Expression ::= "%" id: AtomicExpression ;
+PointerAccess   < Expression ::= op: POINTER_OP expr: PointerReference ;
+SizeExpression  < Expression ::= size: SIZE ;
+
+PointerReference ::= <
+  PointerAccessHash ::= hash: ConstExpression
+| PointerAccessReal ::= real: REAL
+> ;
+
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%                            Terminals                             %%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-SCAN TYPE String TitleName ::= "TITLE" { Space } "=" { AnyCharExceptNewline } ;
+SCAN TYPE String TITLE ::= "TITLE" { Space } "=" { AnyCharExceptNewline } ;
 SCAN Space = < SP | HT | VT | FF > ;
 
-SCAN TYPE Ident RegularIdentifier ::= IdentifierStart { IdentifierChar } ;
-SCAN IdentifierStart ::= < '#' | '_' | 'a' .. 'z' | 'A' .. 'Z' > ;
-SCAN IdentifierChar = < IdentifierStart | Digit | '.' > ;
+SCAN TYPE String SIZE ::= <
+  "B" | "BYTE" | "DINT" | "DW" | "DWORD" |"DWORD" | "w" | "W" | "WORD"
+> ;
 
-%% SCAN TYPE Ident QuotedIdentifier ::= Quote { IdentExtendedChar }+ Quote ;
-%% SCAN IdentExtendedChar = < IdentifierChar | '/' | '-' > ;
-%% SCAN Quote = < '"' | "'" > ;
+SCAN TYPE String POINTER_OP ::= "P#" NAME ptrOp [ "DBX" ] ;
 
-SCAN TYPE String DblQuotedStringLiteral ::= '"' { AnyCharExceptDoubleQuoteNewline } '"' ;
+SCAN TYPE Ident ID ::= IdentifierStart { IdentifierChar } ;
+SCAN IdentifierStart ::= < '_' | 'a' .. 'z' | 'A' .. 'Z' > ;
+SCAN IdentifierChar = < IdentifierStart | Digit > ;
+
+SCAN TYPE String DOUBLE_QUOTED_STRING ::= '"' { AnyCharExceptDoubleQuoteNewline } '"' ;
+SCAN TYPE String SINGLE_QUOTED_STRING ::= "'" { AnyCharExceptSingleQuoteNewline } "'" ;
 SCAN AnyCharExceptDoubleQuoteNewline ::= < NUL .. HT | VT | FF | SO .. '!' | '#' .. EOF > ;
-SCAN TYPE String SnglQuotedStringLiteral::= "'" { AnyCharExceptSingleQuoteNewline } "'" ;
 SCAN AnyCharExceptSingleQuoteNewline ::= < NUL .. HT | VT | FF | SO .. '&' | '(' .. EOF > ;
 
-SCAN TYPE String IntegerLiteral ::= < '0' | NonzeroInteger > ;
-SCAN TYPE String Sign ::= < '+' | '-' > ;
+SCAN TYPE String REAL ::= { Digit }+ '.' { Digit }+ ;
+
+SCAN TYPE String INT ::= < '0' | NonzeroInteger > ;
+SCAN TYPE String SIGN ::= < '+' | '-' > ;
 SCAN NonzeroInteger = NonzeroDigit { Digit } ;
 SCAN NonzeroDigit ::= < '1' .. '9' > ;
 SCAN Digit ::= < '0' .. '9' > ;
 
-SCAN TYPE String HexIntegerLiteral ::= "16#" NAME HexPrefix { HexDigit }+ ;
+SCAN TYPE String HEX_INT ::= "16#" NAME HexPrefix { HexDigit }+ ;
 SCAN HexDigit ::= < '0' .. '9' | 'A' .. 'F' | '_' > ;
 
 SCAN EOF ::= "$" "$" "$" "$" "$" "$" ;

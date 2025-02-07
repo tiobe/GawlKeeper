@@ -8,7 +8,7 @@
 
 ## Name of program:
 
-TARGET = CCAWL
+TARGET = GawlKeeper
 ADDITIONALTARGETS = 
 AGDLS = $(TARGET) $(ADDITIONALTARGETS)
 FRONTFILES = $(addprefix Grammar/,$(addsuffix .front,$(ADDITIONALTARGETS)))
@@ -141,7 +141,7 @@ txc: $(FRONTFILES) from_front patch_scanfile patch_scanner $(BUILDCFG)
 
 realclean: clean
 	rm -f CGN/$(STATICSEMANTICS).{impl,spec}
-	rm -f Grammar/CCAWL.{agdl,scan}
+	rm -f Grammar/GawlKeeper.{agdl,scan}
 	$(MAKE) ARCH=$(ARCH) -C $(COMMONCGNLIB) clean
 	$(MAKE) ARCH=$(ARCH) -C $(VERSIONCGNLIB) clean
 

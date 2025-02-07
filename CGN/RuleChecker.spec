@@ -8,5 +8,5 @@ spec unit RuleChecker
 
 functions
 
-Check(me : CCAWL)
+Check(me : GawlKeeper)
 

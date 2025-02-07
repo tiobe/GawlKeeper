@@ -46,7 +46,7 @@ ReadSwitches()
 {
   [ { ReadSwitch(GetArgument(i)) } | i : Int <- 1 .. (NoOfArguments() - 1) ]
   if SRCFILE = NIL then
-    { "Usage: CCAWL <inputfile>\n" } astype Message
+    { "Usage: GawlKeeper <inputfile>\n" } astype Message
     Exit(Failure)
   fi
 }

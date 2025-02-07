@@ -3,7 +3,7 @@
 %% Date: 11-Jan-2025
 %% Copyright TIOBE Software BV, 2025
 
-CCAWL ::=
+GawlKeeper ::=
   block_type : Block
   eof : EOF
 ;

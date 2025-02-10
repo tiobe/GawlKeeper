@@ -15,7 +15,7 @@ UnixArgs. NoOfArguments, GetArgument
 UnixProcess. Exit, Failure, Success
 
 RuleChecker
-RuleConfig. InitRules
+RuleConfig. InitRules, IsRule
 StringTokenizer. Trim, Join
 Version. LongVersion
 
@@ -61,6 +61,18 @@ ReadSwitch(sw : String)
 }
 
 GetSwitch(opt : String) {
+  i : Int = opt > '='
+  sw : String := opt
+  arg : String := ""
+
+  if i # -1 then
+    sw := SubString(opt, 0, i - 1)
+    arg := SubString(opt, i + 1, #opt - 1)
+  fi
+  if IsRule(sw, arg) then
+    // side effects are handled by IsRule function
+    RuleChecker.IS_ENABLED := TRUE
+  fi
 }
 
 GetFile(file : String)
@@ -75,4 +87,3 @@ conditions SRCFILE = NIL
 
 GetFile(file : String)
 { { "E002: Only one input file is allowed\n"  } astype Message }
-

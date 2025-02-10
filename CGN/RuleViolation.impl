@@ -1,0 +1,171 @@
+//
+// $Id: RuleViolation.impl 28823 2015-03-30 09:25:16Z stappers $
+//
+// (c) 2000-2013  Tiobe Software BV -- All rights reserved
+//
+
+impl unit RuleViolation
+
+use
+
+FileStream. Create, Close
+ScanIO. FindLocation
+SysStreams. sysOut
+TextIO. Flush, Write, NewLine
+
+RuleConfig. GetRuleMessage, GetRuleSynopsis
+
+typedef
+
+Violation = {
+  id : String
+  line : Int
+  args : List(String)
+  file : String
+}
+
+Stream(X) = {
+  stream : X
+  is_file : Bool
+  name : String
+}
+
+Formats = enum { FORMAT1 | FORMAT2 | FORMAT3 }
+
+constant
+
+INDENT : String = String(4, ' ')
+
+global
+
+OUT_FILE : String := ""
+OUT_STREAM : Stream(WriteFile) = Stream(sysOut, FALSE, "<stdout>")
+
+VIOLATIONS : List(Violation) := NIL
+FORMAT : Formats := FORMAT1
+
+functions
+
+SetOutputFile(file : String)
+{ OUT_FILE := file }
+
+GetOutputFile(): String
+{ return OUT_FILE }
+
+OpenOutFile()
+conditions OUT_FILE == ""
+{ }
+
+OpenOutFile()
+{
+  OUT_STREAM.is_file := Create(OUT_FILE, OUT_STREAM.stream)
+  if OUT_STREAM.is_file then
+    OUT_STREAM.name := OUT_FILE
+  else
+    { "E007: Failed to open file '" OUT_FILE
+      "' for output of rule violations.\n"
+    } astype Message
+  fi
+}
+
+SetOutputFormat(format : Int)
+{ FORMAT := Formats(format - 1) }
+
+'(n : Int): String
+{ return String(n) }
+
+AddViolation(id : String, loc : Int, args : List(String))
+{ AddViolation(id, loc, args, 0) }
+
+AddViolation(id : String, loc : Int, args : List(String), offset: Int)
+{ 
+  line : Int := 0; pos : Int := 0; file : Ident := file
+  FindLocation(loc, line, pos, file)
+  VIOLATIONS := Violation(id, line + offset, args, file) + VIOLATIONS 
+}
+
+ShowViolations()
+{
+  OpenOutFile()
+  Sort(VIOLATIONS) * ShowViolation
+  if OUT_STREAM.is_file then
+    Close(OUT_STREAM.stream)
+  else
+    Flush(OUT_STREAM.stream)
+  fi
+}
+
+// determine order of output
+// simplest: just reverse
+Sort[X](list : List(X)): List(X)
+{ return Reverse(list) }
+
+ShowViolation(v : Violation)
+{
+  message : List(String) = GetRuleMessage(v.id)
+  switch FORMAT {
+  case fmt : FORMAT3
+    // output format:
+    // <id>: <file>(<line>): <message>
+    Write(OUT_STREAM.stream, v.id)
+    Write(OUT_STREAM.stream, ": ")
+    Write(OUT_STREAM.stream, v.file)
+    Write(OUT_STREAM.stream, '(')
+    Write(OUT_STREAM.stream, v.line)
+    Write(OUT_STREAM.stream, "): ")
+    ShowMessage(message, v.args)
+    NewLine(OUT_STREAM.stream)
+  case fmt : FORMAT2
+    // output format:
+    // <id>
+    // <file>(<line>):
+    // <message>
+    //
+    Write(OUT_STREAM.stream, v.id)
+    NewLine(OUT_STREAM.stream)
+    Write(OUT_STREAM.stream, v.file)
+    Write(OUT_STREAM.stream, '(')
+    Write(OUT_STREAM.stream, v.line)
+    Write(OUT_STREAM.stream, "):")
+    NewLine(OUT_STREAM.stream)
+    ShowMessage(message, v.args)
+    NewLine(OUT_STREAM.stream)
+    NewLine(OUT_STREAM.stream)
+  case fmt : FORMAT1
+    synopsis : String = GetRuleSynopsis(v.id)
+
+    // output format:
+    // <file>(<line>):
+    //     <synopsis>
+    //     : item <id>
+    //     <message>
+    Write(OUT_STREAM.stream, v.file)
+    Write(OUT_STREAM.stream, '(')
+    Write(OUT_STREAM.stream, v.line)
+    Write(OUT_STREAM.stream, "):")
+    NewLine(OUT_STREAM.stream)
+    Write(OUT_STREAM.stream, INDENT)
+    Write(OUT_STREAM.stream, synopsis)
+    NewLine(OUT_STREAM.stream)
+    Write(OUT_STREAM.stream, INDENT)
+    Write(OUT_STREAM.stream, "Rule ID: ")
+    Write(OUT_STREAM.stream, v.id)
+    NewLine(OUT_STREAM.stream)
+    Write(OUT_STREAM.stream, INDENT)
+    ShowMessage(message, v.args)
+    NewLine(OUT_STREAM.stream)
+    NewLine(OUT_STREAM.stream)
+  }
+}
+
+ShowMessage(message : List(String), args : List(String))
+{
+  // merge message template with arguments (#message = #args + 1)
+  Write(OUT_STREAM.stream, Head(message, ""))
+  [ {
+      Write(OUT_STREAM.stream, p)
+      Write(OUT_STREAM.stream, t)
+    }
+  | t : String, p : String <- Tail(message, NIL), args
+  ]
+}

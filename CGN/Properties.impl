@@ -1,0 +1,11 @@
+impl unit Properties
+
+use
+
+StringTokenizer. IndexOf, Trim
+Syntactics. IndexOf
+
+functions
+
+GetTitle(network : Network): (String)
+{ return Trim(SubString(network.title, IndexOf(network.title, '=')+1, #network.title-1)) }

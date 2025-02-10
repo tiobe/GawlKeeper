@@ -8,6 +8,8 @@ UnixProcess. Exit, Failure, Success
 import
 
 GawlKeeper0
+RuleChecker
+RuleViolation
 
 functions
 
@@ -24,5 +26,8 @@ Start()
   fi
 }
 
-Eval(x : GawlKeeper) {
+Eval(x : GawlKeeper) 
+{
+  RuleChecker.Check_GawlKeeper(x)
+  RuleViolation.ShowViolations()
 }

@@ -1,24 +1,1721 @@
-//
-// $Id: RuleChecker.impl 51954 2024-12-22 22:37:11Z jansen $
-//
-// (c) 2003-2021  Tiobe Software BV -- All rights reserved
-//
-
 impl unit RuleChecker
 
-use
+use 
 
 print_support
-ScanIO. OpenError
 
+Comments. Comment, GetComments
 Rules
+Syntactics. IsComment
 
 global
 
+IS_ENABLED : Bool := FALSE
+LOC : Int := 0 
 
 functions
 
-Check(me : GawlKeeper)
+Check_GawlKeeper(me : GawlKeeper)
 {
+  margin : Int := 0
+  EvalComments()
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  Check_Block(me.block_type)
+  Check_Comment(me.src_info)
+  set_margin(margin)
 }
 
+Check_Block(me : DataBlock)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  Check_String("DATA_BLOCK")
+  Check_InstrExpression(me.block_name)
+  Check_HeaderBlock(me.header)
+  if me.non_retain then
+    Check_String("NON_RETAIN")
+  fi
+  Check_DataForBlock(me.data)
+  Check_String("BEGIN")
+  [
+    {
+      Check_ArgumentsAssignment(xxxassignments)
+      Check_String(";")
+    }
+  | xxxassignments : ArgumentsAssignment <- me.assignments
+  ]
+  Check_String("END_DATA_BLOCK")
+  Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
+Check_Block(me : Function)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  Check_String("FUNCTION")
+  Check_InstrExpression(me.function_name)
+  Check_String(":")
+  Check_Type(me.return_type)
+  Check_FunctionBody(me.body)
+  Check_String("END_FUNCTION")
+  Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
+Check_Block(me : FunctionBlock)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  Check_String("FUNCTION_BLOCK")
+  Check_InstrExpression(me.function_name)
+  Check_FunctionBody(me.body)
+  Check_String("END_FUNCTION_BLOCK")
+  Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
+Check_Block(me : TypeBlock)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  Check_String("TYPE")
+  Check_InstrExpression(me.type_name)
+  Check_HeaderBlock(me.header)
+  Check_StructBlock(me.struct)
+  Check_String(";")
+  Check_String("END_TYPE")
+  Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
+Check_FunctionBody(me : FunctionBody)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  Check_HeaderBlock(me.header)
+  if me.inputs # NIL then
+    Check_String("VAR_INPUT")
+    [ { Check_Field(xxxinputs) }
+    | xxxinputs : Field <- me.inputs
+    ]
+    Check_String("END_VAR")
+  fi
+  if me.outputs # NIL then
+    Check_String("VAR_OUTPUT")
+    [ { Check_Field(xxxoutputs) }
+    | xxxoutputs : Field <- me.outputs
+    ]
+    Check_String("END_VAR")
+  fi
+  if me.in_outs # NIL then
+    Check_String("VAR_IN_OUT")
+    [ { Check_Field(xxxin_outs) }
+    | xxxin_outs : Field <- me.in_outs
+    ]
+    Check_String("END_VAR")
+  fi
+  if me.locals # NIL then
+    Check_String("VAR")
+    [ { Check_Field(xxxlocals) }
+    | xxxlocals : Field <- me.locals
+    ]
+    Check_String("END_VAR")
+  fi
+  if me.temps # NIL then
+    Check_String("VAR_TEMP")
+    [ { Check_Field(xxxtemps) }
+    | xxxtemps : Field <- me.temps
+    ]
+    Check_String("END_VAR")
+  fi
+  Check_String("BEGIN")
+  [ { Check_Network(xxxnetworks) }
+  | xxxnetworks : Network <- me.networks
+  ]
+  Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
+Check_HeaderBlock(me : HeaderBlock)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  Check_String(me.title)
+  if me.params # NIL then
+    Check_ParamsInitComma(me.params)
+  fi
+  if me.family # NIL then
+    Check_String("FAMILY")
+    Check_String(":")
+    Check_InstrExpression(me.family)
+  fi
+  Check_String("VERSION")
+  Check_String(":")
+  Check_String(me.version)
+  Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
+Check_ParamsInitComma(me : ParamsInitComma)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  Check_String("{")
+  Check_ParamsInitListComma(me.params)
+  Check_String("}")
+  Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
+Check_ParamsInitListComma(me : ParamsInitListComma)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  Check_ArgumentsAssignment(me.args.head)
+  [
+    {
+      Check_String(",")
+      Check_ArgumentsAssignment(xxxargs)
+    }
+  | xxxargs : ArgumentsAssignment <- Tail(me.args, NIL)
+  ]
+  Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
+Check_DataForBlock(me : ImportedIdentifier)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  Check_InstrExpression(me.id)
+  Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
+Check_DataForBlock(me : StructForDataBlock)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  Check_StructBlock(me.struct)
+  Check_String(";")
+  Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
+Check_StructBlock(me : StructBlock)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  Check_String("STRUCT")
+  Check_StructBody(me.struct)
+  Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
+Check_Field(me : Field)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  Check_InstrExpression(me.name)
+  if me.params # NIL then
+    Check_ParamsInitSC(me.params)
+  fi
+  Check_String(":")
+  Check_Type(me.type)
+  if me.init # NIL then
+    Check_Assignment(me.init)
+  fi
+  Check_String(";")
+  Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
+Check_ParamsInitSC(me : ParamsInitSC)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  Check_String("{")
+  Check_ParamsInitListSC(me.params)
+  Check_String("}")
+  Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
+Check_ParamsInitListSC(me : ParamsInitListSC)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  Check_ArgumentsAssignment(me.args.head)
+  [
+    {
+      Check_String(";")
+      Check_ArgumentsAssignment(xxxargs)
+    }
+  | xxxargs : ArgumentsAssignment <- Tail(me.args, NIL)
+  ]
+  Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
+Check_ArgumentsAssignment(me : ArgumentsAssignment)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  Check_InstrExpression(me.name)
+  Check_Assignment(me.value)
+  Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
+Check_Assignment(me : Assignment)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  Check_String(":=")
+  if me.expr # NIL then
+    Check_InstrExpression(me.expr)
+  fi
+  Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
+Check_Type(me : AnyType)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  Check_String("Any")
+  Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
+Check_Type(me : AnyDbType)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  Check_String("DB_ANY")
+  Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
+Check_Type(me : AnyHwType)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  Check_String("HW_ANY")
+  Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
+Check_Type(me : BoolType)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  Check_String("Bool")
+  Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
+Check_Type(me : ByteType)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  Check_String("Byte")
+  Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
+Check_Type(me : DWordType)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  Check_String("DWord")
+  Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
+Check_Type(me : IntegerType)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  Check_String("Int")
+  Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
+Check_Type(me : DIntegerType)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  Check_String("DInt")
+  Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
+Check_Type(me : RealType)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  Check_String("Real")
+  Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
+Check_Type(me : StringType)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  Check_String("String")
+  Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
+Check_Type(me : StrLitAsType)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  Check_InstrExpression(me.type)
+  Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
+Check_Type(me : VoidType)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  Check_String("Void")
+  Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
+Check_Type(me : WordType)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  Check_String("Word")
+  Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
+Check_Type(me : WStringType)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  Check_String("WString")
+  Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
+Check_Type(me : ArrayRangeType)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  Check_ArrayRangeDecl(me.range)
+  Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
+Check_Type(me : StructType)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  Check_String("Struct")
+  Check_StructBody(me.struct)
+  Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
+Check_Type(me : VectorType)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  Check_VectorDecl(me.vector)
+  Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
+Check_ArrayRangeDecl(me : ArrayRangeDecl)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  Check_String("Array")
+  Check_String("[")
+  Check_Range(me.range)
+  Check_String("]")
+  Check_String("of")
+  Check_Type(me.type)
+  Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
+Check_Range(me : Range)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  Check_String(me.start)
+  Check_String("..")
+  Check_String(me.end)
+  Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
+Check_VectorDecl(me : VectorDecl)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  Check_Type(me.type)
+  Check_String("[")
+  Check_String(me.dimensions)
+  Check_String("]")
+  Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
+Check_StructBody(me : StructBody)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  [ { Check_Field(xxxfields) }
+  | xxxfields : Field <- me.fields
+  ]
+  Check_String("END_STRUCT")
+  Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
+Check_Network(me : Network)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  Check_String("NETWORK")
+  Rules.Check("G41", LOC, me)
+  Check_String(me.title)
+  Rules.Check("C7", LOC, me)
+  [
+    {
+      Check_Instruction(xxxinstructions)
+      Check_String(";")
+    }
+  | xxxinstructions : Instruction <- me.instructions
+  ]
+  Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
+Check_Instruction(me : Instruction)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  if me.label # NIL then
+    Check_InstrExpression(me.label)
+    Check_String(":")
+  fi
+  Check_InstructionName(me.instruction)
+  if me.arg # NIL then
+    Check_InstrExpression(me.arg)
+  fi
+  Check_Comment(me.src_info)
+  Rules.Check("G28", LOC, GetComments(me.src_info.pre_comment))
+  set_margin(margin)
+}
+
+Check_InstrExpression(me : AnonymousArray)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  Check_String("[")
+  Check_InstrExpression(me.head)
+  [
+    {
+      Check_String(",")
+      Check_InstrExpression(xxxtail)
+    }
+  | xxxtail : Expression <- me.tail
+  ]
+  Check_String("]")
+  Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
+Check_InstrExpression(me : DecimalLiteral)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  if me.sign # NIL then
+    Check_String(me.sign)
+  fi
+  Check_String(me.value)
+  Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
+Check_InstrExpression(me : HexadecimalLiteral)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  Check_String(me.value)
+  Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
+Check_InstrExpression(me : RealLiteral)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  Check_String(me.value)
+  Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
+Check_InstrExpression(me : Identifier)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  Check_Ident(me.id)
+  Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
+Check_InstrExpression(me : StringLiteral)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  Check_StringConstant(me.str)
+  Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
+Check_InstrExpression(me : ArrayExpression)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  Check_InstrExpression(me.array)
+  Check_String("[")
+  Check_InstrExpression(me.arg1)
+  [
+    {
+      Check_String(",")
+      Check_InstrExpression(xxxargs)
+    }
+  | xxxargs : Expression <- me.args
+  ]
+  Check_String("]")
+  Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
+Check_InstrExpression(me : FieldExpression)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  Check_InstrExpression(me.expr)
+  Check_String(".")
+  Check_InstrExpression(me.field)
+  Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
+Check_InstrExpression(me : ConstExpression)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  if me.size # NIL then
+    Check_String(me.size)
+  fi
+  Check_String("#")
+  Check_InstrExpression(me.expr)
+  Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
+Check_InstrExpression(me : MemoryAccess)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  Check_String("%")
+  Check_InstrExpression(me.id)
+  Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
+Check_InstrExpression(me : PointerAccess)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  Check_String(me.op)
+  Check_PointerReference(me.expr)
+  Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
+Check_InstrExpression(me : SizeExpression)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  Check_String(me.size)
+  Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
+Check_InstructionName(me : AccuDecInstr)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  Check_String("DEC")
+  Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
+Check_InstructionName(me : AccuIncInstr)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  Check_String("INC")
+  Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
+Check_InstructionName(me : ArithSumInstr)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  Check_String("+")
+  Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
+Check_InstructionName(me : ArithDblSumInstr)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  Check_String("+D")
+  Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
+Check_InstructionName(me : ArithDblSubInstr)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  Check_String("-D")
+  Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
+Check_InstructionName(me : ArithDblMultInstr)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  Check_String("*D")
+  Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
+Check_InstructionName(me : ArithDblDivInstr)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  Check_String("/D")
+  Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
+Check_InstructionName(me : ArithIntSumInstr)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  Check_String("+I")
+  Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
+Check_InstructionName(me : ArithIntSubInstr)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  Check_String("-I")
+  Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
+Check_InstructionName(me : ArithIntMultInstr)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  Check_String("*I")
+  Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
+Check_InstructionName(me : ArithIntDivInstr)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  Check_String("/I")
+  Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
+Check_InstructionName(me : ArithRealSumInstr)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  Check_String("+R")
+  Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
+Check_InstructionName(me : ArithRealSubInstr)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  Check_String("-R")
+  Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
+Check_InstructionName(me : ArithRealMultInstr)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  Check_String("*R")
+  Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
+Check_InstructionName(me : ArithRealDivInstr)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  Check_String("/R")
+  Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
+Check_InstructionName(me : AssignInstr)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  Check_String("=")
+  Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
+Check_InstructionName(me : BeInstr)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  Check_String("BE")
+  Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
+Check_InstructionName(me : BeuInstr)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  Check_String("BEU")
+  Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
+Check_InstructionName(me : BecInstr)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  Check_String("BEC")
+  Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
+Check_InstructionName(me : CadInstr)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  Check_String("CAD")
+  Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
+Check_InstructionName(me : CallInstr)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  Check_String("CALL")
+  Check_FunctionCallParts(me.args)
+  Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
+Check_InstructionName(me : ClearInstr)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  Check_String("CLR")
+  Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
+Check_InstructionName(me : CompDblEqInstr)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  Check_String("==D")
+  Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
+Check_InstructionName(me : CompDblGtInstr)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  Check_String(">D")
+  Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
+Check_InstructionName(me : CompDblGEInstr)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  Check_String(">=D")
+  Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
+Check_InstructionName(me : CompDblLtInstr)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  Check_String("<D")
+  Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
+Check_InstructionName(me : CompDblNEInstr)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  Check_String("<>D")
+  Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
+Check_InstructionName(me : CompIntEqInstr)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  Check_String("==I")
+  Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
+Check_InstructionName(me : CompIntGtInstr)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  Check_String(">I")
+  Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
+Check_InstructionName(me : CompIntGEInstr)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  Check_String(">=I")
+  Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
+Check_InstructionName(me : CompIntLtInstr)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  Check_String("<I")
+  Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
+Check_InstructionName(me : CompIntNEInstr)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  Check_String("<>I")
+  Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
+Check_InstructionName(me : CompLEInstr)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  Check_String("<=")
+  Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
+Check_InstructionName(me : DtbInstr)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  Check_String("DTB")
+  Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
+Check_InstructionName(me : DtrInstr)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  Check_String("DTR")
+  Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
+Check_InstructionName(me : FpInstr)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  Check_String("FP")
+  Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
+Check_InstructionName(me : FnInstr)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  Check_String("FN")
+  Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
+Check_InstructionName(me : ItdInstr)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  Check_String("ITD")
+  Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
+Check_InstructionName(me : JbiInstr)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  Check_String("JBI")
+  Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
+Check_InstructionName(me : JcInstr)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  Check_String("JC")
+  Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
+Check_InstructionName(me : JcbInstr)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  Check_String("JCB")
+  Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
+Check_InstructionName(me : JcnInstr)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  Check_String("JCN")
+  Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
+Check_InstructionName(me : JmInstr)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  Check_String("JM")
+  Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
+Check_InstructionName(me : JmzInstr)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  Check_String("JMZ")
+  Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
+Check_InstructionName(me : JnbiInstr)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  Check_String("JNBI")
+  Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
+Check_InstructionName(me : JoInstr)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  Check_String("JO")
+  Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
+Check_InstructionName(me : JpInstr)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  Check_String("JP")
+  Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
+Check_InstructionName(me : JpzInstr)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  Check_String("JPZ")
+  Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
+Check_InstructionName(me : JuInstr)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  Check_String("JU")
+  Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
+Check_InstructionName(me : LInstr)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  Check_String("L")
+  Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
+Check_InstructionName(me : Lar1Instr)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  Check_String("LAR1")
+  Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
+Check_InstructionName(me : Lar2Instr)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  Check_String("LAR2")
+  Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
+Check_InstructionName(me : LogicAndInstr)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  Check_String("A")
+  Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
+Check_InstructionName(me : LogicAndNestInstr)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  Check_String("A(")
+  Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
+Check_InstructionName(me : LogicAndNotInstr)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  Check_String("AN")
+  Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
+Check_InstructionName(me : LogicAndNotNestInstr)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  Check_String("AN(")
+  Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
+Check_InstructionName(me : LogicAndDblInstr)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  Check_String("AD")
+  Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
+Check_InstructionName(me : LogicAndWordInstr)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  Check_String("AW")
+  Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
+Check_InstructionName(me : LogicNestCloseInstr)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  Check_String(")")
+  Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
+Check_InstructionName(me : LogicOrInstr)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  Check_String("O")
+  Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
+Check_InstructionName(me : LogicOrNestInstr)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  Check_String("O(")
+  Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
+Check_InstructionName(me : LogicOrNotInstr)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  Check_String("ON")
+  Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
+Check_InstructionName(me : LogicorNotNestInstr)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  Check_String("ON(")
+  Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
+Check_InstructionName(me : LogicOrDblInstr)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  Check_String("OD")
+  Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
+Check_InstructionName(me : LogicOrWordInstr)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  Check_String("OW")
+  Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
+Check_InstructionName(me : LogicXorInstr)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  Check_String("X")
+  Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
+Check_InstructionName(me : LogicXorDblInstr)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  Check_String("XOD")
+  Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
+Check_InstructionName(me : LogicXorWordInstr)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  Check_String("XOW")
+  Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
+Check_InstructionName(me : LoopInstr)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  Check_String("LOOP")
+  Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
+Check_InstructionName(me : NegDblInstr)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  Check_String("NEGD")
+  Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
+Check_InstructionName(me : NegIntInstr)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  Check_String("NEGI")
+  Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
+Check_InstructionName(me : NegRealInstr)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  Check_String("NEGR")
+  Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
+Check_InstructionName(me : NotRLOInstr)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  Check_String("NOT")
+  Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
+Check_InstructionName(me : NoOpInstr)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  Check_String("NOP")
+  Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
+Check_InstructionName(me : OpnInstr)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  Check_String("OPN")
+  Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
+Check_InstructionName(me : RInstr)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  Check_String("R")
+  Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
+Check_InstructionName(me : RndInstr)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  Check_String("RND")
+  Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
+Check_InstructionName(me : SInstr)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  Check_String("S")
+  Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
+Check_InstructionName(me : SetInstr)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  Check_String("SET")
+  Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
+Check_InstructionName(me : ShiftLeftDblInstr)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  Check_String("SLD")
+  Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
+Check_InstructionName(me : ShiftLeftWordInstr)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  Check_String("SLW")
+  Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
+Check_InstructionName(me : ShiftRightDblInstr)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  Check_String("SRD")
+  Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
+Check_InstructionName(me : ShiftRightWordInstr)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  Check_String("SRW")
+  Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
+Check_InstructionName(me : TInstr)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  Check_String("T")
+  Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
+Check_InstructionName(me : Tar1Instr)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  Check_String("TAR1")
+  Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
+Check_InstructionName(me : Tar2Instr)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  Check_String("TAR2")
+  Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
+Check_FunctionCallParts(me : FunctionCallParts)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  Check_CalleeList(me.callees)
+  if me.paramsInit # NIL then
+    Check_ParamsInitComma(me.paramsInit)
+  fi
+  if me.arguments # NIL then
+    Check_Arguments(me.arguments)
+  fi
+  Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
+Check_CalleeList(me : CalleeList)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  Check_CalleeExpression(me.callee.head)
+  [
+    {
+      Check_String(",")
+      Check_CalleeExpression(xxxcallee)
+    }
+  | xxxcallee : CalleeExpression <- Tail(me.callee, NIL)
+  ]
+  Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
+Check_CalleeExpression(me : AtomicCallee)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  Check_InstrExpression(me.callee)
+  Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
+Check_CalleeExpression(me : HashedCallee)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  Check_InstrExpression(me.callee)
+  Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
+Check_Arguments(me : Arguments)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  Check_String("(")
+  Check_ArgumentsList(me.args)
+  Check_String(")")
+  Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
+Check_ArgumentsList(me : ArgumentsList)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  Check_ArgumentsAssignment(me.args.head)
+  [
+    {
+      Check_String(",")
+      Check_ArgumentsAssignment(xxxargs)
+    }
+  | xxxargs : ArgumentsAssignment <- Tail(me.args, NIL)
+  ]
+  Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
+Check_StringConstant(me : DoubleQuotedString)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  Check_String(me.str)
+  Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
+Check_StringConstant(me : SingleQuotedString)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  Check_String(me.str)
+  Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
+Check_PointerReference(me : PointerAccessHash)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  Check_InstrExpression(me.hash)
+  Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
+Check_PointerReference(me : PointerAccessReal)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  Check_String(me.real)
+  Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
+Check_Comment(si : SrcInfo)
+{
+  switch GetComments(si.pre_comment) {
+  case comments : (List(Comment))
+    last : Comment = Last(comments)
+
+    [
+      {
+      }
+    | comment : Comment <- comments
+    , (IsComment(comment.string))
+    ]
+    LOC := last.pos + 1 + last.len
+  else
+    LOC := si.loc
+  }
+}
+
+Check_String(s : String)
+{
+  LOC :+ #s
+}
+
+Check_Ident(id : Ident)
+{
+  LOC :+ #id
+}

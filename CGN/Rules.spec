@@ -6,3 +6,7 @@
 
 spec unit Rules
 
+functions
+
+Check(rule : String, loc : Int, me : List(Comment))
+Check(rule : String, loc : Int, me : Network)

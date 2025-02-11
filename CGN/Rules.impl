@@ -27,11 +27,11 @@ conditions ~IsRuleEnabled(rule) { }
 Check(rule : String, loc : Int, me : Network)
 conditions ~IsRuleEnabled(rule) { }
 
-Check(rule : String, loc : Int, title : String)
-conditions ~IsRuleEnabled(rule) { }
-
 Check(rule : String, loc : Int)
 conditions ~IsRuleEnabled(rule) { }
+
+Check(rule = "C6", loc : Int, me : Network)
+{ if #GetTitle(me) < 6 then AddViolation(rule, loc, []) fi }
 
 Check(rule = "C7", loc : Int, me : Network)
 { 
@@ -69,13 +69,13 @@ Check(rule = "G41", loc : Int, me : (Network, instructions = NIL))
   AddViolation(rule, loc, [GetTitle(me)])
 }
 
-Check(rule = "G41", loc : Int, me : (Network, instructions : (List(Instruction), head : (Instruction, instruction : NoOpInstr), tail = NIL))) 
-{ 
-  AddViolation(rule, loc, [GetTitle(me)]) 
-}
+Check(rule = "G41", loc : Int, me : (Network,
+                                     instructions : (List(Instruction),
+                                                     head : (Instruction, instruction : NoOpInstr),
+                                                     tail = NIL)))
+{ AddViolation(rule, loc, [GetTitle(me)]) }
 
 Check(rule : String, loc : Int, me : GawlKeeper)    { }
 Check(rule : String, loc : Int, me : List(Comment)) { }
 Check(rule : String, loc : Int, me : Network)       { }
-Check(rule : String, loc : Int, title : String)     { }
 Check(rule : String, loc : Int)                     { }

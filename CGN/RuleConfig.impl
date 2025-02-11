@@ -43,9 +43,13 @@ GetRules() : [([String])]
 {
   rules : [([String])] = 
   [
+    [ "C6",
+      "Each network must have a Network Title, which must be chosen obvious: indicating the fulfilled functionality of the code in the network.",
+      "There is a network without title."
+    ],
     [ "C7",
       "Network title should start with 2 capital letters, a colon and a space.",
-      "Network title '\027' is not correct."
+      "Network title '\027' is not correctly formatted."
     ],
     [ "C15",
       "The length of a block title has a maximum of 20 characters.",

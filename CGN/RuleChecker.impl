@@ -530,6 +530,7 @@ Check_Network(me : Network)
   Check_String("NETWORK")
   Rules.Check("G41", LOC, me)
   Check_String(me.title)
+  Rules.Check("C6", LOC, me)
   Rules.Check("C7", LOC, me)
   [
     {

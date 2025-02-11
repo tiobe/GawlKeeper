@@ -181,12 +181,12 @@ clean_package:
 # collect release notes.
 STARTREV := 1793
 
-relnotes:
-	svn log --xml -r $(SVNVERSION):$(STARTREV) | xsltproc -o $(TARGET)-relnotes.html svn-log.xslt -
+#relnotes:
+#	svn log --xml -r $(SVNVERSION):$(STARTREV) | xsltproc -o $(TARGET)-relnotes.html svn-log.xslt -
 
 clean_relnotes:
 	rm -f $(TARGET)-relnotes.html
 
 DEST = absolem:/home/wilde/ticsweb/pub/codecheckers/$(TARGET)
-publish: package relnotes
-	scp $(TARGET)-$(SVNVERSION)-$(ARCH).zip $(TARGET)-relnotes.html $(DEST)
+publish: package
+	scp $(TARGET)-$(SVNVERSION)-$(ARCH).zip $(DEST)

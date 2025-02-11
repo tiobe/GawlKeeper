@@ -1082,6 +1082,17 @@ Check_InstructionName(me : FnInstr)
   set_margin(margin)
 }
 
+Check_InstructionName(me : GoToInstr)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  Check_String("GOTO")
+  Rules.Check("C70", LOC)
+  Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
 Check_InstructionName(me : ItdInstr)
 {
   margin : Int := 0

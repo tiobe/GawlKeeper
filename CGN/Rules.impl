@@ -18,16 +18,16 @@ Syntactics. IsNewline
 functions
 
 Check(rule : String, loc : Int, me : List(Comment))
-conditions ~IsRuleEnabled(rule)
-{ }
+conditions ~IsRuleEnabled(rule) { }
 
 Check(rule : String, loc : Int, me : Network)
-conditions ~IsRuleEnabled(rule)
-{ }
+conditions ~IsRuleEnabled(rule) { }
 
 Check(rule : String, loc : Int, title : StringLiteral)
-conditions ~IsRuleEnabled(rule)
-{ }
+conditions ~IsRuleEnabled(rule) { }
+
+Check(rule : String, loc : Int)
+conditions ~IsRuleEnabled(rule) { }
 
 Check(rule = "C7", loc : Int, me : Network)
 { 
@@ -42,6 +42,11 @@ Check(rule = "C15", loc : Int, title: StringLiteral)
 {
   actual_str : String = title.str
   if #actual_str > 20 then AddViolation(rule, loc, [actual_str]) fi
+}
+
+Check(rule = "C70", loc : Int)
+{
+  AddViolation(rule, loc, [])
 }
 
 Check(rule = "G28", loc : Int, me : (List(Comment))) 
@@ -68,3 +73,4 @@ Check(rule = "G41", loc : Int, me : (Network, instructions : (List(Instruction),
 Check(rule : String, loc : Int, me : List(Comment))     { }
 Check(rule : String, loc : Int, me : Network)           { }
 Check(rule : String, loc : Int, title : StringLiteral)  { }
+Check(rule : String, loc : Int)                         { }

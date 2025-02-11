@@ -51,6 +51,10 @@ GetRules() : [([String])]
       "The length of a block title has a maximum of 20 characters.",
       "Block title '\027' is too long."
     ],
+    [ "C70",
+      "Avoid the \"GOTO\" instruction.",
+      "Avoid the \"GOTO\" instruction."
+    ],
     [ "G28",
       "Comment line.",
       "Comment '\027' doesn't start with a space followed by a capital letter."

@@ -1,0 +1,24 @@
+impl unit Syntactics
+
+use
+
+StringTokenizer. IndexOf
+
+functions
+
+IsComment(s : String): Bool
+{ return s@0 = '/' }
+
+IndexOf(str : String, char : Char): Int
+{ return IndexOf(str, char, 0, #str-1) }
+
+//
+// White space
+//
+
+IsNewline(s : String): Bool
+{ return IsNewline(s@0) }
+
+IsNewline(c : Char): Bool
+{ return c = LF | c = CR }
+

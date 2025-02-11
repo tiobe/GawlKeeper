@@ -1,12 +1,9 @@
-//
-// $Id: RuleChecker.spec 37955 2019-08-08 15:40:06Z stappers $
-//
-// (c) 2003-2019  Tiobe Software BV -- All rights reserved
-//
-
 spec unit RuleChecker
+
+global
+
+IS_ENABLED : Bool
 
 functions
 
-Check(me : GawlKeeper)
-
+Check_GawlKeeper(me : GawlKeeper)

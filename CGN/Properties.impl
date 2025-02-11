@@ -1,0 +1,16 @@
+impl unit Properties
+
+use
+
+StringTokenizer. IndexOf, Trim
+Syntactics. IndexOf
+
+functions
+
+GetTitle(network : Network): (String)
+{ return Trim(SubString(network.title, IndexOf(network.title, '=')+1, #network.title-1)) }
+
+GetTitle(block : DataBlock)     : StringLiteral { return block.block_name }
+GetTitle(block : Function)      : StringLiteral { return block.function_name }
+GetTitle(block : FunctionBlock) : StringLiteral { return block.function_name }
+GetTitle(block : TypeBlock)     : StringLiteral { return block.type_name }

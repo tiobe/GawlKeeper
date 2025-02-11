@@ -174,6 +174,7 @@ InstructionName ::= <
 | DtrInstr ::= "DTR"
 | FpInstr ::= "FP"
 | FnInstr ::= "FN"
+| GoToInstr ::= "GOTO"
 | ItdInstr ::= "ITD"
 | JbiInstr  ::= "JBI"
 | JcInstr   ::= "JC"
@@ -260,10 +261,6 @@ Reference < AtomicExpression ::= <
 > ;
 Identifier    < Reference ::= id: ID ;
 StringLiteral < Reference ::= str: StringConstant ;
-StringConstant ::= <
-  DoubleQuotedString ::= str: DOUBLE_QUOTED_STRING
-| SingleQuotedString ::= str: SINGLE_QUOTED_STRING
-> ;
 
 ArrayExpression < Expression ::=
   array: Expression
@@ -300,8 +297,9 @@ SCAN TYPE Ident ID ::= IdentifierStart { IdentifierChar } ;
 SCAN IdentifierStart ::= < '_' | 'a' .. 'z' | 'A' .. 'Z' > ;
 SCAN IdentifierChar = < IdentifierStart | Digit > ;
 
-SCAN TYPE String DOUBLE_QUOTED_STRING ::= '"' { AnyCharExceptDoubleQuoteNewline } '"' ;
-SCAN TYPE String SINGLE_QUOTED_STRING ::= "'" { AnyCharExceptSingleQuoteNewline } "'" ;
+SCAN TYPE String StringConstant ::= < DOUBLE_QUOTED_STRING | SINGLE_QUOTED_STRING > ;
+SCAN DOUBLE_QUOTED_STRING = '"' { AnyCharExceptDoubleQuoteNewline } '"' ;
+SCAN SINGLE_QUOTED_STRING = "'" { AnyCharExceptSingleQuoteNewline } "'" ;
 SCAN AnyCharExceptDoubleQuoteNewline ::= < NUL .. HT | VT | FF | SO .. '!' | '#' .. EOF > ;
 SCAN AnyCharExceptSingleQuoteNewline ::= < NUL .. HT | VT | FF | SO .. '&' | '(' .. EOF > ;
 

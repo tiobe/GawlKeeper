@@ -14,10 +14,16 @@ UnixProcess. Exit, Failure
 StringTokenizer. Split, Trim
 TextFile. SplitKeyValue, Pair, ApplyCommonFilters, GetLinesFromFile
 
+constant
+
+PLACEHOLDER : String = "##PLACEHOLDER##"
+
 typedef
 
+RuleIdType == String
+
 RuleInfo = {
-  id : Int
+  id : RuleIdType
   apply : Bool := FALSE
   parameters : List(String) := NIL
   synopsis : String
@@ -28,14 +34,37 @@ RuleInfo = {
 // map rule number to rule info
 //
 
-memo RuleInfoMap = { id : Int  ruleinfo : RuleInfo|NIL := NIL }
+memo RuleInfoMap = { id : Ident ruleinfo : RuleInfo|NIL := NIL }
 RulesShown = enum { RS_IMPLEMENTED | RS_RESERVED | RS_ALL }
 
 functions
 
 GetRules() : [([String])]
 {
-  rules : [([String])] := NIL
+  rules : [([String])] = 
+  [
+    [ "C7",
+      "Network title should start with 2 capital letters, a colon and a space.",
+      "Network title '\027' is not correct."
+    ],
+    [ "C15",
+      "The length of a block title has a maximum of 20 characters.",
+      "Block title '\027' is too long."
+    ],
+    [ "C70",
+      "Avoid the \"GOTO\" instruction.",
+      "Avoid the \"GOTO\" instruction."
+    ],
+    [ "G28",
+      "Comment line.",
+      "Comment '\027' doesn't start with a space followed by a capital letter."
+    ],
+    [ "G41",
+      "No empty networks in the block.",
+      "Network '\027' is empty."
+    ]
+  ]
+
   return rules
 }
 
@@ -44,9 +73,100 @@ InitRules()
 
 InitRulesSet(rs : RulesShown)
 {
-  [ { }
+  [ { SetRuleInfo(rs, r^0, r^1, r^2) }
   | r : ([String]) <- GetRules()
   , { Assert(#r = 3) }
   ]
 }
 
+// rule switch has form: --d+[=p[,p]...]
+IsRule(s : String, arg : String): Bool
+{
+  i : Int = 2
+  j : Int = #s
+  sw : String = SubString(s, i, j - 1)
+  id : String := ""
+  p : List(String) := NIL
+
+  //IsRuleId
+  if s@0 = '-' & s@1 = '-' & j - i > 0 then
+    id := sw
+  else
+    // not a valid rule switch
+    return FALSE
+  fi
+  //GetArguments
+  if arg@0 # '\000'  then
+    p := Split(arg, ',')
+  fi
+  //SetRule
+  switch GetRuleInfo(id) {
+  case NIL : RuleInfo|NIL
+    // 11345: unsupported rule
+    { "E008: Rule --" id " is not implemented\n"
+    } astype Message
+    Exit(Failure)
+  case r : RuleInfo
+    r.apply := TRUE
+    r.parameters := p
+  }
+  return TRUE
+}
+
+GetRuleMessage(id : String): List(String)
+{
+  return
+    switch GetRuleInfo(id) {
+    case rule : RuleInfo
+      rule.message
+    else
+      NIL
+    }
+}
+
+GetRuleSynopsis(id : String): String
+{
+  return
+    switch GetRuleInfo(id) {
+    case rule : RuleInfo
+      rule.synopsis
+    else
+      ""
+    }
+}
+
+//
+// retrieve rule info from map
+//
+
+GetRuleInfo(id : String): RuleInfo|NIL
+{ return RuleInfoMap(Ident(id)).ruleinfo }
+
+//
+// initialize the rule info map
+//
+
+SetRuleInfo(rs : RulesShown, rule : String, synopsis : String, message : String)
+{
+  RuleInfoMap(Ident(rule)).ruleinfo :=
+    if
+      rs = RS_ALL |
+      rs = RS_IMPLEMENTED & message # PLACEHOLDER |
+      rs = RS_RESERVED & message = PLACEHOLDER
+    then
+      RuleInfo(rule, synopsis, Split(message, ESC))
+    else
+      NIL
+    fi
+}
+
+IsRuleEnabled(id : String): Bool
+{
+  return
+    switch GetRuleInfo(id) {
+    case rule : RuleInfo
+      rule.apply
+    else
+      FALSE
+    }
+}

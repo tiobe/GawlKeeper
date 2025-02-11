@@ -6,9 +6,76 @@
 
 impl unit Rules
 
-use
+use 
 
+Comments. Comment
 KMPMatch. Match
+Properties. GetTitle
+RuleConfig. IsRuleEnabled
+RuleViolation. ', AddViolation
+Syntactics. IsNewline
+
 
 functions
 
+Check(rule : String, loc : Int, me : GawlKeeper)
+conditions ~IsRuleEnabled(rule) { }
+
+Check(rule : String, loc : Int, me : List(Comment))
+conditions ~IsRuleEnabled(rule) { }
+
+Check(rule : String, loc : Int, me : Network)
+conditions ~IsRuleEnabled(rule) { }
+
+Check(rule : String, loc : Int, title : String)
+conditions ~IsRuleEnabled(rule) { }
+
+Check(rule : String, loc : Int)
+conditions ~IsRuleEnabled(rule) { }
+
+Check(rule = "C7", loc : Int, me : Network)
+{ 
+  title : String = GetTitle(me)
+  if #title < 4 | ~IsUpper(title@0) | ~IsUpper(title@1) | title@2 # ':' | title@3 # ' '
+  then
+    AddViolation(rule, loc, [title])
+  fi
+}
+
+Check(rule = "C15", loc : Int, me : GawlKeeper)
+{
+  actual_str : String =  GetTitle(me.block_type).str
+  if #actual_str > 20 then AddViolation(rule, loc, [actual_str]) fi
+}
+
+Check(rule = "C70", loc : Int)
+{
+  AddViolation(rule, loc, [])
+}
+
+Check(rule = "G28", loc : Int, me : (List(Comment))) 
+{
+  if #me.head.string > 0 & me.head.string@0 = '/' &
+    (#me.head.string < 4 | me.head.string@2 # ' ' | ~IsUpper(me.head.string@3))
+  then
+    // Comment is added to the next instruction, hence the line number should check
+    // where the previous instruction is
+    AddViolation(rule, loc, [me.head.string], -1) 
+  fi
+}
+
+Check(rule = "G41", loc : Int, me : (Network, instructions = NIL)) 
+{ 
+  AddViolation(rule, loc, [GetTitle(me)])
+}
+
+Check(rule = "G41", loc : Int, me : (Network, instructions : (List(Instruction), head : (Instruction, instruction : NoOpInstr), tail = NIL))) 
+{ 
+  AddViolation(rule, loc, [GetTitle(me)]) 
+}
+
+Check(rule : String, loc : Int, me : GawlKeeper)    { }
+Check(rule : String, loc : Int, me : List(Comment)) { }
+Check(rule : String, loc : Int, me : Network)       { }
+Check(rule : String, loc : Int, title : String)     { }
+Check(rule : String, loc : Int)                     { }

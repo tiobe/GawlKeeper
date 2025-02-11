@@ -15,7 +15,11 @@ RuleConfig. IsRuleEnabled
 RuleViolation. ', AddViolation
 Syntactics. IsNewline
 
+
 functions
+
+Check(rule : String, loc : Int, me : GawlKeeper)
+conditions ~IsRuleEnabled(rule) { }
 
 Check(rule : String, loc : Int, me : List(Comment))
 conditions ~IsRuleEnabled(rule) { }
@@ -23,7 +27,7 @@ conditions ~IsRuleEnabled(rule) { }
 Check(rule : String, loc : Int, me : Network)
 conditions ~IsRuleEnabled(rule) { }
 
-Check(rule : String, loc : Int, title : StringLiteral)
+Check(rule : String, loc : Int, title : String)
 conditions ~IsRuleEnabled(rule) { }
 
 Check(rule : String, loc : Int)
@@ -38,9 +42,9 @@ Check(rule = "C7", loc : Int, me : Network)
   fi
 }
 
-Check(rule = "C15", loc : Int, title: StringLiteral)
+Check(rule = "C15", loc : Int, me : GawlKeeper)
 {
-  actual_str : String = title.str
+  actual_str : String =  GetTitle(me.block_type).str
   if #actual_str > 20 then AddViolation(rule, loc, [actual_str]) fi
 }
 
@@ -70,7 +74,8 @@ Check(rule = "G41", loc : Int, me : (Network, instructions : (List(Instruction),
   AddViolation(rule, loc, [GetTitle(me)]) 
 }
 
-Check(rule : String, loc : Int, me : List(Comment))     { }
-Check(rule : String, loc : Int, me : Network)           { }
-Check(rule : String, loc : Int, title : StringLiteral)  { }
-Check(rule : String, loc : Int)                         { }
+Check(rule : String, loc : Int, me : GawlKeeper)    { }
+Check(rule : String, loc : Int, me : List(Comment)) { }
+Check(rule : String, loc : Int, me : Network)       { }
+Check(rule : String, loc : Int, title : String)     { }
+Check(rule : String, loc : Int)                     { }

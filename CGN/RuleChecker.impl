@@ -7,7 +7,6 @@ print_support
 Comments. Comment, GetComments
 Rules
 Syntactics. IsComment
-Properties. GetTitle
 
 global
 
@@ -23,7 +22,7 @@ Check_GawlKeeper(me : GawlKeeper)
   Check_Comment(me.src_info)
   margin := fix_margin()
   Check_Block(me.block_type)
-  Rules.Check("C15", LOC, GetTitle(me.block_type))
+  Rules.Check("C15", LOC, me)
   Check_Comment(me.src_info)
   set_margin(margin)
 }

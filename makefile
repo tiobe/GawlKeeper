@@ -162,7 +162,7 @@ Grammar/%.front:: %.front.patch
 # 	-diff -Naur $(GENERATED)/$(TARGET).scan Grammar/$(TARGET).scan > $(TARGET).scan.patch
 
 info:
-	sed -E -n 's|^\s*\#define\s*Versions_date\s*\(.*\"(.*)\"\)$$|\1|p' ../version/Generated/$(ARCH)/O/Versions.h | jq -R "{date:.}|.revision=\"$(SVNVERSION)\"|.version=\"r$(SVNVERSION)  (\(.date))\"|.compatible[0]=\"2021.2.1.43807\"|.compatible[1]=\"2021.3\"" > info.json
+	sed -E -n 's|^\s*\#define\s*Versions_date\s*\(.*\"(.*)\"\)$$|\1|p' ../version/Generated/$(ARCH)/O/Versions.h | jq -R "{date:.}|.revision=\"$(SEMVER)\"|.version=\"r$(SEMVER)  (\(.date))\"|.compatible[0]=\"2021.2.1.43807\"|.compatible[1]=\"2021.3\"" > info.json
 
 clean_info:
 	rm -f info.json
@@ -171,8 +171,8 @@ package: clean_package realclean default info
 	mkdir $(TARGET)
 	cp $(TARGET).$(ARCH) $(TARGET)/$(TARGET)$(EXT)
 	cp info.json $(TARGET)
-	rm -f $(TARGET)-$(VERSION)-$(ARCH).zip
-	zip -r --symlinks $(TARGET)-$(VERSION)-$(ARCH).zip $(TARGET)
+	rm -f $(TARGET)-$(SEMVER)-$(ARCH).zip
+	zip -r --symlinks $(TARGET)-$(SEMVER)-$(ARCH).zip $(TARGET)
 
 clean_package:
 	rm -rf $(TARGET)
@@ -182,11 +182,11 @@ clean_package:
 STARTREV := 1793
 
 #relnotes:
-#	svn log --xml -r $(VERSION):$(STARTREV) | xsltproc -o $(TARGET)-relnotes.html svn-log.xslt -
+#	svn log --xml -r $(SEMVER):$(STARTREV) | xsltproc -o $(TARGET)-relnotes.html svn-log.xslt -
 
 clean_relnotes:
 	rm -f $(TARGET)-relnotes.html
 
 DEST = absolem:/home/wilde/ticsweb/pub/codecheckers/$(TARGET)
 publish: package
-	scp $(TARGET)-$(VERSION)-$(ARCH).zip $(DEST)
+	scp $(TARGET)-$(SEMVER)-$(ARCH).zip $(DEST)

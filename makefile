@@ -162,7 +162,7 @@ Grammar/%.front:: %.front.patch
 # 	-diff -Naur $(GENERATED)/$(TARGET).scan Grammar/$(TARGET).scan > $(TARGET).scan.patch
 
 info:
-	sed -E -n 's|^\s*\#define\s*Versions_date\s*\(.*\"(.*)\"\)$$|\1|p' ../version/Generated/$(ARCH)/O/Versions.h | jq -R "{date:.}|.revision=\"$(VERSION)\"|.version=\"r$(VERSION)  (\(.date))\"|.compatible[0]=\"2021.2.1.43807\"|.compatible[1]=\"2021.3\"" > info.json
+	sed -E -n 's|^\s*\#define\s*Versions_date\s*\(.*\"(.*)\"\)$$|\1|p' ../version/Generated/$(ARCH)/O/Versions.h | jq -R "{date:.}|.revision=\"$(SVNVERSION)\"|.version=\"r$(SVNVERSION)  (\(.date))\"|.compatible[0]=\"2021.2.1.43807\"|.compatible[1]=\"2021.3\"" > info.json
 
 clean_info:
 	rm -f info.json

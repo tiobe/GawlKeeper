@@ -10,3 +10,4 @@ functions
 
 Check(rule : String, loc : Int, me : List(Comment))
 Check(rule : String, loc : Int, me : Network)
+Check(rule : String, loc : Int, title : StringLiteral)

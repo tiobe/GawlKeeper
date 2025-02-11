@@ -7,6 +7,7 @@ print_support
 Comments. Comment, GetComments
 Rules
 Syntactics. IsComment
+Properties. GetTitle
 
 global
 
@@ -22,6 +23,7 @@ Check_GawlKeeper(me : GawlKeeper)
   Check_Comment(me.src_info)
   margin := fix_margin()
   Check_Block(me.block_type)
+  Rules.Check("C15", LOC, GetTitle(me.block_type))
   Check_Comment(me.src_info)
   set_margin(margin)
 }
@@ -626,7 +628,7 @@ Check_InstrExpression(me : StringLiteral)
   margin : Int := 0
   Check_Comment(me.src_info)
   margin := fix_margin()
-  Check_StringConstant(me.str)
+  Check_String(me.str)
   Check_Comment(me.src_info)
   set_margin(margin)
 }
@@ -1648,26 +1650,6 @@ Check_ArgumentsList(me : ArgumentsList)
     }
   | xxxargs : ArgumentsAssignment <- Tail(me.args, NIL)
   ]
-  Check_Comment(me.src_info)
-  set_margin(margin)
-}
-
-Check_StringConstant(me : DoubleQuotedString)
-{
-  margin : Int := 0
-  Check_Comment(me.src_info)
-  margin := fix_margin()
-  Check_String(me.str)
-  Check_Comment(me.src_info)
-  set_margin(margin)
-}
-
-Check_StringConstant(me : SingleQuotedString)
-{
-  margin : Int := 0
-  Check_Comment(me.src_info)
-  margin := fix_margin()
-  Check_String(me.str)
   Check_Comment(me.src_info)
   set_margin(margin)
 }

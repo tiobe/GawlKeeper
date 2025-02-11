@@ -1,0 +1,12 @@
+FUNCTION_BLOCK "FB_Dispatch_Point_T_this_is_a_pretty_long_title"
+TITLE = %version: 5.09 % %Commit:  c3808b61 % CN: 50
+{ S7_Optimized_Access := 'FALSE' }
+FAMILY : Tubtrax
+VERSION : 0.0
+//Function:
+//Dispatch point is used to assign carriers up to 15 different destinations using
+//balance load criteria.
+//
+BEGIN
+
+END_FUNCTION_BLOCK

@@ -47,6 +47,10 @@ GetRules() : [([String])]
       "Network title should start with 2 capital letters, a colon and a space.",
       "Network title '\027' is not correct."
     ],
+    [ "C15",
+      "The length of a block title has a maximum of 20 characters.",
+      "Block title '\027' is too long."
+    ],
     [ "G28",
       "Comment line.",
       "Comment '\027' doesn't start with a space followed by a capital letter."

@@ -25,6 +25,10 @@ Check(rule : String, loc : Int, me : Network)
 conditions ~IsRuleEnabled(rule)
 { }
 
+Check(rule : String, loc : Int, title : StringLiteral)
+conditions ~IsRuleEnabled(rule)
+{ }
+
 Check(rule = "C7", loc : Int, me : Network)
 { 
   title : String = GetTitle(me)
@@ -34,10 +38,19 @@ Check(rule = "C7", loc : Int, me : Network)
   fi
 }
 
+Check(rule = "C15", loc : Int, title: StringLiteral)
+{
+  actual_str : String = title.str
+  if #actual_str > 20 then AddViolation(rule, loc, [actual_str]) fi
+}
+
 Check(rule = "G28", loc : Int, me : (List(Comment))) 
 {
-  if #me.head.string > 0 & me.head.string@0 = '/'  & (#me.head.string < 4 | me.head.string@2 # ' ' | ~IsUpper(me.head.string@3)) then
-    // comment is added to the next instruction, hence the line number should check where the previous instruction is
+  if #me.head.string > 0 & me.head.string@0 = '/' &
+    (#me.head.string < 4 | me.head.string@2 # ' ' | ~IsUpper(me.head.string@3))
+  then
+    // Comment is added to the next instruction, hence the line number should check
+    // where the previous instruction is
     AddViolation(rule, loc, [me.head.string], -1) 
   fi
 }
@@ -52,5 +65,6 @@ Check(rule = "G41", loc : Int, me : (Network, instructions : (List(Instruction),
   AddViolation(rule, loc, [GetTitle(me)]) 
 }
 
-Check(rule : String, loc : Int, me : List(Comment)) { }
-Check(rule : String, loc : Int, me : Network)       { }
+Check(rule : String, loc : Int, me : List(Comment))     { }
+Check(rule : String, loc : Int, me : Network)           { }
+Check(rule : String, loc : Int, title : StringLiteral)  { }

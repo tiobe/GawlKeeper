@@ -190,3 +190,4 @@ clean_relnotes:
 DEST = absolem:/home/wilde/ticsweb/pub/codecheckers/$(TARGET)
 publish: package
 	scp $(TARGET)-$(SEMVER)-$(ARCH).zip $(DEST)
+	curl --fail -u "$(ARTIFACT_USER)":"$(ARTIFACT_PASS)" --upload-file $(TARGET)-$(SEMVER)-$(ARCH).zip https://artifacts.tiobe.com/repository/checkers/$(TARGET)/$(SEMVER)/$(TARGET)-$(SEMVER)-$(ARCH).zip

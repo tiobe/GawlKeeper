@@ -43,10 +43,10 @@ GetRules() : [([String])]
 {
   rules : [([String])] = 
   [
-//    [ "C006",
-//      "Each network must have a Network Title, which must be chosen obvious: indicating the fulfilled functionality of the code in the network.",
-//      "Network without a title."
-//    ],
+    [ "C006",
+      "Each network must have a Network Title, which must be chosen obvious: indicating the fulfilled functionality of the code in the network.",
+      "There is a network without title."
+    ],
     [ "C007",
       "Network title should start with 2 capital letters, a colon and a space.",
       "Network title '\027' is not correctly formatted: it should begin with 2 uppercase letters, a colon and a space."

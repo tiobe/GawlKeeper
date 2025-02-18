@@ -92,6 +92,9 @@ Check(rule = "G043", loc : Int, me : (Network, instructions # NIL))
 }
 
 
+Check(rule = "C006", loc : Int, me : Network)
+{ if #GetTitle(me) < 6 then AddViolation(rule, loc, []) fi }
+
 Check(rule = "C007", loc : Int, me : Network)
 {
   title : String = GetTitle(me)

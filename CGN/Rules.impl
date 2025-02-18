@@ -14,7 +14,7 @@ RuleConfig. IsRuleEnabled
 RuleViolation. ', AddViolation
 ScanIO. FindFileName, FindLocation
 StringTokenizer. Split, Trim
-Syntactics. IsNewline, IsCommentWellFormatted, FilterComments, TrimQuotes, Print
+Syntactics. IsNewline, IsCommentWellFormatted, FilterComments, TrimQuotes //, Print
 
 
 functions

@@ -1,4 +1,4 @@
-FUNCTION_BLOCK "FB_Dispatch_Point_T_this_is_a_pretty_long_title"
+FUNCTION_BLOCK "FB_Dispatch_Point_T"
 TITLE = %version: 5.09 % %Commit:  c3808b61 % CN: 50
 { S7_Optimized_Access := 'FALSE' }
 FAMILY : Tubtrax
@@ -28,6 +28,12 @@ AA01: NOP 1;
 
 NETWORK
 TITLE = AA: Good
+      NOP 0;
+      GOTO AA01;
+AA01: NOP 1;
+
+NETWORK
+TITLE = AA:Not So Good
       NOP 0;
       GOTO AA01;
 AA01: NOP 1;

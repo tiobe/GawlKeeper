@@ -9,7 +9,10 @@ spec unit Rules
 functions
 
 Check(rule : String, loc : Int, me : GawlKeeper)
-Check(rule : String, loc : Int, me : List(Comment))
 Check(rule : String, loc : Int, me : Network)
-Check(rule : String, loc : Int, title : String)
+Check(rule : String, loc : Int, me : Instruction)
+Check(rule : String, loc : Int, me : Instruction, network : Network)
+//Check(rule : String, loc : Int, me : Identifier)
+Check(rule : String, loc : Int, me : FunctionBody)
+Check(rule : String, loc : Int, me : Field)
 Check(rule : String, loc : Int)

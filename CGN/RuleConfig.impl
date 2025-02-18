@@ -43,25 +43,54 @@ GetRules() : [([String])]
 {
   rules : [([String])] = 
   [
-    [ "C7",
+//    [ "C006",
+//      "Each network must have a Network Title, which must be chosen obvious: indicating the fulfilled functionality of the code in the network.",
+//      "Network without a title."
+//    ],
+    [ "C007",
       "Network title should start with 2 capital letters, a colon and a space.",
-      "Network title '\027' is not correct."
+      "Network title '\027' is not correctly formatted: it should begin with 2 uppercase letters, a colon and a space."
     ],
-    [ "C15",
+    [ "C011",
+      "A label is made up of the two-character prefix from the Network Title, followed by a unique two-digit sequence number.",
+      "Label '\027' is wrongly formatted; it should start with '\027' and continue with 2 digits."
+    ],
+    [ "C015",
       "The length of a block title has a maximum of 20 characters.",
       "Block title '\027' is too long."
     ],
-    [ "C70",
+    [ "C020",
+      "The names of local variables (other than the preset local variables of OB's) shall start with a lower-case prefix character according to its type.",
+      "Variable '\027' must start with '\027'."
+    ],
+    [ "C042",
+      "All arrays must start from zero.",
+      "Array '\027' must start at 0 instead of \027. Adjust the upper bound accordingly."
+      //"The array declared at the given line should start at 0 and the upper bound should be adjusted accordingly."
+    ],
+    [ "C070",
       "Avoid the \"GOTO\" instruction.",
       "Avoid the \"GOTO\" instruction."
     ],
-    [ "G28",
-      "Comment line.",
-      "Comment '\027' doesn't start with a space followed by a capital letter."
+    [ "G003",
+      "Block name is filename.",
+      "Block '\027' should be named '\027', like the file which contains it."
     ],
-    [ "G41",
+    [ "G021",
+      "Comments for declarations.",
+      "Declaration needs a documentation comment starting with a space followed by an upper-case letter."
+    ],
+    [ "G028",
+      "Comment line.",
+      "Comment doesn't start with a space followed by a capital letter."
+    ],
+    [ "G041",
       "No empty networks in the block.",
       "Network '\027' is empty."
+    ],
+    [ "G043",
+      "Every network has network comments.",
+      "Network '\027' does not have documentation comments."
     ]
   ]
 

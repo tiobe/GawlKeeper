@@ -44,69 +44,40 @@ VERSION : 0.0
    VAR_INPUT 
       i_ID : DWord;   //  ID Record HEX AAAAZZSS/OO
       i_CFG_Destination : Int;   //  CFG: Destination number of the Dispatch Point
-      i_CFG_Position_Node : Int;   //  CFG: [cm] Node border position in DB PLT
-      i_DB_PLT : DB_ANY := DB1;   //  Data Structure: DB PLT
+      CFG_Position_Node : Int;   //  CFG: [cm] Node border position in DB PLT
+      DB_PLT : DB_ANY := DB1;   //  Data Structure: DB PLT
+      i_Destination_01 : Int;   //  Destination number 01
+      DB_RS_Upstr : DB_ANY := DB1;   //  Data Structure: DB Route Segment upstream buffer
+      i_Dest_01_Available : Bool;   //  Destination number 01 available
+      DB_RS_Dwnstr : DB_ANY := DB1;   //  Data Structure: DB Route Segment downstream buffer
+      i_Destination_02 : Int;   //  Destination number 02
+      i_Dest_02_Available : Bool;   //  Destination number 02 available
    END_VAR
 
    VAR_OUTPUT 
       o_Carrier_Assigned_01 : Bool;   //  Carrier assigned to Destination number 01
+      Carrier_Assigned_02 : Bool;   //  Carrier assigned to Destination number 02
       o_Req_Dis_Send : Bool;   //  Request Disable Send
    END_VAR
 
    VAR 
-      s_FB_Rte_Seg_FIFO_T : "FB_Rte_Seg_FIFO_T";   //  Block call static FB_Rte_Seg_FIFO_T
+      FB_Rte_Seg_FIFO_T : "FB_Rte_Seg_FIFO_T";   //  Block call static FB_Rte_Seg_FIFO_T
       s_LIC : Int;   //  LIC number
+      s_Available_Destination : Int;   //  Destination available
+      Dest_01_Used : Bool;   //  Destination 01 used
+      s_Dest_02_Used : Bool;   //  Destination 02 used
+      s_FB_DAT_T : "FB_DAT_T";   //  Block call static FB_DAT_T
+      s_FB_DAT : "FB_DAT";   //  Block call static FB_DAT
    END_VAR
 
+   VAR_TEMP 
+      DB_Event_Section : Int;   //  Number of DB event
+      t_DB_PLT_Num : Int;   //  Number of DB PLT
+      t_DB_Route_List_Num : Int;   //  Number of DB Route List
+      LNK : Int;   //  LNK number
+   END_VAR
+
+
 BEGIN
-NETWORK
-TITLE = AA: Get information from Data Blocks
-      NOP 0;
-
-// Copy section event DB number
-      OPN "DB_Event_Section";
-
-      L DBNO;
-      T #t_DB_Event_Section;
-
-// Copy PLT information from DB_PLT
-      OPN #i_DB_PLT;
-
-      L DBNO;
-      T #t_DB_PLT_Num;
-
-      A %DBX10.6;
-      = #t_Section_Item_At_HO;
-
-// Copy route list DB number
-      OPN "DB_Route_List";
-      L DBNO;
-      T #t_DB_Route_List_Num;
-
-NETWORK
-TITLE = AB: Testing
-
-NETWORK
-TITLE = BA: Search for item on Dispatch Point
-      NOP 0;
-
-// Find the leading edge of the carrier on the section
-      CALL "FC_PLT_Srch_Inf_Dwn"
-      (  i_DB_PLT_Num                := #t_DB_PLT_Num , 
-         i_Position                  := #i_CFG_Position_Node , 
-         i_Window                    := #i_CFG_Position_Node , 
-         i_Info                      := 1 , 
-         o_Position                  := #t_Not_Used_Int , 
-         o_Info                      := #t_Not_Used_Int , 
-         o_LNK                       := #t_LNK , 
-         o_DB_PLT_Num                := #t_Not_Used_Int , 
-         o_Number_Items_Found        := #t_Fnd_Num_Items_Leading
-      );
-
-      L #t_Fnd_Num_Items_Leading;
-      L 0;
-      >I;
-      = #t_Carrier_Found;
 
 END_FUNCTION_BLOCK
-

@@ -22,7 +22,8 @@ Check_GawlKeeper(me : GawlKeeper)
   Check_Comment(me.src_info)
   margin := fix_margin()
   Check_Block(me.block_type)
-  Rules.Check("C15", LOC, me)
+  Rules.Check("C015", LOC, me)
+  Rules.Check("G003", LOC, me)
   Check_Comment(me.src_info)
   set_margin(margin)
 }
@@ -101,6 +102,9 @@ Check_FunctionBody(me : FunctionBody)
   Check_Comment(me.src_info)
   margin := fix_margin()
   Check_HeaderBlock(me.header)
+  Rules.Check("C020", LOC, me)
+  // TODO Can we shift the comments for each Field declaration
+  // (and "END_VAR") to the previous element?
   if me.inputs # NIL then
     Check_String("VAR_INPUT")
     [ { Check_Field(xxxinputs) }
@@ -116,6 +120,8 @@ Check_FunctionBody(me : FunctionBody)
     Check_String("END_VAR")
   fi
   if me.in_outs # NIL then
+    // TODO Section 2.2.1 (pg. 13) of "Architectural design spec" says that
+    // "In- and Output parameter may not be used"
     Check_String("VAR_IN_OUT")
     [ { Check_Field(xxxin_outs) }
     | xxxin_outs : Field <- me.in_outs
@@ -236,12 +242,16 @@ Check_Field(me : Field)
     Check_ParamsInitSC(me.params)
   fi
   Check_String(":")
+  Rules.Check("C042", LOC, me)
   Check_Type(me.type)
   if me.init # NIL then
     Check_Assignment(me.init)
   fi
   Check_String(";")
   Check_Comment(me.src_info)
+  Rules.Check("G021", LOC, me)
+  // TODO get the comment from the closure of the declarations block
+  // (i.e. END_STRUCT or END_VAR)
   set_margin(margin)
 }
 
@@ -443,7 +453,7 @@ Check_Type(me : ArrayRangeType)
   margin : Int := 0
   Check_Comment(me.src_info)
   margin := fix_margin()
-  Check_ArrayRangeDecl(me.range)
+  Check_ArrayRangeDecl(me.array)
   Check_Comment(me.src_info)
   set_margin(margin)
 }
@@ -514,6 +524,8 @@ Check_StructBody(me : StructBody)
   margin : Int := 0
   Check_Comment(me.src_info)
   margin := fix_margin()
+  // TODO Can we shift the comments for each Field declaration
+  // (and "END_STRUCT") to the previous element?
   [ { Check_Field(xxxfields) }
   | xxxfields : Field <- me.fields
   ]
@@ -528,13 +540,15 @@ Check_Network(me : Network)
   Check_Comment(me.src_info)
   margin := fix_margin()
   Check_String("NETWORK")
-  Rules.Check("G41", LOC, me)
+  Rules.Check("G041", LOC, me)
   Check_String(me.title)
-  Rules.Check("C7", LOC, me)
+  Rules.Check("C007", LOC, me)
+  Rules.Check("G043", LOC, me)
   [
     {
       Check_Instruction(xxxinstructions)
       Check_String(";")
+      Rules.Check("C011", LOC, xxxinstructions, me)
     }
   | xxxinstructions : Instruction <- me.instructions
   ]
@@ -556,7 +570,7 @@ Check_Instruction(me : Instruction)
     Check_InstrExpression(me.arg)
   fi
   Check_Comment(me.src_info)
-  Rules.Check("G28", LOC, GetComments(me.src_info.pre_comment))
+  Rules.Check("G028", LOC, me)
   set_margin(margin)
 }
 
@@ -619,6 +633,7 @@ Check_InstrExpression(me : Identifier)
   margin := fix_margin()
   Check_Ident(me.id)
   Check_Comment(me.src_info)
+  //Rules.Check("C014", LOC, me)
   set_margin(margin)
 }
 
@@ -1087,7 +1102,7 @@ Check_InstructionName(me : GoToInstr)
   Check_Comment(me.src_info)
   margin := fix_margin()
   Check_String("GOTO")
-  Rules.Check("C70", LOC)
+  Rules.Check("C070", LOC)
   Check_Comment(me.src_info)
   set_margin(margin)
 }

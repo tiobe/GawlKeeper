@@ -2,6 +2,8 @@ impl unit Properties
 
 use
 
+Comments. GetComments
+ScanIO. FindLocation
 StringTokenizer. IndexOf, Trim
 Syntactics. IndexOf
 
@@ -10,7 +12,24 @@ functions
 GetTitle(network : Network): (String)
 { return Trim(SubString(network.title, IndexOf(network.title, '=')+1, #network.title-1)) }
 
-GetTitle(block : DataBlock)     : StringLiteral { return block.block_name }
-GetTitle(block : Function)      : StringLiteral { return block.function_name }
-GetTitle(block : FunctionBlock) : StringLiteral { return block.function_name }
-GetTitle(block : TypeBlock)     : StringLiteral { return block.type_name }
+GetTitle(block : DataBlock)     : String { return block.block_name.str }
+GetTitle(block : Function)      : String { return block.function_name.str }
+GetTitle(block : FunctionBlock) : String { return block.function_name.str }
+GetTitle(block : TypeBlock)     : String { return block.type_name.str }
+
+
+GetName(ref: Identifier)    : String { return ref.id }
+GetName(ref: StringLiteral) : String { return ref.str }
+GetName(fld: Field)         : String { return GetName(fld.name) }
+
+
+GetLocLine(loc: Int): Int
+{
+    line : Int := 0; pos : Int := 0; file : Ident := file
+    FindLocation(loc, line, pos, file)
+    return (line)
+}
+
+
+GetComments(me : Instruction): List(Comment)  { return GetComments(me.src_info.pre_comment) }
+GetComments(me : Field): List(Comment)        { return GetComments(me.src_info.pre_comment) }

@@ -1,13 +1,10 @@
 impl unit Syntactics
 
 use
-
-StringTokenizer. IndexOf
+Comments. Comment
+StringTokenizer. IndexOf, Trim
 
 functions
-
-IsComment(s : String): Bool
-{ return s@0 = '/' }
 
 IndexOf(str : String, char : Char): Int
 { return IndexOf(str, char, 0, #str-1) }
@@ -17,8 +14,46 @@ IndexOf(str : String, char : Char): Int
 //
 
 IsNewline(s : String): Bool
-{ return IsNewline(s@0) }
+{ return (s # NIL & #s > 0 & IsNewline(s@0)) }
 
 IsNewline(c : Char): Bool
 { return c = LF | c = CR }
 
+
+//
+// Comments
+//
+
+IsComment(s : String): Bool
+{ return #s > 1 & s@0 = '/' & s@1 = '/' }
+
+// A well-formatted comment, like this one, consists of (at least) a space after
+// the 2 slashes and a sentence starting with a capital letter (or, possibly, a
+// number, but not a downcase letter).
+IsCommentWellFormatted(s: String): Bool
+{
+    return IsComment(s) & #s > 3 & s@2 = ' ' &
+           ~IsLower( Trim(SubString(s, 2, #s-1) )@0)
+}
+
+
+FilterComments(lines: [String]): [String]
+{
+    trimmed: [String] = [Trim(ln) | ln: String <- lines]
+    return [ln | ln: String <- trimmed, (#ln > 0)]
+}
+FilterComments(NIL:    [Comment],  var offset: Int): [String] { return NIL }
+FilterComments(lines: ([Comment]), var offset: Int): [String]
+{
+    offset := [/(\-, offset) 1 | ln: Comment <- lines, (IsNewline(ln.string))]
+    return FilterComments([comm.string | comm: Comment <- lines])
+}
+
+
+TrimQuotes(s : String) : String
+{
+    last: Int = #s - 1
+    start: Int = if #s > 0 & (s@0    = '"' | s@0    = ''') then 1 else 0 fi
+    end: Int = if last > 0 & (s@last = '"' | s@last = ''') then last-1 else last fi
+    return SubString(s, start, end)
+}

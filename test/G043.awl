@@ -1,0 +1,294 @@
+FUNCTION_BLOCK "FB_Dispatch_Point_T"
+TITLE = %version: 5.09 % %Commit:  c3808b61 % CN: 50
+{ S7_Optimized_Access := 'FALSE' }
+FAMILY : Tubtrax
+VERSION : 0.0
+//Function:
+//Dispatch point is used to assign carriers up to 15 different destinations using
+//balance load criteria.
+//
+//
+//SOURCE
+//%Project:      allcttt %
+//%Repo:         a_ttt %
+//%Commit:       c3808b61 %
+//%DateTimeUTC:  2023-12-11T14:59:55 %
+//
+//%HISTORY%
+//Issue:        Commit:  Date:      Version: Author:              Description:
+//------------- -------- ---------- -------- -------------------- ------------------------------------------------------------------------------
+//ALLCTTT-4059  c3808b61 2023-12-11 5.09     Pascal van Kempen    Added history table
+//ALLCTTT-4042  a864e0dd 2023-12-06 5.08     Harm Hopmans         Renamed folders that contained space character
+//ALLCTTT-4042  55fd833f 2023-12-05 5.07     Henri de Leijer      First step to remove the library files
+//ALLCTTT-272   544e4e84 2020-12-10 5.06     Pascal van Kempen    removed keywords
+//ALLCTTT-272   9d531fbf 2020-12-10 5.05     Pascal van Kempen    Revert corrected checkin sequence for determining version information properly
+//ALLCTTT-272   ae3fa862 2020-12-10 5.04     Pascal van Kempen    corrected checkin sequence for determining version information properly
+//ALLCTTT-272   5a1edb78 2020-12-10 5.03     Pascal van Kempen    Revert keywords updates
+//ALLCTTT-272   8d62c219 2020-12-10 5.02     Pascal van Kempen    keywords updates
+//ALLCTTT-272   31a64871 2020-12-10 5.01     Pascal van Kempen    initial import
+//
+//Modification History:                                 By:      Date:     Rev:
+//----------------------------------------------------  -------  --------  -----
+//ra#37889: i_CFG_PLC_Log_Route_Msgs = FALSE            inas12   13-08-20   2.04
+//ra#34207: Resolved parallel version in Synergy        inrjoi   25-07-19   2.03
+//ra#32741: Sync TTT 2.16 Classic to TIA                nlHdL    21-03-19   2.02
+//ina#12083: Fatal error log message ID 3123            inrjoi   21-12-18  
+//ra#31964: Based on 2.15.0.0 version 1.14              nlhhop   14-01-19   2.01
+//
+//Description:
+//When a carrier enters the Dispatch Point,it will be assigned to one of the 
+//destinations based on their availability to receive the item.
+//In order to balance the load for all destinations the Dispatch Point memorizes 
+//when a destination was previously used, this means that the next carrier 
+//will prioritize available and unused destinations.
+
+BEGIN
+NETWORK
+TITLE = AA: Get information from Data Blocks
+      NOP 0;
+
+// Copy section event DB number
+      OPN "DB_Event_Section";
+
+      L DBNO;
+      T #t_DB_Event_Section;
+
+// Copy PLT information from DB_PLT
+      OPN #i_DB_PLT;
+
+      L DBNO;
+      T #t_DB_PLT_Num;
+
+      A %DBX10.6;
+      = #t_Section_Item_At_HO;
+
+// Copy route list DB number
+      OPN "DB_Route_List";
+      L DBNO;
+      T #t_DB_Route_List_Num;
+
+NETWORK
+TITLE = AB: Testing
+// This is a very silly empty network
+
+NETWORK
+TITLE = BA: Search for item on Dispatch Point
+      NOP 0;
+
+// Find the leading edge of the carrier on the section
+      CALL "FC_PLT_Srch_Inf_Dwn"
+      (  i_DB_PLT_Num                := #t_DB_PLT_Num , 
+         i_Position                  := #i_CFG_Position_Node , 
+         i_Window                    := #i_CFG_Position_Node , 
+         i_Info                      := 1 , 
+         o_Position                  := #t_Not_Used_Int , 
+         o_Info                      := #t_Not_Used_Int , 
+         o_LNK                       := #t_LNK , 
+         o_DB_PLT_Num                := #t_Not_Used_Int , 
+         o_Number_Items_Found        := #t_Fnd_Num_Items_Leading
+      );
+
+      L #t_Fnd_Num_Items_Leading;
+      L 0;
+      >I;
+      = #t_Carrier_Found;
+
+NETWORK
+TITLE = CA: Check and set destination
+//If a Bag has the Dispatch Point as destination this network will search a 
+//valid destination that is available and that wasn't used recently, if any of 
+//these conditions isn't verified this network will check the same conditions for 
+//the next destination.
+      NOP 0;
+
+      A #t_Carrier_Found;
+      A #s_Carrier_Loaded;
+      A(;
+      L #s_Available_Destination;
+      L 0;
+      ==I;
+      );
+      JCN CA99;
+
+// Preset Loop counter
+      L 1;
+      T #t_Loop_Counter;
+
+// Backup AR content
+      TAR1;
+      T #t_AR1_Backup;
+      TAR2;
+      T #t_AR2_Backup;
+
+// Reset result value
+      L 0;
+      T #t_Destination_Found;
+
+// Load start position AR1 and AR2
+      LAR1 P##i_Destination_01;
+      LAR2 P##s_Dest_01_Used;
+
+// If destination bigger than zero
+CA01:      L W[ AR1, P#0.0];
+      L 0;
+      >I;
+      JCN CA02;
+
+// AND destination available
+      A[ AR1, P#2.0];
+      JCN CA02;
+
+// AND NOT used recently
+      AN[ AR2, P#0.0];
+      JCN CA02;
+
+// Copy Destination in result
+      L W[ AR1, P#0.0];
+      T #t_Destination_Found;
+
+// Set entry as used
+      SET;
+      S[ AR2, P#0.0];
+
+      JU CA03;
+
+// If destination equal or smaller than zero OR not available, checks next destination and availability
+CA02:      L P#4.0;
+      +AR1;
+
+      L P#0.1;
+      +AR2;
+
+// Increment 1 to the loop counter until a maximum of 15 destinations
+      L #t_Loop_Counter;
+      L 1;
+      +I;
+      T #t_Loop_Counter;
+
+      L #t_Loop_Counter;
+      L 15;
+      >I;
+      JCN CA01;
+
+// Restore AR content
+CA03:      L #t_AR1_Backup;
+      LAR1;
+      L #t_AR2_Backup;
+      LAR2;
+
+      L #t_Destination_Found;
+      T #s_Available_Destination;
+
+CA99:      NOP 0;
+
+NETWORK
+TITLE = DA: Reset 'used' property
+//When there is no 'available' and not 'used' station, reset 'used' indicator of 
+//all stations
+      NOP 0;
+
+// Carrier on Dispatch Point AND destinations not available
+      A #t_Carrier_Found;
+      A #s_Carrier_Loaded;
+      A(;
+      L #s_Available_Destination;
+      L 0;
+      ==I;
+      );
+      JCN DA99;
+
+// Preset Loop counter
+      L 1;
+      T #t_Loop_Counter;
+
+// Backup AR content
+      TAR1;
+      T #t_AR1_Backup;
+      TAR2;
+      T #t_AR2_Backup;
+
+// Load start position AR1 and AR2
+      LAR1 P##i_Destination_01;
+      LAR2 P##s_Dest_01_Used;
+
+// If destination bigger than zero
+DA01:      L W[ AR1, P#0.0];
+      L 0;
+      >I;
+      JCN DA02;
+
+// Reset destination used
+      SET;
+      R[ AR2, P#0.0];
+
+// If destination equal or smaller than zero OR not available, checks next destination and availability
+DA02:      L P#4.0;
+      +AR1;
+
+      L P#0.1;
+      +AR2;
+
+// Increment 1 to the loop counter until a maximum of 15 destinations
+      L #t_Loop_Counter;
+      L 1;
+      +I;
+      T #t_Loop_Counter;
+
+      L #t_Loop_Counter;
+      L 15;
+      >I;
+      JCN DA01;
+
+      NOP 0;
+
+// Restore AR content
+      L #t_AR1_Backup;
+      LAR1;
+      L #t_AR2_Backup;
+      LAR2;
+
+DA99:      NOP 0;
+
+NETWORK
+TITLE = EA: Assign carrier to a destination
+      NOP 0;
+
+      A #t_Carrier_Found;
+      A #s_Carrier_Loaded;
+      A(;
+      L #s_Available_Destination;
+      L 0;
+      >I;
+      );
+      FP #s_FP_Copy_Write_Dest;
+      = #s_FP_Write_Destination;
+      JCN EA99;
+
+// Write destination of the assigned destination in the LIC record
+      CALL "FC_Write_Int_Record"
+      (  i_Record_Number             := #s_LIC , 
+         i_P_INT_Record              := "DB_UDT_LIC_Record".BIR.Destination_5 , 
+         i_DB                        := "DB_LIC_List" , 
+         i_INT                       := #s_Available_Destination , 
+         i_DB_Event_Num              := #t_DB_Event_Section
+      );
+
+EA99:      NOP 0;
+
+NETWORK
+TITLE = EC: Move carrier from upstream buffer to downstream buffer
+//At the route segment transition the data has to be moved to the correct carrier 
+//buffer DB.
+      NOP 0;
+
+// Move carrier to route segment buffer DB
+      CALL #s_FB_Rte_Seg_FIFO_T
+      (  i_CFG_Position_Node         := #i_CFG_Position_Node , 
+         i_CFG_Area_HO_Dwnstr        := FALSE , 
+         i_DB_PLT_Node               := #i_DB_PLT , 
+         i_DB_RS_Upstr               := #i_DB_RS_Upstr , 
+         i_DB_RS_Dwnstr              := #i_DB_RS_Dwnstr , 
+         i_DB_Event                  := "DB_Event_Section"
+      );
+
+END_FUNCTION_BLOCK

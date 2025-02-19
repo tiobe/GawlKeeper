@@ -22,7 +22,7 @@ functions
 Check(rule : String, loc : Int, me : GawlKeeper)      // C015, G003
 conditions ~IsRuleEnabled(rule) { }
 
-Check(rule : String, loc : Int, me : Network)         // C007, C011, G041, G043
+Check(rule : String, loc : Int, me : Network)         // C007, G026, G041, G043
 conditions ~IsRuleEnabled(rule) { }
 
 Check(rule : String, loc : Int, me : Instruction)     // G028
@@ -112,7 +112,7 @@ Check(rule = "G041", loc : Int, me : (Network,
 }
 
 
-Check(rule = "C011", loc : Int, me : Network)
+Check(rule = "G026", loc : Int, me : Network)
 conditions me.instructions # NIL
 {
   net_prefix: String = SubString(GetTitle(me), 0, 1)  // TODO Test with "TITLE = "
@@ -129,7 +129,7 @@ conditions me.instructions # NIL
       fi
     } | inst: Instruction <- me.instructions, (inst.label # NIL)]
 }
-Check(rule = "C011", loc : Int, me : Instruction, net_prefix: String): Int
+Check(rule = "G026", loc : Int, me : Instruction, net_prefix: String): Int
   conditions me.label # NIL
 {
   label: String = me.label.id

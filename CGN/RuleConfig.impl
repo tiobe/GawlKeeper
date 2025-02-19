@@ -51,10 +51,6 @@ GetRules() : [([String])]
       "Network title should start with 2 capital letters, a colon and a space.",
       "Network title '\027' is not correctly formatted: it should begin with 2 uppercase letters, a colon and a space."
     ],
-    [ "C011",
-      "A label is made up of the two-character prefix from the Network Title, followed by a unique two-digit sequence number.",
-      "\027"
-    ],
     [ "C015",
       "The length of a block title has a maximum of 20 characters.",
       "Block title '\027' is too long."
@@ -74,6 +70,10 @@ GetRules() : [([String])]
     [ "G021",
       "Comments for declarations.",
       "Declaration needs a documentation comment starting with a space followed by an upper-case letter."
+    ],
+    [ "G026",
+      "Jump labels.",
+      "\027"
     ],
     [ "G028",
       "Comment line.",

@@ -38,8 +38,6 @@ conditions ~IsRuleEnabled(rule) { }
 Check(rule : String, loc : Int, me : Field)           // G021, C042
 conditions ~IsRuleEnabled(rule) { }
 
-Check(rule : String, loc : Int)                       // C070
-conditions ~IsRuleEnabled(rule) { }
 
 
 Check(rule = "C015", loc : Int, me : GawlKeeper)
@@ -119,6 +117,7 @@ Check(rule = "G041", loc : Int, me : (Network,
 
 
 Check(rule = "C011", loc : Int, me : Instruction, network : Network)
+// There is a compiler message for the line above: Rules.impl, Check, line 119: conditions can fail
   conditions me.label # NIL
 {
   label: String = me.label.id
@@ -186,12 +185,6 @@ Check(rule = "G021", loc : Int, me : Field)
 }
 
 
-Check(rule = "C070", loc : Int)
-{
-  AddViolation(rule, loc, [])
-}
-
-
 //// Catch-all ////
 
 Check(rule : String, loc : Int, me : GawlKeeper)    { }
@@ -201,4 +194,3 @@ Check(rule : String, loc : Int, me : Instruction,
                                 network : Network)  { }
 Check(rule : String, loc : Int, me : FunctionBody)  { }
 Check(rule : String, loc : Int, me : Field)         { }
-Check(rule : String, loc : Int)                     { }

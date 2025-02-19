@@ -66,11 +66,6 @@ GetRules() : [([String])]
     [ "C042",
       "All arrays must start from zero.",
       "Array '\027' must start at 0 instead of \027. Adjust the upper bound accordingly."
-      //"The array declared at the given line should start at 0 and the upper bound should be adjusted accordingly."
-    ],
-    [ "C070",
-      "Avoid the \"GOTO\" instruction.",
-      "Avoid the \"GOTO\" instruction."
     ],
     [ "G003",
       "Block name is filename.",

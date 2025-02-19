@@ -14,7 +14,8 @@ RuleConfig. IsRuleEnabled
 RuleViolation. ', AddViolation
 ScanIO. FindFileName, FindLocation
 StringTokenizer. Split, Trim
-Syntactics. IsNewline, IsCommentWellFormatted, FilterComments, TrimQuotes //, Print
+Syntactics. IsLabelWellFormed, IsNewline, IsCommentWellFormatted, FilterComments,
+            TrimQuotes //, Print
 
 
 functions
@@ -115,32 +116,35 @@ Check(rule = "G041", loc : Int, me : (Network,
 Check(rule = "G026", loc : Int, me : Network)
 conditions me.instructions # NIL
 {
-  net_prefix: String = SubString(GetTitle(me), 0, 1)  // TODO Test with "TITLE = "
-  indexes: [Int] := NIL
-  [ {
-      index: Int = Check(rule, loc, inst, net_prefix)
-      if index > -1 then
-        if indexes = NIL | index > indexes.head
-          then indexes := index + indexes
+  net_prefix: String = SubString(GetTitle(me), 0, 1)
+  labels: [String] := NIL
+
+  if #net_prefix = 0 return fi     // What TODO if the network title is ill-formed? Skip?
+  [
+    {
+      label: String = inst.label.id
+      if labels = NIL | label > labels.head  // it is the 1st one, or in order
+          then labels := label + labels
           else AddViolation(rule, inst.src_info.loc,
-                            ["Label '"+ inst.label.id +"' is out of order. " +
-                            "Labels should be in sequential ascending order within a network."])
-        fi
+                            ["Label '"+ label +"' is out of order. Labels should" + 
+                             " be in sequential ascending order within a network."])
       fi
-    } | inst: Instruction <- me.instructions, (inst.label # NIL)]
+    }
+    | inst: Instruction <- me.instructions,
+    (inst.label # NIL & Check(rule, inst, net_prefix))
+  ]
 }
-Check(rule = "G026", loc : Int, me : Instruction, net_prefix: String): Int
-  conditions me.label # NIL
+
+Check(rule = "G026", me: Instruction, net_prefix: String): Bool // conditions me.label # NIL
 {
   label: String = me.label.id
-  if #label = 4 & SubString(label, 0, 1) == net_prefix &
-     IsDigit(label@2) & IsDigit(label@3)
-  then
-    return Int(SubString(label, 2, 3))
+  if IsLabelWellFormed(label, net_prefix) then
+    return TRUE
   else
-    AddViolation(rule, loc, ["Label '"+ label +"' is wrongly formatted; it should"
-                   + " start with '"+ net_prefix +"' and continue with 2 digits."])
-    return -1
+    AddViolation(rule, me.src_info.loc,
+                 ["Label '"+ label +"' is wrongly formatted; it should start with '"+
+                  net_prefix +"' and continue with 2 digits."])
+    return FALSE
   fi
 }
 

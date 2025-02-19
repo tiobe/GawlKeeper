@@ -11,7 +11,5 @@ functions
 Check(rule : String, loc : Int, me : GawlKeeper)
 Check(rule : String, loc : Int, me : Network)
 Check(rule : String, loc : Int, me : Instruction)
-Check(rule : String, loc : Int, me : Instruction, network : Network)
-//Check(rule : String, loc : Int, me : Identifier)
 Check(rule : String, loc : Int, me : FunctionBody)
 Check(rule : String, loc : Int, me : Field)

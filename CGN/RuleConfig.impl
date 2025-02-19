@@ -53,7 +53,7 @@ GetRules() : [([String])]
     ],
     [ "C011",
       "A label is made up of the two-character prefix from the Network Title, followed by a unique two-digit sequence number.",
-      "Label '\027' is wrongly formatted; it should start with '\027' and continue with 2 digits."
+      "\027"
     ],
     [ "C015",
       "The length of a block title has a maximum of 20 characters.",

@@ -22,14 +22,10 @@ functions
 Check(rule : String, loc : Int, me : GawlKeeper)      // C015, G003
 conditions ~IsRuleEnabled(rule) { }
 
-Check(rule : String, loc : Int, me : Network)         // C007, G041, G043
+Check(rule : String, loc : Int, me : Network)         // C007, C011, G041, G043
 conditions ~IsRuleEnabled(rule) { }
 
 Check(rule : String, loc : Int, me : Instruction)     // G028
-conditions ~IsRuleEnabled(rule) { }
-
-Check(rule : String, loc : Int, me : Instruction,
-                                network : Network)    // C011
 conditions ~IsRuleEnabled(rule) { }
 
 Check(rule : String, loc : Int, me : FunctionBody)    // C020
@@ -116,27 +112,35 @@ Check(rule = "G041", loc : Int, me : (Network,
 }
 
 
-Check(rule = "C011", loc : Int, me : Instruction, network : Network)
-// There is a compiler message for the line above: Rules.impl, Check, line 119: conditions can fail
+Check(rule = "C011", loc : Int, me : Network)
+conditions me.instructions # NIL
+{
+  net_prefix: String = SubString(GetTitle(me), 0, 1)  // TODO Test with "TITLE = "
+  indexes: [Int] := NIL
+  [ {
+      index: Int = Check(rule, loc, inst, net_prefix)
+      if index > -1 then
+        if indexes = NIL | index > indexes.head
+          then indexes := index + indexes
+          else AddViolation(rule, inst.src_info.loc,
+                            ["Label '"+ inst.label.id +"' is out of order. " +
+                            "Labels should be in sequential ascending order within a network."])
+        fi
+      fi
+    } | inst: Instruction <- me.instructions, (inst.label # NIL)]
+}
+Check(rule = "C011", loc : Int, me : Instruction, net_prefix: String): Int
   conditions me.label # NIL
 {
   label: String = me.label.id
-  net_prefix: String = SubString(GetTitle(network), 0, 1)
-
-  if #label # 4 | ~(SubString(label, 0, 1) == net_prefix) |
-     ~(IsDigit(label@2) & IsDigit(label@3))
+  if #label = 4 & SubString(label, 0, 1) == net_prefix &
+     IsDigit(label@2) & IsDigit(label@3)
   then
-    AddViolation(rule, loc, [label, net_prefix])
+    return Int(SubString(label, 2, 3))
   else
-    seq_number: Int = Int(SubString(label, 2, 3))
-    // TODO Check all the networks in the block for order. So, hook one level
-    // higher.
-
-    // Compare seq_number with the last element in the list of labels already
-    // queued for this network:
-    // - how to make a hash map of networks => List(Int)
-    // - het the last element: list@(#list-1) ?
-    // - queue it if in order: list + seq_number ?
+    AddViolation(rule, loc, ["Label '"+ label +"' is wrongly formatted; it should"
+                   + " start with '"+ net_prefix +"' and continue with 2 digits."])
+    return -1
   fi
 }
 
@@ -190,7 +194,5 @@ Check(rule = "G021", loc : Int, me : Field)
 Check(rule : String, loc : Int, me : GawlKeeper)    { }
 Check(rule : String, loc : Int, me : Network)       { }
 Check(rule : String, loc : Int, me : Instruction)   { }
-Check(rule : String, loc : Int, me : Instruction,
-                                network : Network)  { }
 Check(rule : String, loc : Int, me : FunctionBody)  { }
 Check(rule : String, loc : Int, me : Field)         { }

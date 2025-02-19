@@ -142,10 +142,10 @@ NETWORK
 TITLE = DA: Reset 'used' property
 //When there is no 'available' and not 'used' station, reset 'used' indicator of 
 //all stations
-      NOP 0;
+DA00: NOP 0;
 
 // Carrier on Dispatch Point AND destinations not available
-      A #t_Carrier_Found;
+DA01: A #t_Carrier_Found;
       A #s_Carrier_Loaded;
       A(;
       L #s_Available_Destination;
@@ -155,11 +155,11 @@ TITLE = DA: Reset 'used' property
       JCN DA99;
 
 // Preset Loop counter
-      L 1;
+DA02: L 1;
       T #t_Loop_Counter;
 
 // Backup AR content
-      TAR1;
+DA03: TAR1;
       T #t_AR1_Backup;
       TAR2;
       T #t_AR2_Backup;
@@ -169,7 +169,7 @@ TITLE = DA: Reset 'used' property
       LAR2 P##s_Dest_01_Used;
 
 // If destination bigger than zero
-DA01:      L W[ AR1, P#0.0];
+DA02: L W[ AR1, P#0.0];
       L 0;
       >I;
       JCN DA02;
@@ -179,14 +179,14 @@ DA01:      L W[ AR1, P#0.0];
       R[ AR2, P#0.0];
 
 // If destination equal or smaller than zero OR not available, checks next destination and availability
-DA02:      L P#4.0;
+DA04: L P#4.0;
       +AR1;
 
       L P#0.1;
       +AR2;
 
 // Increment 1 to the loop counter until a maximum of 15 destinations
-      L #t_Loop_Counter;
+DA04: L #t_Loop_Counter;
       L 1;
       +I;
       T #t_Loop_Counter;

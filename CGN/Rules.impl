@@ -114,7 +114,7 @@ Check(rule = "G041", loc : Int, me : (Network,
 
 
 Check(rule = "G026", loc : Int, me : Network)
-conditions me.instructions # NIL
+  conditions me.instructions # NIL
 {
   net_prefix: String = SubString(GetTitle(me), 0, 1)
   labels: [String] := NIL
@@ -133,8 +133,10 @@ conditions me.instructions # NIL
     | inst: Instruction <- me.instructions,
     (inst.label # NIL & Check(rule, inst, net_prefix))
   ]
-}
 
+  //CheckFirst(net_prefix, me.instructions.head)
+  CheckLast(net_prefix, Reverse(me.instructions).head)
+}
 Check(rule = "G026", me: Instruction, net_prefix: String): Bool // conditions me.label # NIL
 {
   label: String = me.label.id
@@ -147,6 +149,23 @@ Check(rule = "G026", me: Instruction, net_prefix: String): Bool // conditions me
     return FALSE
   fi
 }
+//CheckFirst(net_prefix: String, me: Instruction) {}
+CheckLast(net_prefix: String, me: (Instruction, label = NIL)) { } // No label, no check
+CheckLast(net_prefix: String, me: (Instruction, label # NIL, instruction: NoOpInstr))
+{
+  label: String = me.label.id
+  if ~( #label = 4 & label@2 = '9' & label@3 = '9' ) then
+    AddViolation("G026", me.src_info.loc,
+                 ["Wrong label '"+ label +"' at network exit; it should be '"+ net_prefix + "99'."])
+  fi
+}
+CheckLast(net_prefix: String, me: (Instruction, label # NIL, instruction: InstructionName))
+{
+  AddViolation("G026", me.src_info.loc, [
+    "If there is a label at the end of a network, it must go with a "+
+    "NOP instruction, and the label must be indexed as 99."])
+}
+
 
 //Check(rule = "C014", loc : Int, me : Identifier)
 //{

@@ -204,7 +204,7 @@ DA04: L #t_Loop_Counter;
       L #t_AR2_Backup;
       LAR2;
 
-DA99:      NOP 0;
+DA89: NOP 0;
 
 NETWORK
 TITLE = EA: Assign carrier to a destination
@@ -230,7 +230,7 @@ TITLE = EA: Assign carrier to a destination
          i_DB_Event_Num              := #t_DB_Event_Section
       );
 
-EA99:      NOP 0;
+EA99: JCN EA99;
 
 NETWORK
 TITLE = EB: Send tracking report when leaving

@@ -1,0 +1,48 @@
+DATA_BLOCK "DB_PLT_Non_Trk_Tmp_T"
+TITLE = %version: 5.10 % %Commit:  fbddf08d % CN: 20
+{ S7_Optimized_Access := 'FALSE' }
+FAMILY : Tubtrax
+VERSION : 0.0
+//
+//SOURCE
+//%Project:      allcttt %
+//%Repo:         a_ttt %
+//%Commit:       fbddf08d %
+//%DateTimeUTC:  2024-05-14T09:13:31 %
+//
+//%HISTORY%
+//Issue:        Commit:  Date:      Version: Author:              Description:
+//------------- -------- ---------- -------- -------------------- ------------------------------------------------------------------------------
+//ALLCTTT-4214  fbddf08d 2024-05-14 5.10     Henri de Leijer      disable_receive plt interface to lib
+//ALLCTTT-4059  c3808b61 2023-12-11 5.09     Pascal van Kempen    Added history table
+//ALLCTTT-4042  a864e0dd 2023-12-06 5.08     Harm Hopmans         Renamed folders that contained space character
+//ALLCTTT-4042  55fd833f 2023-12-05 5.07     Henri de Leijer      First step to remove the library files
+//ALLCTTT-272   544e4e84 2020-12-10 5.06     Pascal van Kempen    removed keywords
+//ALLCTTT-272   9d531fbf 2020-12-10 5.05     Pascal van Kempen    Revert corrected checkin sequence for determining version information properly
+//ALLCTTT-272   ae3fa862 2020-12-10 5.04     Pascal van Kempen    corrected checkin sequence for determining version information properly
+//ALLCTTT-272   5a1edb78 2020-12-10 5.03     Pascal van Kempen    Revert keywords updates
+//ALLCTTT-272   8d62c219 2020-12-10 5.02     Pascal van Kempen    keywords updates
+//ALLCTTT-272   31a64871 2020-12-10 5.01     Pascal van Kempen    initial import
+//
+//Modification History:                                 By:      Date:     Rev:
+//----------------------------------------------------  -------  --------  -----
+//ra#31964: Based on 2.15.0.0 version 1.02              nlhhop   14-01-19   2.01
+   STRUCT
+      _ : Void;  // very tricky identifier. Is that allowed?
+      Entries_used : Int;         // Bad
+      Displacement : Int;         // Good
+      entries_Present : Int;      // Bad
+      DB_PLT_nr_Upstream : Int;   // Bad, and it was like that originally
+      DB_PLT_nr_Downstream : Int; // Same as previous
+      done : Bool;                // Bad
+      Motor_Run : Bool;           // Good
+      Motor_on_Speed : Bool;      // Bad, and it was like that originally
+      cascade_Start_up : Bool;    // Bad
+      Section_Available : Bool;   // Good
+      Section_Operational : Bool; // Good
+      Entry : Array[1..300] of "UDT_PLT_Entry"; // Good
+   END_STRUCT;
+
+BEGIN
+
+END_DATA_BLOCK

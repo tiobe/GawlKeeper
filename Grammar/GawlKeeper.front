@@ -107,7 +107,7 @@ BasicType < Type ::= <
 | WStringType ::= "WString"
 > ;
 ComplexType < Type ::= <
-  ArrayRangeType ::= range: ArrayRangeDecl
+  ArrayRangeType ::= array: ArrayRangeDecl
 | StructType ::= "Struct" struct: StructBody
 | VectorType ::= vector: VectorDecl
 > ;
@@ -319,6 +319,6 @@ SCAN EOF ::= "$" "$" "$" "$" "$" "$" ;
 SCAN COMMENT LineComment ::= "//" NAME SlashSlashOp { AnyCharExceptNewline } ;
 SCAN AnyCharExceptNewline ::= < NUL .. HT | VT | FF | SO .. EOF > ;
 
-SCAN COMMENT Whitespace ::= Space ;
+SCAN COMMENT Whitespace ::= { Space }+ ;
 SCAN COMMENT LineTerm ::= { Newline }+ ;
 SCAN Newline = < CR | LF | CR LF > ;

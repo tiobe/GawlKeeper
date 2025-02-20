@@ -9,7 +9,19 @@ VERSION : 0.0
 //
 BEGIN
 NETWORK
-TITLE = AA: Get information from Data Blocks
+TITLE =
+      NOP 0;
+      GOTO AA01;
+AA01: NOP 1;
+
+NETWORK
+TITLE = AA
+      NOP 0;
+      GOTO AA01;
+AA01: NOP 1;
+
+NETWORK
+TITLE = AA:  
       NOP 0;
       GOTO AA01;
 AA01: NOP 1;

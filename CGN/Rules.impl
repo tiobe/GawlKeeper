@@ -42,13 +42,13 @@ Check(rule : String, loc : Int)                       // C070
 conditions ~IsRuleEnabled(rule) { }
 
 
-Check(rule = "C015", loc : Int, me : GawlKeeper)
+Check(rule : String, loc : Int, me : GawlKeeper) conditions rule == "C015"
 {
   actual_title : String = TrimQuotes(GetTitle(me.block_type))
   if #actual_title > 20 then AddViolation(rule, loc, [actual_title]) fi
 }
 
-Check(rule = "G003", loc : Int, me : GawlKeeper)
+Check(rule : String, loc : Int, me : GawlKeeper) conditions rule == "G003"
 {
   actual_title : String = TrimQuotes(GetTitle(me.block_type))
   raw_filename : String = FindFileName(loc)
@@ -60,25 +60,23 @@ Check(rule = "G003", loc : Int, me : GawlKeeper)
 }
 
 
-Check(rule = "G028", loc : Int, me : Instruction)
+Check(rule : String, loc : Int, me : Instruction) conditions rule == "G028"
 {
   ignored: Int := 0
   comm_lst: [String] = FilterComments(GetComments(me), ignored)
   Check(rule, loc, comm_lst)
 }
-Check(rule = "G028", loc: Int, NIL:  List(String)) { }  // no comment, no check
-Check(rule = "G028", loc: Int, lst: (List(String)))
+Check(rule : String, loc: Int, NIL:  List(String))  conditions rule == "G028" { }  // no comment, no check
+Check(rule : String, loc: Int, lst: (List(String))) conditions rule == "G028"
 {
-  if ~IsCommentWellFormatted(lst.head) then
-    AddViolation(rule, loc, [], -1)
-  fi
+  if ~IsCommentWellFormatted(lst.head) then AddViolation(rule, loc, [], -1) fi
 }
 
 
-Check(rule = "G043", loc : Int, me : (Network, instructions = NIL)) {
-  // Let this fall into the check for empty networks, for now.
+Check(rule : String, loc : Int, me : (Network, instructions = NIL)) conditions rule == "G043"
+{ // Let this fall into the check for empty networks, for now.
 }
-Check(rule = "G043", loc : Int, me : (Network, instructions # NIL))
+Check(rule : String, loc : Int, me : (Network, instructions # NIL)) conditions rule == "G043"
 {
   // Check the comment attached to the 1st instruction of the network as if
   // it was the one which comes with the network heading. FIXME when we get
@@ -92,10 +90,10 @@ Check(rule = "G043", loc : Int, me : (Network, instructions # NIL))
 }
 
 
-Check(rule = "C006", loc : Int, me : Network)
+Check(rule : String, loc : Int, me : Network) conditions rule == "C006"
 { if #GetTitle(me) < 6 then AddViolation(rule, loc, []) fi }
 
-Check(rule = "C007", loc : Int, me : Network)
+Check(rule : String, loc : Int, me : Network) conditions rule == "C007"
 {
   title : String = GetTitle(me)
   if #title < 4 | ~IsUpper(title@0) | ~IsUpper(title@1) | title@2 # ':' | title@3 # ' '
@@ -104,22 +102,22 @@ Check(rule = "C007", loc : Int, me : Network)
   fi
 }
 
-Check(rule = "G041", loc : Int, me : (Network, instructions = NIL))
+Check(rule : String, loc : Int, me : (Network, instructions = NIL)) conditions rule == "G041"
 {
   AddViolation(rule, loc, [GetTitle(me)])
 }
-Check(rule = "G041", loc : Int, me : (Network,
+Check(rule : String, loc : Int, me : (Network,
                                      instructions : (List(Instruction),
                                                      head : (Instruction,
                                                              instruction : NoOpInstr),
-                                                     tail = NIL)))
+                                                     tail = NIL))) conditions rule == "G041"
 {
   AddViolation(rule, loc, [GetTitle(me)])
 }
 
 
-Check(rule = "C011", loc : Int, me : Instruction, network : Network)
-  conditions me.label # NIL
+Check(rule : String, loc : Int, me : Instruction, network : Network) conditions rule == "C011" &
+                                                                                me.label # NIL
 {
   label: String = me.label.id
   net_prefix: String = SubString(GetTitle(network), 0, 1)
@@ -141,25 +139,20 @@ Check(rule = "C011", loc : Int, me : Instruction, network : Network)
   fi
 }
 
-//Check(rule = "C014", loc : Int, me : Identifier)
-//{
-//  name_parts : ([String]) := Split(me.id, '_')
-//}
 
-
-Check(rule = "C020", loc: Int, me: FunctionBody)
+Check(rule : String, loc: Int, me: FunctionBody) conditions rule == "C020"
 {
   Check(rule, me.inputs , 'i')
   Check(rule, me.outputs, 'o')
   Check(rule, me.locals , 's')
   Check(rule, me.temps  , 't')
 }
-Check(rule = "C020", NIL: [Field], prefix: Char) { }
-Check(rule = "C020", declarations: ([Field]), prefix: Char)
+Check(rule : String, NIL: [Field], prefix: Char) conditions rule == "C020" { }
+Check(rule : String, declarations: ([Field]), prefix: Char) conditions rule == "C020"
 {
   [Check(rule, field, prefix) | field: Field <- declarations ]
 }
-Check(rule = "C020", me: Field, prefix: Char)
+Check(rule : String, me: Field, prefix: Char) conditions rule == "C020"
 {
   field : String = GetName(me.name)
   if #field < 2 | field@0 # prefix | field@1 # '_' then
@@ -167,13 +160,13 @@ Check(rule = "C020", me: Field, prefix: Char)
   fi
 }
 
-Check(rule = "C042", loc: Int, me: (Field, type: ArrayRangeType))
+Check(rule : String, loc: Int, me: (Field, type: ArrayRangeType)) conditions rule == "C042"
 {
   lower_bound: Int = Int(me.type.array.range.start)
   if lower_bound # 0 then AddViolation(rule, loc, [GetName(me), lower_bound]) fi
 }
 
-Check(rule = "G021", loc : Int, me : Field)
+Check(rule : String, loc : Int, me : Field) conditions rule == "G021"
 {
   offset: Int := 0
   comm_lst: [String] = FilterComments(GetComments(me), offset)
@@ -186,7 +179,7 @@ Check(rule = "G021", loc : Int, me : Field)
 }
 
 
-Check(rule = "C070", loc : Int)
+Check(rule : String, loc : Int) conditions rule == "C070"
 {
   AddViolation(rule, loc, [])
 }

@@ -23,7 +23,7 @@ functions
 Check(rule : String, loc : Int, me : GawlKeeper)      // C015, G003
 conditions ~IsRuleEnabled(rule) { }
 
-Check(rule : String, loc : Int, me : Network)         // C007, G026, G041, G043
+Check(rule : String, loc : Int, me : Network)         // C006, C007, G026, G041, G043
 conditions ~IsRuleEnabled(rule) { }
 
 Check(rule : String, loc : Int, me : Instruction)     // G028
@@ -59,13 +59,12 @@ Check(rule : String, loc : Int, me : Instruction)   conditions rule == "G028"
 {
   ignored: Int := 0
   comm_lst: [String] = FilterComments(GetComments(me), ignored)
-  Check(rule, loc, comm_lst)
+  CheckG28(loc, comm_lst)
 }
-Check(rule : String, loc: Int, NIL:  List(String))  conditions rule == "G028" { }  // no comment, no check
-Check(rule : String, loc: Int, lst: List(String)) conditions rule == "G028"
-{
+CheckG28(loc: Int, NIL: List(String))   { }  // no comment, no check
+CheckG28(loc: Int, lst: (List(String))) {
   if ~IsCommentWellFormatted(lst.head) then
-    AddViolation(rule, loc, [], -1)
+    AddViolation("G028", loc, [], -1)
   fi
 }
 
@@ -131,13 +130,13 @@ Check(rule : String, loc : Int, me : Network) conditions rule == "G026" &
       fi
     }
     | inst: Instruction <- me.instructions,
-    (inst.label # NIL & Check(rule, inst, net_prefix))
+    (inst.label # NIL & CheckG26(rule, inst, net_prefix))
   ]
 
-  //CheckFirst(net_prefix, me.instructions.head)
-  CheckLast(net_prefix, Reverse(me.instructions).head)
+  //CheckFirstInst(rule, net_prefix, me.instructions.head)
+  CheckLastInstr(rule, net_prefix, Reverse(me.instructions).head)
 }
-Check(rule : String, me: Instruction, net_prefix: String): Bool conditions rule == "G026"
+CheckG26(rule : String, me: Instruction, net_prefix: String): Bool
 {
   label: String = me.label.id
   if IsLabelWellFormed(label, net_prefix) then
@@ -149,41 +148,41 @@ Check(rule : String, me: Instruction, net_prefix: String): Bool conditions rule 
     return FALSE
   fi
 }
-//CheckFirst(net_prefix: String, me: Instruction) {}
-CheckLast(net_prefix: String, me: (Instruction, label = NIL)) { } // No label, no check
-CheckLast(net_prefix: String, me: (Instruction, label # NIL, instruction: NoOpInstr))
+//CheckFirstInst(rule: String, net_prefix: String, me: Instruction) {}
+CheckLastInstr(rule: String, net_prefix: String, me: (Instruction, label = NIL)) { } // No label, no check
+CheckLastInstr(rule: String, net_prefix: String, me: (Instruction, label # NIL,
+                                                      instruction: NoOpInstr))
 {
   label: String = me.label.id
   if ~( #label = 4 & label@2 = '9' & label@3 = '9' ) then
-    AddViolation("G026", me.src_info.loc,
+    AddViolation(rule, me.src_info.loc,
                  ["Wrong label '"+ label +"' at network exit; it should be '"+ net_prefix + "99'."])
   fi
 }
-CheckLast(net_prefix: String, me: (Instruction, label # NIL, instruction: InstructionName))
+CheckLastInstr(rule: String, net_prefix: String, me: (Instruction, label # NIL,
+                                                      instruction: InstructionName))
 {
-  AddViolation("G026", me.src_info.loc, [
+  AddViolation(rule, me.src_info.loc, [
     "If there is a label at the end of a network, it must go with a "+
     "NOP instruction, and the label must be indexed as 99."])
 }
 
 
-Check(rule : String, loc: Int, me: FunctionBody)            conditions rule == "C020"
+Check(rule : String, loc: Int, me: FunctionBody) conditions rule == "C020"
 {
-  Check(rule, me.inputs , 'i')
-  Check(rule, me.outputs, 'o')
-  Check(rule, me.locals , 's')
-  Check(rule, me.temps  , 't')
+  CheckC20(rule, me.inputs , 'i')
+  CheckC20(rule, me.outputs, 'o')
+  CheckC20(rule, me.locals , 's')
+  CheckC20(rule, me.temps  , 't')
 }
-Check(rule : String, NIL: [Field], prefix: Char)            conditions rule == "C020" { }
-Check(rule : String, declarations: ([Field]), prefix: Char) conditions rule == "C020"
-{
-  [Check(rule, field, prefix) | field: Field <- declarations ]
+CheckC20(rule : String, NIL: [Field], prefix: Char) { }
+CheckC20(rule : String, declarations: ([Field]), prefix: Char) {
+  [CheckC20(rule, field, prefix) | field: Field <- declarations ]
 }
-Check(rule : String, me: Field, prefix: Char)               conditions rule == "C020"
-{
+CheckC20(rule : String, me: Field, prefix: Char) {
   field : String = GetName(me.name)
   if #field < 2 | field@0 # prefix | field@1 # '_' then
-    AddViolation("C020", me.src_info.loc, [field, prefix])
+    AddViolation(rule, me.src_info.loc, [field, prefix])
   fi
 }
 

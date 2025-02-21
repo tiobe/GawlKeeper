@@ -20,6 +20,7 @@ ifneq  ($(BRANCH),main)
 FILESUFFIX = $BRANCH
 else
 FILESUFFIX =
+endif
 
 ## Root of the elegant release:
 ELEGANTROOT=/home/elegant/7.2g

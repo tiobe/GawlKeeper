@@ -6,6 +6,8 @@ GawlKeeper.linux64
 Grammar/GawlKeeper.*
 !Grammar/GawlKeeper.front
 CGN/*.STAMP
+CGN/*.h
+CGN/*.c
 CGN/CGNInit.?
 CGN/cgnlib
 CGN/cgnpath

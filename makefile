@@ -17,7 +17,7 @@ SEMVER := $(shell git tag | sort -r | head -1 | grep -oP "^v\K.*" || echo "0.1")
 
 ## If not main branch, add suffix
 ifneq  ($(BRANCH),main)
-FILESUFFIX = $BRANCH
+FILESUFFIX = $(BRANCH)
 else
 FILESUFFIX =
 endif

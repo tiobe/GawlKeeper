@@ -14,6 +14,13 @@ AGDLS = $(TARGET) $(ADDITIONALTARGETS)
 FRONTFILES = $(addprefix Grammar/,$(addsuffix .front,$(ADDITIONALTARGETS)))
 SVNVERSION := $(shell svn info .. | sed -n "s/Last Changed Rev: //p" || echo "0.1")
 SEMVER := $(shell git tag | sort -r | head -1 | grep -oP "^v\K.*" || echo "0.1")
+
+## If not main branch, add suffix
+ifneq  ($(BRANCH),main)
+FILESUFFIX = $BRANCH
+else
+FILESUFFIX =
+
 ## Root of the elegant release:
 ELEGANTROOT=/home/elegant/7.2g
 
@@ -171,8 +178,8 @@ package: clean_package realclean default info
 	mkdir $(TARGET)
 	cp $(TARGET).$(ARCH) $(TARGET)/$(TARGET)$(EXT)
 	cp info.json $(TARGET)
-	rm -f $(TARGET)-$(SEMVER)-$(ARCH).zip
-	zip -r --symlinks $(TARGET)-$(SEMVER)-$(ARCH).zip $(TARGET)
+	rm -f $(TARGET)-$(SEMVER)-$(ARCH)$(FILESUFFIX).zip
+	zip -r --symlinks $(TARGET)-$(SEMVER)-$(ARCH)$(FILESUFFIX).zip $(TARGET)
 
 clean_package:
 	rm -rf $(TARGET)
@@ -189,5 +196,5 @@ clean_relnotes:
 
 DEST = absolem:/home/wilde/ticsweb/pub/codecheckers/$(TARGET)
 publish: package
-	scp $(TARGET)-$(SEMVER)-$(ARCH).zip $(DEST)
-	curl --fail -u "$(ARTIFACT_USER)":"$(ARTIFACT_PASS)" --upload-file $(TARGET)-$(SEMVER)-$(ARCH).zip https://artifacts.tiobe.com/repository/checkers/$(TARGET)/$(SEMVER)/$(TARGET)-$(SEMVER)-$(ARCH).zip
+	scp $(TARGET)-$(SEMVER)-$(ARCH)$(FILESUFFIX).zip $(DEST)
+	curl --fail -u "$(ARTIFACT_USER)":"$(ARTIFACT_PASS)" --upload-file $(TARGET)-$(SEMVER)-$(ARCH)$(FILESUFFIX).zip https://artifacts.tiobe.com/repository/checkers/$(TARGET)/$(SEMVER)/$(TARGET)-$(SEMVER)-$(ARCH)$(FILESUFFIX).zip

@@ -81,6 +81,18 @@ Check_Block(me : FunctionBlock)
   set_margin(margin)
 }
 
+Check_Block(me : OrgBlock)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  Check_InstrExpression(me.org_name)
+  Check_FunctionBody(me.body)
+  Check_String("END_ORGANIZATION_BLOCK")
+  Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
 Check_Block(me : TypeBlock)
 {
   margin : Int := 0
@@ -159,10 +171,20 @@ Check_HeaderBlock(me : HeaderBlock)
   if me.params # NIL then
     Check_ParamsInitComma(me.params)
   fi
+  if me.author # NIL then
+    Check_String("AUTHOR")
+    Check_String(":")
+    Check_InstrExpression(me.author)
+  fi
   if me.family # NIL then
     Check_String("FAMILY")
     Check_String(":")
     Check_InstrExpression(me.family)
+  fi
+  if me.name # NIL then
+    Check_String("NAME")
+    Check_String(":")
+    Check_InstrExpression(me.name)
   fi
   Check_String("VERSION")
   Check_String(":")
@@ -668,6 +690,66 @@ Check_InstrExpression(me : ArrayExpression)
   set_margin(margin)
 }
 
+Check_InstrExpression(me : LgCmpEq)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  Check_String("==0")
+  Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
+Check_InstrExpression(me : LgCmpNeq)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  Check_String("<>0")
+  Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
+Check_InstrExpression(me : LgCmpGt)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  Check_String(">0")
+  Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
+Check_InstrExpression(me : LgCmpLt)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  Check_String("<0")
+  Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
+Check_InstrExpression(me : LgCmpGeq)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  Check_String(">=0")
+  Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
+Check_InstrExpression(me : LgCmpLeq)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  Check_String("<=0")
+  Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
 Check_InstrExpression(me : FieldExpression)
 {
   margin : Int := 0
@@ -746,6 +828,36 @@ Check_InstructionName(me : AccuIncInstr)
   set_margin(margin)
 }
 
+Check_InstructionName(me : AccuTakInstr)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  Check_String("TAK")
+  Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
+Check_InstructionName(me : AccuToAR1)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  Check_String("+AR1")
+  Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
+Check_InstructionName(me : AccuToAR2)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  Check_String("+AR2")
+  Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
 Check_InstructionName(me : ArithSumInstr)
 {
   margin : Int := 0
@@ -792,6 +904,16 @@ Check_InstructionName(me : ArithDblDivInstr)
   Check_Comment(me.src_info)
   margin := fix_margin()
   Check_String("/D")
+  Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
+Check_InstructionName(me : ArithDblModInstr)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  Check_String("MOD")
   Check_Comment(me.src_info)
   set_margin(margin)
 }
@@ -1057,6 +1179,76 @@ Check_InstructionName(me : CompLEInstr)
   set_margin(margin)
 }
 
+Check_InstructionName(me : ConvBTDInst)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  Check_String("BTD")
+  Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
+Check_InstructionName(me : ConvBTIInst)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  Check_String("BTI")
+  Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
+Check_InstructionName(me : ConvITBInst)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  Check_String("ITB")
+  Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
+Check_InstructionName(me : ConvCAWInst)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  Check_String("CAW")
+  Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
+Check_InstructionName(me : ConvRndInst)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  Check_String("RND")
+  Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
+Check_InstructionName(me : ConvRndUInst)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  Check_String("RND+")
+  Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
+Check_InstructionName(me : ConvRndLInst)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  Check_String("RND-")
+  Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
 Check_InstructionName(me : DtbInstr)
 {
   margin : Int := 0
@@ -1147,6 +1339,16 @@ Check_InstructionName(me : JcnInstr)
   set_margin(margin)
 }
 
+Check_InstructionName(me : JlInstr)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  Check_String("JL")
+  Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
 Check_InstructionName(me : JmInstr)
 {
   margin : Int := 0
@@ -1213,6 +1415,15 @@ Check_InstructionName(me : JuInstr)
   Check_Comment(me.src_info)
   margin := fix_margin()
   Check_String("JU")
+  set_margin(margin)
+}
+
+Check_InstructionName(me : JzInstr)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  Check_String("JZ")
   Check_Comment(me.src_info)
   set_margin(margin)
 }
@@ -1487,12 +1698,12 @@ Check_InstructionName(me : RInstr)
   set_margin(margin)
 }
 
-Check_InstructionName(me : RndInstr)
+Check_InstructionName(me : SaveInstr)
 {
   margin : Int := 0
   Check_Comment(me.src_info)
   margin := fix_margin()
-  Check_String("RND")
+  Check_String("SAVE")
   Check_Comment(me.src_info)
   set_margin(margin)
 }

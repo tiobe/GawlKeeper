@@ -14,8 +14,11 @@ RuleConfig. IsRuleEnabled
 RuleViolation. ', AddViolation
 ScanIO. FindFileName, FindLocation
 StringTokenizer. Split, Trim
-Syntactics. IsNewline, IsCommentWellFormatted, FilterComments, TrimQuotes //, Print
+Syntactics. IsNewline, IsCommentWellFormatted, FilterComments, TrimQuotes
+Files. DirSep
 
+global
+NL: Char = '\n'
 
 functions
 
@@ -53,7 +56,7 @@ Check(rule : String, loc : Int, me : GawlKeeper)
 conditions rule == "G003"
 {
   actual_title : String = TrimQuotes(GetTitle(me.block_type))
-  raw_filename : String = FindFileName(loc)
+  raw_filename : String = Last(Split(FindFileName(loc), DirSep))
   filename : String = SubString(raw_filename, 0, #raw_filename - 1 - #".awl")
 
   if ~(actual_title == filename) then

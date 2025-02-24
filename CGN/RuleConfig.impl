@@ -50,6 +50,7 @@ ShowRules()
 // format:
 //    id | synopsis
 //
+
 ShowRule(NIL : RuleInfo): Message 
 {}
 

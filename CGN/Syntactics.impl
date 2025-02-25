@@ -57,3 +57,13 @@ TrimQuotes(s : String) : String
     end: Int = if last > 0 & (s@last = '"' | s@last = ''') then last-1 else last fi
     return SubString(s, start, end)
 }
+
+
+GetBaseName(file : String): String
+{
+  j : Int = #file - 1
+  i : Int := j
+
+  while 0 <= i & ~(file@i <- "\\/") { i :- 1 }
+  return SubString(file, i + 1, j)
+}

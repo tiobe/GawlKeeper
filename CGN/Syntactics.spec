@@ -23,3 +23,7 @@ FilterComments(lines: [Comment], var offset: Int): [String]
 
 // Remove quotes (single and double) at either ends of a string.
 TrimQuotes(s : String) : String
+
+// Returns the file name out of a path (i.e., the part behind the last directory
+// separator)
+GetBaseName(file : String): String

@@ -39,9 +39,32 @@ RulesShown = enum { RS_IMPLEMENTED | RS_RESERVED | RS_ALL }
 
 functions
 
+ShowRules()
+{
+  [ { ShowRule(GetRuleInfo(r.head)) }
+  | r : ([String]) <- GetRules()
+  ]
+}
+
+//
+// format:
+//    id | synopsis
+//
+
+ShowRule(NIL : RuleInfo): Message
+{}
+
+ShowRule(rule : RuleInfo): Message
+{
+  "  "
+  String(3 - #rule.id, SP)  rule.id
+  "  |  "
+  rule.synopsis "\n"
+}
+
 GetRules() : [([String])]
 {
-  rules : [([String])] = 
+  rules : [([String])] =
   [
     [ "C006",
       "Each network must have a Network Title, which must be chosen obvious: indicating the fulfilled functionality of the code in the network.",
@@ -104,13 +127,12 @@ InitRulesSet(rs : RulesShown)
 }
 
 // rule switch has form: --d+[=p[,p]...]
-IsRule(s : String, arg : String): Bool
+IsRule(s : String): Bool
 {
   i : Int = 2
   j : Int = #s
   sw : String = SubString(s, i, j - 1)
   id : String := ""
-  p : List(String) := NIL
 
   //IsRuleId
   if s@0 = '-' & s@1 = '-' & j - i > 0 then
@@ -118,10 +140,6 @@ IsRule(s : String, arg : String): Bool
   else
     // not a valid rule switch
     return FALSE
-  fi
-  //GetArguments
-  if arg@0 # '\000'  then
-    p := Split(arg, ',')
   fi
   //SetRule
   switch GetRuleInfo(id) {
@@ -132,7 +150,6 @@ IsRule(s : String, arg : String): Bool
     Exit(Failure)
   case r : RuleInfo
     r.apply := TRUE
-    r.parameters := p
   }
   return TRUE
 }

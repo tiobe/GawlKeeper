@@ -123,8 +123,8 @@ conditions rule == "G041"
 }
 
 
-Check(rule = "G026", loc : Int, me : Network)
-  conditions me.instructions # NIL
+Check(rule : String, loc : Int, me : Network)
+conditions rule == "G026" & me.instructions # NIL
 {
   net_prefix: String = SubString(GetTitle(me), 0, 1)
   labels: [String] := NIL
@@ -141,13 +141,13 @@ Check(rule = "G026", loc : Int, me : Network)
       fi
     }
     | inst: Instruction <- me.instructions,
-    (inst.label # NIL & Check(rule, inst, net_prefix))
+    (inst.label # NIL & SingleInstrCheckG26(rule, inst, net_prefix))
   ]
 
   //CheckFirst(net_prefix, me.instructions.head)
   CheckLast(net_prefix, Reverse(me.instructions).head)
 }
-Check(rule = "G026", me: Instruction, net_prefix: String): Bool // conditions me.label # NIL
+SingleInstrCheckG26(rule : String, me : Instruction, net_prefix : String): Bool
 {
   label: String = me.label.id
   if IsLabelWellFormed(label, net_prefix) then

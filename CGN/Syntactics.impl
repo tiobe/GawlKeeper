@@ -59,9 +59,9 @@ TrimQuotes(s : String) : String
 }
 
 
-GetBaseName(file : String): String
+GetAwlBaseFileName(file : String): String
 {
-  j : Int = #file - 1
+  j : Int = #file - 1 - #".awl"
   i : Int := j
 
   while 0 <= i & ~(file@i <- "\\/") { i :- 1 }

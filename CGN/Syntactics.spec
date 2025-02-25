@@ -26,4 +26,4 @@ TrimQuotes(s : String) : String
 
 // Returns the file name out of a path (i.e., the part behind the last directory
 // separator)
-GetBaseName(file : String): String
+GetAwlBaseFileName(file : String): String

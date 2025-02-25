@@ -56,8 +56,13 @@ Check(rule : String, loc : Int, me : GawlKeeper)
 conditions rule == "G003"
 {
   actual_title : String = TrimQuotes(GetTitle(me.block_type))
+  split_path : [String] = Split(FindFileName(loc), DirSep)
   raw_filename : String = Last(Split(FindFileName(loc), DirSep))
   filename : String = SubString(raw_filename, 0, #raw_filename - 1 - #".awl")
+
+  {rule " => DirSep='"DirSep"'; split filename: " split_path.head} astype Message
+  [{" - " bit} astype Message | bit: String <- split_path.tail]
+  NL astype Message
 
   if ~(actual_title == filename) then
     AddViolation(rule, loc, [actual_title, filename])

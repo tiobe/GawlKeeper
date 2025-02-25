@@ -27,3 +27,7 @@ TrimQuotes(s : String) : String
 // Check morphological correction of a jump label, and in relation with the
 // name of the network it belongs to.
 IsLabelWellFormed(label: String, net_prefix: String): Bool
+
+// Returns the file name out of a path (i.e., the part behind the last directory
+// separator)
+GetAwlBaseFileName(file : String): String

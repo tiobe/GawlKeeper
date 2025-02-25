@@ -66,3 +66,13 @@ IsLabelWellFormed(label: String, net_prefix: String): Bool
          net_prefix@1 = label@1       &
          IsDigit(label@2) & IsDigit(label@3)
 }
+
+
+GetAwlBaseFileName(file : String): String
+{
+  j : Int = #file - 1 - #".awl"
+  i : Int := j
+
+  while 0 <= i & ~(file@i <- "\\/") { i :- 1 }
+  return SubString(file, i + 1, j)
+}

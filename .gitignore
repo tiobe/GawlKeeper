@@ -10,3 +10,4 @@ GawlKeeper.linux64
 Generated/*
 Grammar/GawlKeeper.*
 !Grammar/GawlKeeper.front
+/Print.*

@@ -14,8 +14,11 @@ RuleConfig. IsRuleEnabled
 RuleViolation. ', AddViolation
 ScanIO. FindFileName, FindLocation
 StringTokenizer. Split, Trim
-Syntactics. IsNewline, IsCommentWellFormatted, FilterComments, TrimQuotes //, Print
+Syntactics. IsNewline, IsCommentWellFormatted, FilterComments, TrimQuotes, GetAwlBaseFileName
 
+
+global
+NL: Char = '\n'
 
 functions
 
@@ -43,19 +46,18 @@ conditions ~IsRuleEnabled(rule) { }
 Check(rule : String, loc : Int, me : GawlKeeper)
 conditions rule == "C015"
 {
-  actual_title : String = TrimQuotes(GetTitle(me.block_type))
-  if #actual_title > 20 then AddViolation(rule, loc, [actual_title]) fi
+  title : String = TrimQuotes(GetTitle(me.block_type))
+  if #title > 20 then AddViolation(rule, loc, [title]) fi
 }
 
 Check(rule : String, loc : Int, me : GawlKeeper)
 conditions rule == "G003"
 {
-  actual_title : String = TrimQuotes(GetTitle(me.block_type))
-  raw_filename : String = FindFileName(loc)
-  filename : String = SubString(raw_filename, 0, #raw_filename - 1 - #".awl")
+  title : String = TrimQuotes(GetTitle(me.block_type))
+  filename : String = GetAwlBaseFileName(FindFileName(loc))
 
-  if ~(actual_title == filename) then
-    AddViolation(rule, loc, [actual_title, filename])
+  if ~(title == filename) then
+    AddViolation(rule, loc, [title, filename])
   fi
 }
 

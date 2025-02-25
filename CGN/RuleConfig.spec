@@ -9,8 +9,9 @@ spec unit RuleConfig
 functions
 
 InitRules()
-IsRule(id : String, arg : String): Bool
+IsRule(id : String): Bool
 IsRuleEnabled(id : String): Bool
 GetRuleMessage(id : String): List(String)
 GetRuleSynopsis(id : String): String
+ShowRules()
 

@@ -59,6 +59,15 @@ TrimQuotes(s : String) : String
 }
 
 
+IsLabelWellFormed(label: String, net_prefix: String): Bool
+{
+  return #label = 4 & #net_prefix = 2 &
+         net_prefix@0 = label@0       &
+         net_prefix@1 = label@1       &
+         IsDigit(label@2) & IsDigit(label@3)
+}
+
+
 GetAwlBaseFileName(file : String): String
 {
   j : Int = #file - 1 - #".awl"

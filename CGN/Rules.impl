@@ -38,8 +38,6 @@ conditions ~IsRuleEnabled(rule) { }
 Check(rule : String, loc : Int, me : Field)           // G021, C042
 conditions ~IsRuleEnabled(rule) { }
 
-Check(rule : String, loc : Int)                       // C070
-conditions ~IsRuleEnabled(rule) { }
 
 
 Check(rule : String, loc : Int, me : GawlKeeper)
@@ -195,13 +193,6 @@ conditions rule == "G021"
 }
 
 
-Check(rule : String, loc : Int)
-conditions rule == "C070"
-{
-  AddViolation(rule, loc, [])
-}
-
-
 //// Catch-all ////
 
 Check(rule : String, loc : Int, me : GawlKeeper)    { }
@@ -211,4 +202,3 @@ Check(rule : String, loc : Int, me : Instruction,
                                 network : Network)  { }
 Check(rule : String, loc : Int, me : FunctionBody)  { }
 Check(rule : String, loc : Int, me : Field)         { }
-Check(rule : String, loc : Int)                     { }

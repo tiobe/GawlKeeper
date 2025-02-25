@@ -174,7 +174,6 @@ InstructionName ::= <
 | DtrInstr ::= "DTR"
 | FpInstr ::= "FP"
 | FnInstr ::= "FN"
-| GoToInstr ::= "GOTO"
 | ItdInstr ::= "ITD"
 | JbiInstr  ::= "JBI"
 | JcInstr   ::= "JC"

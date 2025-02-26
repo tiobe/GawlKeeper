@@ -26,7 +26,7 @@ functions
 Check(rule : String, loc : Int, me : GawlKeeper)      // C015, G003
 conditions ~IsRuleEnabled(rule) { }
 
-Check(rule : String, loc : Int, me : Network)         // C007, G026, G041, G043
+Check(rule : String, loc : Int, me : Network)         // C006, C007, G026, G041, G043
 conditions ~IsRuleEnabled(rule) { }
 
 Check(rule : String, loc : Int, me : Instruction)     // G028
@@ -64,14 +64,13 @@ conditions rule == "G028"
 {
   ignored: Int := 0
   comm_lst: [String] = FilterComments(GetComments(me), ignored)
-  Check(rule, loc, comm_lst)
+  CheckG28(loc, comm_lst)
 }
-Check(rule : String, loc: Int, NIL:  List(String))
-conditions rule == "G028" { }  // no comment, no check
-Check(rule : String, loc: Int, lst: (List(String)))
-conditions rule == "G028"
-{
-  if ~IsCommentWellFormatted(lst.head) then AddViolation(rule, loc, [], -1) fi
+CheckG28(loc: Int, NIL: List(String))   { }  // no comment, no check
+CheckG28(loc: Int, lst: (List(String))) {
+  if ~IsCommentWellFormatted(lst.head) then
+    AddViolation("G028", loc, [], -1)
+  fi
 }
 
 
@@ -177,24 +176,20 @@ CheckLast(net_prefix: String, me: (Instruction, label # NIL, instruction: Instru
 }
 
 
-
 Check(rule : String, loc: Int, me: FunctionBody)
 conditions rule == "C020"
 {
-  Check(rule, me.inputs , 'i')
-  Check(rule, me.outputs, 'o')
-  Check(rule, me.locals , 's')
-  Check(rule, me.temps  , 't')
+  CheckC20(me.inputs , 'i')
+  CheckC20(me.outputs, 'o')
+  CheckC20(me.locals , 's')
+  CheckC20(me.temps  , 't')
 }
-Check(rule : String, NIL: [Field], prefix: Char)
-conditions rule == "C020" { }
-Check(rule : String, declarations: ([Field]), prefix: Char)
-conditions rule == "C020"
+CheckC20(NIL: [Field], prefix: Char) { }
+CheckC20(declarations: ([Field]), prefix: Char)
 {
-  [Check(rule, field, prefix) | field: Field <- declarations ]
+  [CheckC20(field, prefix) | field: Field <- declarations]
 }
-Check(rule : String, me: Field, prefix: Char)
-conditions rule == "C020"
+CheckC20(me: Field, prefix: Char)
 {
   field : String = GetName(me.name)
   if #field < 2 | field@0 # prefix | field@1 # '_' then

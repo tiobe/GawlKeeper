@@ -31,32 +31,16 @@ bb01: JCN BB99;
          o_INT                       := #s_LIC
       );
 
-// Determine if carrier is loaded
-      L #s_LIC;
-      L 0;
-      >I;
-      AN #t_Tub_Unknown;
-      A #t_Tub_Loaded;
-      S #s_Carrier_Loaded;
-
 BB99:      NOP 0;
 
 NETWORK
 TITLE = BC: Send package report when arriving
-      NOP 0;
+BC01: NOP 0;
 
 // If loaded carrier arriving
       A #s_FP_Carrier_Found;
       A #s_Carrier_Loaded;
       JCN BC99;
-
-      CALL "FC_Read_Int_Record"
-      (  i_Record_Number             := #t_LNK , 
-         i_P_INT_Record              := "DB_UDT_LNK_Record".ECS , 
-         i_DB                        := "DB_LNK_List" , 
-         i_DB_Event_Num              := #t_DB_Event_Section , 
-         o_INT                       := #t_ECS
-      );
 
 // 1211 = Package Report (Arrived)
       CALL "FC_Write_Event"
@@ -74,7 +58,7 @@ TITLE = CA: Check and set destination
 //valid destination that is available and that wasn't used recently, if any of 
 //these conditions isn't verified this network will check the same conditions for 
 //the next destination.
-      NOP 0;
+CA00: NOP 0;
 
       A #t_Carrier_Found;
       A #s_Carrier_Loaded;

@@ -133,20 +133,33 @@ conditions rule == "C011" & me.instructions # NIL
     (inst.label # NIL & SingleInstrCheckC11(rule, inst, net_prefix))
   ]
 
-  //CheckFirst(net_prefix, me.instructions.head)
+  CheckFirst(net_prefix, Head(me.instructions))
   CheckLast(net_prefix, Last(me.instructions))
+  // TODO search for xx00 in the list and verify that, if it exists, it must be with the first instruction
+  // TODO search for xx99 in the list and verify that, if it exists, it must be with the last instruction
 }
+
 SingleInstrCheckC11(rule : String, me : Instruction, net_prefix : String): Bool
-conditions IsLabelWellFormed(me.label.id, net_prefix)
-{ return TRUE }
-SingleInstrCheckC11(rule : String, me : Instruction, net_prefix : String): Bool
+conditions ~ IsLabelWellFormed(me.label.id, net_prefix)
 {
   AddViolation(rule, me.src_info.loc,
                ["Label '"+ me.label.id +"' is wrongly formatted; it should start with '"+
                 net_prefix +"' and continue with 2 digits."])
   return FALSE
 }
-//CheckFirst(net_prefix: String, me: Instruction) {}
+SingleInstrCheckC11(rule : String, me : Instruction, net_prefix : String): Bool
+{ return TRUE }
+
+CheckFirst(net_prefix: String, me: (Instruction, label = NIL)) { } // No label, no check
+CheckFirst(net_prefix: String, me: (Instruction, label # NIL))
+{
+  label: String = me.label.id
+  if ~( #label = 4 & label@2 = '0' & label@3 = '0' ) then
+    AddViolation("C011", me.src_info.loc,
+                 ["Wrong label '"+ label +"' at network entry; it should be '"+ net_prefix + "00'."])
+  fi
+}
+
 CheckLast(net_prefix: String, me: (Instruction, label = NIL)) { } // No label, no check
 CheckLast(net_prefix: String, me: (Instruction, label # NIL, instruction: NoOpInstr))
 {

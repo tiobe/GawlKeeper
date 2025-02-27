@@ -94,7 +94,7 @@ GetRules() : [([String])]
       "Comments for declarations.",
       "Declaration needs a documentation comment starting with a space followed by an upper-case letter."
     ],
-    [ "G026",
+    [ "C011",
       "Jump labels.",
       "\027"
     ],

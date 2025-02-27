@@ -544,7 +544,7 @@ Check_Network(me : Network)
   Rules.Check("G041", LOC, me)
   Check_String(me.title)
   Rules.Check("C006", LOC, me)
-  Rules.Check("G026", LOC, me)
+  Rules.Check("C011", LOC, me)
   Rules.Check("G043", LOC, me)
   [
     {

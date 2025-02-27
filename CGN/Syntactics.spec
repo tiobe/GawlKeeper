@@ -24,6 +24,9 @@ FilterComments(lines: [Comment], var offset: Int): [String]
 // Remove quotes (single and double) at either ends of a string.
 TrimQuotes(s : String) : String
 
+// Check morphological correction of a network title
+IsNetwTitleWellFormed(title: String): Bool
+
 // Check morphological correction of a jump label, and in relation with the
 // name of the network it belongs to.
 IsLabelWellFormed(label: String, net_prefix: String): Bool

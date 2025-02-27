@@ -1,5 +1,6 @@
 .vscode/*
 CGN/*.STAMP
+CGN/*.[ch]
 CGN/CGNInit.?
 CGN/GawlKeeper.terms
 CGN/StaticSemantics.*

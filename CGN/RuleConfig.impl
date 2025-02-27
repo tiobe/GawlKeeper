@@ -68,11 +68,11 @@ GetRules() : [([String])]
   [
     [ "C006",
       "Each network must have a Network Title, which must be chosen obvious: indicating the fulfilled functionality of the code in the network.",
-      "There is a network without title."
+      "Network title '\027' is not correctly formatted: it should begin with 2 uppercase letters, a colon and a space."
     ],
     [ "C007",
       "Network title should start with 2 capital letters, a colon and a space.",
-      "Network title '\027' is not correctly formatted: it should begin with 2 uppercase letters, a colon and a space."
+      "Network title '\027' is out of order. Network titles must be prefixed in alphabetical ascending order."
     ],
     [ "C015",
       "The length of a block title has a maximum of 20 characters.",

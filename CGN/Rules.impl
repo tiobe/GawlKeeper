@@ -14,25 +14,21 @@ RuleConfig. IsRuleEnabled
 RuleViolation. ', AddViolation
 ScanIO. FindFileName, FindLocation
 StringTokenizer. Split, Trim
-Syntactics. IsLabelWellFormed, IsNewline, IsCommentWellFormatted, FilterComments,
-            TrimQuotes, GetAwlBaseFileName //, Print
-
-
-global
-NL: Char = '\n'
+Syntactics. IsCommentWellFormatted, IsLabelWellFormed, IsNetwTitleWellFormed,
+            IsNewline, FilterComments, TrimQuotes, GetAwlBaseFileName
 
 functions
 
 Check(rule : String, loc : Int, me : GawlKeeper)      // C015, G003
 conditions ~IsRuleEnabled(rule) { }
 
-Check(rule : String, loc : Int, me : Network)         // C006, C007, G026, G041, G043
+Check(rule : String, loc : Int, me : Network)         // C006, G026, G041, G043
 conditions ~IsRuleEnabled(rule) { }
 
 Check(rule : String, loc : Int, me : Instruction)     // G028
 conditions ~IsRuleEnabled(rule) { }
 
-Check(rule : String, loc : Int, me : FunctionBody)    // C020
+Check(rule : String, loc : Int, me : FunctionBody)    // C007, C020
 conditions ~IsRuleEnabled(rule) { }
 
 Check(rule : String, loc : Int, me : Field)           // G021, C042
@@ -94,17 +90,11 @@ conditions rule == "G043"
 
 Check(rule : String, loc : Int, me : Network)
 conditions rule == "C006"
-{ if #GetTitle(me) < 6 then AddViolation(rule, loc, []) fi }
-
-Check(rule : String, loc : Int, me : Network)
-conditions rule == "C007"
 {
-  title : String = GetTitle(me)
-  if #title < 4 | ~IsUpper(title@0) | ~IsUpper(title@1) | title@2 # ':' | title@3 # ' '
-  then
-    AddViolation(rule, loc, [title])
-  fi
+  title: String = GetTitle(me)
+  if ~IsNetwTitleWellFormed(title) then AddViolation(rule, loc, [title]) fi
 }
+
 
 Check(rule : String, loc : Int, me : (Network, instructions = NIL))
 conditions rule == "G041"
@@ -176,7 +166,24 @@ CheckLast(net_prefix: String, me: (Instruction, label # NIL, instruction: Instru
 }
 
 
-Check(rule : String, loc: Int, me: FunctionBody)
+Check(rule: String, loc: Int, me: FunctionBody)
+conditions rule == "C007"
+{
+  prefixes: [String] := NIL
+  [ {
+      prefix: String = SubString(title, 0, 1)
+      if prefixes = NIL | Last(prefixes) < prefix then
+        prefixes :+ prefix
+      else
+        AddViolation(rule, netw.src_info.loc, [title])
+      fi
+    }
+    | netw: Network <- me.networks, title: String = GetTitle(netw),
+    (#GetTitle(netw) > 1)
+  ]
+}
+
+Check(rule: String, loc: Int, me: FunctionBody)
 conditions rule == "C020"
 {
   CheckC20(me.inputs , 'i')

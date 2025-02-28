@@ -221,7 +221,6 @@ CheckSpecialIndexes(instList: ([Instruction]), net_prefix: String)
       ])
     fi
   fi
-  //if idx99 # -1 & (idx99 # #instWithLabel-1) then {"label " net_prefix "99 is not with the last instruction."} astype Message fi
 }
 
 

@@ -223,12 +223,6 @@ CheckSpecialIndexes(instList: ([Instruction]), net_prefix: String)
   fi
   //if idx99 # -1 & (idx99 # #instWithLabel-1) then {"label " net_prefix "99 is not with the last instruction."} astype Message fi
 }
-//if ~(idx99 <- [-1, #instWithLabel-1]) <--- this causes the following compiler error:
-(*"Rules.impl", line 145  14  Ambiguous types <(Int, Bitset) : Bool, (Int, List(Int)) : Bool>  for function <-
-        types of the function are <(Int, Bitset) : Bool, (Char, (String)) : Bool, (?T, (Array(?T))) : Bool, (?T, List(?T)) : Bool>
-        projected on args <Int>, <Output, Message, Bitset, (List(Int)), (List((String))), (List((SrcInfo))), (List(Float))> gives <(Int, Bitset) : Bool, (Int, List(Int)) : Bool>
-        projected on result Bool gives <(Int, Bitset) : Bool, (Int, List(Int)) : Bool>
-*)
 
 
 Check(rule: String, loc: Int, me: FunctionBody)

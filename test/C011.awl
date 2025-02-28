@@ -23,7 +23,7 @@ TITLE = BB: Initialize values when new carrier found
 bb01: JCN BB99;
 
 // Determine if LIC present
-      CALL "FC_Read_Int_Record"
+BB00: CALL "FC_Read_Int_Record"
       (  i_Record_Number             := #t_LNK , 
          i_P_INT_Record              := "DB_UDT_LNK_Record".LIC , 
          i_DB                        := "DB_LNK_List" , 
@@ -40,7 +40,7 @@ BC01: NOP 0;
 // If loaded carrier arriving
       A #s_FP_Carrier_Found;
       A #s_Carrier_Loaded;
-      JCN BC99;
+BCab: JCN BC99;
 
 // 1211 = Package Report (Arrived)
       CALL "FC_Write_Event"

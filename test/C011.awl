@@ -217,145 +217,6 @@ TITLE = EA: Assign carrier to a destination
 EA99: JCN EA99;
 
 NETWORK
-TITLE = EB: Send tracking report when leaving
-      NOP 0;
-
-// Determine when loaded carrier is assigned to OPZ
-      A #s_FP_Write_Destination;
-      JCN EB99;
-
-      L #t_LNK;
-      L 0;
-      >I;
-      JCN EB99;
-
-// Read TIC number from LNK list
-      CALL "FC_Read_Int_Record"
-      (  i_Record_Number             := #t_LNK , 
-         i_P_INT_Record              := "DB_UDT_LNK_Record".TIC , 
-         i_DB                        := "DB_LNK_List" , 
-         i_DB_Event_Num              := #t_DB_Event_Section , 
-         o_INT                       := #t_TIC
-      );
-
-// Check if TIC number is valid
-      L #t_TIC;
-      L 0;
-      >I;
-      JCN EB99;
-
-// Read LIC number from LNK list
-      CALL "FC_Read_Int_Record"
-      (  i_Record_Number             := #t_LNK , 
-         i_P_INT_Record              := "DB_UDT_LNK_Record".LIC , 
-         i_DB                        := "DB_LNK_List" , 
-         i_DB_Event_Num              := #t_DB_Event_Section , 
-         o_INT                       := #t_LIC
-      );
-
-// Read report route number from LNK list
-      CALL "FC_Read_Int_Record"
-      (  i_Record_Number             := #t_LNK , 
-         i_P_INT_Record              := "DB_UDT_LNK_Record".Rep_Route , 
-         i_DB                        := "DB_LNK_List" , 
-         i_DB_Event_Num              := #t_DB_Event_Section , 
-         o_INT                       := #t_Rep_Route_Record
-      );
-
-// Clear LNK from report route record
-      L #t_Rep_Route_Record;
-      L 0;
-      >I;
-      JCN EB01;
-
-      CALL "FC_Write_Int_Record"
-      (  i_Record_Number             := #t_Rep_Route_Record , 
-         i_P_INT_Record              := "DB_UDT_Route_Record".LNK , 
-         i_DB                        := "DB_Route_List" , 
-         i_INT                       := 0 , 
-         i_DB_Event_Num              := #t_DB_Event_Section
-      );
-
-// Clear report route record from LNK
-EB01:      CALL "FC_Write_Int_Record"
-      (  i_Record_Number             := #t_LNK , 
-         i_P_INT_Record              := "DB_UDT_LNK_Record".Rep_Route , 
-         i_DB                        := "DB_LNK_List" , 
-         i_INT                       := 0 , 
-         i_DB_Event_Num              := #t_DB_Event_Section
-      );
-
-// Generate new route record
-      CALL "FC_Generator_LNK"
-      (  i_LNK                       := #t_LNK , 
-         i_DB_List                   := #t_DB_Route_List_Num , 
-         i_Default_Record            := -1 , 
-         i_DB_Event_Num              := #t_DB_Event_Section , 
-         o_LNK                       := #t_Rep_Route_Record
-      );
-
-// Read report route number from LNK list
-      CALL "FC_Read_Int_Record"
-      (  i_Record_Number             := #t_LNK , 
-         i_P_INT_Record              := "DB_UDT_LNK_Record".Rep_Route , 
-         i_DB                        := "DB_LNK_List" , 
-         i_DB_Event_Num              := #t_DB_Event_Section , 
-         o_INT                       := #t_Rep_Route_Record
-      );
-
-// Copy BIR to report route record
-      CALL "FC_Read_ANY_Record"
-      (  i_Record_Number             := #t_LIC , 
-         i_ANY_Data_Record           := "DB_UDT_LIC_Record".BIR , 
-         i_ANY_Data                  := "DB_Outgoing_Msgs".TrackingReport.Body.BIR , 
-         i_DB                        := "DB_LIC_List" , 
-         i_DB_Event_Num              := #t_DB_Event_Section
-      );
-
-      CALL "FC_Write_ANY_Record"
-      (  i_Record_Number             := #t_Rep_Route_Record , 
-         i_ANY_Data_Record           := "DB_UDT_Route_Record".BIR , 
-         i_ANY_Data                  := "DB_Outgoing_Msgs".TrackingReport.Body.BIR , 
-         i_DB                        := "DB_Route_List" , 
-         i_DB_Event_Num              := #t_DB_Event_Section
-      );
-
-// Copy LIC number to report route record
-      CALL "FC_Write_Int_Record"
-      (  i_Record_Number             := #t_Rep_Route_Record , 
-         i_P_INT_Record              := "DB_UDT_Route_Record".LIC , 
-         i_DB                        := "DB_Route_List" , 
-         i_INT                       := #t_LIC , 
-         i_DB_Event_Num              := #t_DB_Event_Section
-      );
-
-// 1201 = Tracking report
-      CALL "FC_Write_Event"
-      (  i_Message_ID                := 1201 , 
-         i_Event_value               := #t_LNK , 
-         i_DB_Event_Num              := #t_DB_Event_Section , 
-         o_Return_Value              := #t_Not_Used_Int
-      );
-
-EB99:      NOP 0;
-
-NETWORK
-TITLE = EC: Move carrier from upstream buffer to downstream buffer
-//At the route segment transition the data has to be moved to the correct carrier 
-//buffer DB.
-      NOP 0;
-
-// Move carrier to route segment buffer DB
-      CALL #s_FB_Rte_Seg_FIFO_T
-      (  i_CFG_Position_Node         := #i_CFG_Position_Node , 
-         i_CFG_Area_HO_Dwnstr        := FALSE , 
-         i_DB_PLT_Node               := #i_DB_PLT , 
-         i_DB_RS_Upstr               := #i_DB_RS_Upstr , 
-         i_DB_RS_Dwnstr              := #i_DB_RS_Dwnstr , 
-         i_DB_Event                  := "DB_Event_Section"
-      );
-
-NETWORK
 TITLE = FA: Reset/Set Carrier assigned
       NOP 0;
 
@@ -363,7 +224,7 @@ TITLE = FA: Reset/Set Carrier assigned
       L #s_Available_Destination;
       L 0;
       >I;
-      JCN FA01;
+      JCN FA99;
 
 // Set carrier assigned when carrier is assigned AND item at handover
       A(;
@@ -374,7 +235,7 @@ TITLE = FA: Reset/Set Carrier assigned
       A #t_Section_Item_At_HO;
       S #o_Carrier_Assigned_01;
 
-FA01:      NOP 0;
+FA99: NOP 0;
 
       A #i_Dest_15_Available;
       FP #s_FP_Dest_15_Avail;

@@ -129,8 +129,7 @@ conditions rule == "C011" & me.instructions # NIL
 
   // Also check that special indexes 00 and 99 are respectively at the entry
   // and exit of the network's code, or absent.
-  CheckSpecialIndex(me.instructions, 0)
-  CheckSpecialIndex(me.instructions, 99)
+  CheckSpecialIndexes(me.instructions, net_prefix)
 }
 
 CheckLabelsForm(instList: ([Instruction]), prefix: String)
@@ -184,14 +183,52 @@ CheckLast(me: (Instruction, label # NIL, instruction: NoOpInstr))
 }
 CheckLast(me: (Instruction, label # NIL, instruction: InstructionName))
 {
-  AddViolation("C011", me.src_info.loc, [
-    "If there is a label at the end of a network, it must go with a "+
-    "NOP instruction, and the label must be indexed as 99."])
+  AddViolation("C011", me.src_info.loc,
+    ["If there is a label at the end of a network, it must go with a "+
+     "NOP instruction, and the label must be indexed as 99."])
 }
 
-CheckSpecialIndex(instList: ([Instruction]), index: Int)
-{} // TODO
+HashedLabel(label: Identifier, instruction: Instruction): Ident
+{
+  pair: Ident = Ident(label.id)
+  pair.info := instruction
+  return pair
+}
+CheckSpecialIndexes(instList: ([Instruction]), net_prefix: String)
+{
+  instrWithLabels: [Ident] = [ HashedLabel(inst.label, inst)
+                              | inst: Instruction <- instList,
+                              (inst.label # NIL & inst.label.id # NIL) ]
 
+  // Check if indexes 00 or 99 are misplaced (not at either end of the network code)
+  idx00: Int = instrWithLabels > Ident(net_prefix + "00")
+  idx99: Int = instrWithLabels > Ident(net_prefix + "99")
+
+  if idx00 # -1 then
+    xx00: Ident = instrWithLabels^idx00
+    if (xx00.info astype Instruction) # instList.head then
+      AddViolation("C011", (xx00.info astype Instruction).src_info.loc, [
+        "Jump label with index '00', when used, must be at the network entry, with the first instruction."
+      ])
+    fi
+  fi
+
+  if idx99 # -1 then
+    xx99: Ident = instrWithLabels^idx99
+    if (xx99.info astype Instruction) # Last(instList) then
+      AddViolation("C011", (xx99.info astype Instruction).src_info.loc, [
+        "Jump label with index '99', when used, must be at the network exit, with the last instruction (which must be 'NOP')."
+      ])
+    fi
+  fi
+  //if idx99 # -1 & (idx99 # #instWithLabel-1) then {"label " net_prefix "99 is not with the last instruction."} astype Message fi
+}
+//if ~(idx99 <- [-1, #instWithLabel-1]) <--- this causes the following compiler error:
+(*"Rules.impl", line 145  14  Ambiguous types <(Int, Bitset) : Bool, (Int, List(Int)) : Bool>  for function <-
+        types of the function are <(Int, Bitset) : Bool, (Char, (String)) : Bool, (?T, (Array(?T))) : Bool, (?T, List(?T)) : Bool>
+        projected on args <Int>, <Output, Message, Bitset, (List(Int)), (List((String))), (List((SrcInfo))), (List(Float))> gives <(Int, Bitset) : Bool, (Int, List(Int)) : Bool>
+        projected on result Bool gives <(Int, Bitset) : Bool, (Int, List(Int)) : Bool>
+*)
 
 
 Check(rule: String, loc: Int, me: FunctionBody)

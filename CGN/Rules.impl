@@ -19,7 +19,7 @@ Syntactics. IsCommentWellFormatted, IsLabelWellFormed, IsNetwTitleWellFormed,
 
 functions
 
-Check(rule : String, loc : Int)                       // C001
+Check(rule : String, loc : Int, me : HeaderBlock)     // C001
 conditions ~IsRuleEnabled(rule) { }
 
 Check(rule : String, loc : Int, me : GawlKeeper)      // C015, G003
@@ -38,9 +38,14 @@ Check(rule : String, loc : Int, me : Field)           // G021, C042
 conditions ~IsRuleEnabled(rule) { }
 
 
-Check(rule : String, loc : Int)
+Check(rule : String, loc : Int, me : (HeaderBlock, author # NIL))
 conditions rule == "C001"
-{ AddViolation(rule, loc, []) }
+{ AddViolation(rule, me.author.src_info.loc, ["AUTHOR"]) }
+
+Check(rule : String, loc : Int, me : (HeaderBlock, name # NIL))
+conditions rule == "C001"
+{ AddViolation(rule, me.name.src_info.loc, ["NAME"]) }
+
 
 Check(rule : String, loc : Int, me : GawlKeeper)
 conditions rule == "C015"
@@ -118,13 +123,14 @@ conditions rule == "G041"
 }
 
 
-Check(rule : String, loc : Int, me : Network)
-conditions rule == "G026" & me.instructions # NIL
+Check(rule : String, loc : Int, me : (Network, instructions # NIL))
+conditions rule == "G026"
 {
-  net_prefix: String = SubString(GetTitle(me), 0, 1)
+  full_title: String = GetTitle(me)
+  net_prefix: String = if #full_title < 2 then "" else SubString(full_title, 0, 1) fi
   labels: [String] := NIL
 
-  if #net_prefix = 0 return fi     // What TODO if the network title is ill-formed? Skip?
+  if #net_prefix = 0 return fi     // rule C006 will complain about ill-formed network title
   [
     {
       label: String = inst.label.id
@@ -135,8 +141,8 @@ conditions rule == "G026" & me.instructions # NIL
                              " be in sequential ascending order within a network."])
       fi
     }
-    | inst: Instruction <- me.instructions,
-    (inst.label # NIL & SingleInstrCheckG26(rule, inst, net_prefix))
+    | inst: (Instruction, label: (Identifier, id # NIL)) <- me.instructions,
+    (SingleInstrCheckG26(rule, inst, net_prefix))
   ]
 
   //CheckFirstInst(rule, net_prefix, me.instructions.head)
@@ -208,7 +214,7 @@ CheckC20(me: Field, prefix: Char)
 {
   field : String = GetName(me.name)
   if #field < 2 | field@0 # prefix | field@1 # '_' then
-    AddViolation(rule, me.src_info.loc, [field, prefix])
+    AddViolation("C020", me.src_info.loc, [field, prefix])
   fi
 }
 
@@ -240,4 +246,4 @@ Check(rule : String, loc : Int, me : Network)       { }
 Check(rule : String, loc : Int, me : Instruction)   { }
 Check(rule : String, loc : Int, me : FunctionBody)  { }
 Check(rule : String, loc : Int, me : Field)         { }
-Check(rule : String, loc : Int) { }
+Check(rule : String, loc : Int, me : HeaderBlock)   { }

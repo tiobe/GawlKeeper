@@ -68,7 +68,7 @@ GetRules() : [([String])]
   [
     [ "C001",
       "Name (Header) and Author are not used and must be empty.",
-      "Do not use header fields 'Name' and 'Author'. They must be empty."
+      "Do not use header field '\027'; it must be empty."
     ],
     [ "C006",
       "Each network must have a Network Title, which must indicate its functionality, and it must begin with 2 uppercase letters, a colon and a space.",

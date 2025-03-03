@@ -16,3 +16,5 @@ GetLocLine(loc: Int): Int
 
 GetComments(me : Instruction): List(Comment)
 GetComments(me : Field): List(Comment)
+
+GetLabel(inst: Instruction): String

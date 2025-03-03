@@ -172,6 +172,7 @@ Check_HeaderBlock(me : HeaderBlock)
     Check_ParamsInitComma(me.params)
   fi
   if me.author # NIL then
+    Rules.Check("C001", LOC)
     Check_String("AUTHOR")
     Check_String(":")
     Check_InstrExpression(me.author)
@@ -182,6 +183,7 @@ Check_HeaderBlock(me : HeaderBlock)
     Check_InstrExpression(me.family)
   fi
   if me.name # NIL then
+    Rules.Check("C001", LOC)
     Check_String("NAME")
     Check_String(":")
     Check_InstrExpression(me.name)

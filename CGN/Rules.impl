@@ -20,6 +20,9 @@ Syntactics. IsLabelWellFormed, IsNewline, IsCommentWellFormatted, FilterComments
 
 functions
 
+Check(rule : String, loc : Int)                       // C001
+conditions ~IsRuleEnabled(rule) { }
+
 Check(rule : String, loc : Int, me : GawlKeeper)      // C015, G003
 conditions ~IsRuleEnabled(rule) { }
 
@@ -35,6 +38,10 @@ conditions ~IsRuleEnabled(rule) { }
 Check(rule : String, loc : Int, me : Field)           // G021, C042
 conditions ~IsRuleEnabled(rule) { }
 
+
+Check(rule : String, loc : Int)
+conditions rule == "C001"
+{ AddViolation(rule, loc, []) }
 
 
 Check(rule : String, loc : Int, me : GawlKeeper) conditions rule == "C015"
@@ -212,3 +219,4 @@ Check(rule : String, loc : Int, me : Network)       { }
 Check(rule : String, loc : Int, me : Instruction)   { }
 Check(rule : String, loc : Int, me : FunctionBody)  { }
 Check(rule : String, loc : Int, me : Field)         { }
+Check(rule : String, loc : Int) { }

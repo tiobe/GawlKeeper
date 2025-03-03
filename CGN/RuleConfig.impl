@@ -43,6 +43,10 @@ GetRules() : [([String])]
 {
   rules : [([String])] = 
   [
+    [ "C001",
+      "Name (Header) and Author are not used and must be empty.",
+      "Do not use header fields 'Name' and 'Author'. They must be empty."
+    ],
     [ "C006",
       "Each network must have a Network Title, which must be chosen obvious: indicating the fulfilled functionality of the code in the network.",
       "There is a network without title."

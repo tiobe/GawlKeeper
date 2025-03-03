@@ -123,14 +123,13 @@ conditions rule == "G041"
 }
 
 
-Check(rule : String, loc : Int, me : (Network, instructions # NIL))
-conditions rule == "G026"
+Check(rule : String, loc : Int, me : Network)
+conditions rule == "G026" & me.instructions # NIL
 {
-  full_title: String = GetTitle(me)
-  net_prefix: String = if #full_title < 2 then "" else SubString(full_title, 0, 1) fi
+  net_prefix: String = SubString(GetTitle(me), 0, 1)
   labels: [String] := NIL
 
-  if #net_prefix = 0 return fi     // rule C006 will complain about ill-formed network title
+  if #net_prefix = 0 return fi     // What TODO if the network title is ill-formed? Skip?
   [
     {
       label: String = inst.label.id
@@ -141,8 +140,8 @@ conditions rule == "G026"
                              " be in sequential ascending order within a network."])
       fi
     }
-    | inst: (Instruction, label: (Identifier, id # NIL)) <- me.instructions,
-    (SingleInstrCheckG26(rule, inst, net_prefix))
+    | inst: Instruction <- me.instructions,
+    (inst.label # NIL & SingleInstrCheckG26(rule, inst, net_prefix))
   ]
 
   //CheckFirstInst(rule, net_prefix, me.instructions.head)

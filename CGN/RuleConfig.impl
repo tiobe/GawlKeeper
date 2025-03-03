@@ -39,21 +39,44 @@ RulesShown = enum { RS_IMPLEMENTED | RS_RESERVED | RS_ALL }
 
 functions
 
+ShowRules()
+{
+  [ { ShowRule(GetRuleInfo(r.head)) }
+  | r : ([String]) <- GetRules()
+  ]
+}
+
+//
+// format:
+//    id | synopsis
+//
+
+ShowRule(NIL : RuleInfo): Message
+{}
+
+ShowRule(rule : RuleInfo): Message
+{
+  "  "
+  String(3 - #rule.id, SP)  rule.id
+  "  |  "
+  rule.synopsis "\n"
+}
+
 GetRules() : [([String])]
 {
-  rules : [([String])] = 
+  rules : [([String])] =
   [
     [ "C001",
       "Name (Header) and Author are not used and must be empty.",
       "Do not use header fields 'Name' and 'Author'. They must be empty."
     ],
     [ "C006",
-      "Each network must have a Network Title, which must be chosen obvious: indicating the fulfilled functionality of the code in the network.",
-      "There is a network without title."
+      "Each network must have a Network Title, which must indicate its functionality, and it must begin with 2 uppercase letters, a colon and a space.",
+      "Network title '\027' is not correctly formatted: it should begin with 2 uppercase letters, a colon and a space."
     ],
     [ "C007",
-      "Network title should start with 2 capital letters, a colon and a space.",
-      "Network title '\027' is not correctly formatted: it should begin with 2 uppercase letters, a colon and a space."
+      "The 2 capital letters at the start of network titles must reflect the order in which they are defined.",
+      "Network title '\027' is out of order. Network titles must be prefixed in alphabetical ascending order."
     ],
     [ "C015",
       "The length of a block title has a maximum of 20 characters.",
@@ -108,13 +131,12 @@ InitRulesSet(rs : RulesShown)
 }
 
 // rule switch has form: --d+[=p[,p]...]
-IsRule(s : String, arg : String): Bool
+IsRule(s : String): Bool
 {
   i : Int = 2
   j : Int = #s
   sw : String = SubString(s, i, j - 1)
   id : String := ""
-  p : List(String) := NIL
 
   //IsRuleId
   if s@0 = '-' & s@1 = '-' & j - i > 0 then
@@ -122,10 +144,6 @@ IsRule(s : String, arg : String): Bool
   else
     // not a valid rule switch
     return FALSE
-  fi
-  //GetArguments
-  if arg@0 # '\000'  then
-    p := Split(arg, ',')
   fi
   //SetRule
   switch GetRuleInfo(id) {
@@ -136,7 +154,6 @@ IsRule(s : String, arg : String): Bool
     Exit(Failure)
   case r : RuleInfo
     r.apply := TRUE
-    r.parameters := p
   }
   return TRUE
 }

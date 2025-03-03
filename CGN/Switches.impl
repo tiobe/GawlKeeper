@@ -15,7 +15,7 @@ UnixArgs. NoOfArguments, GetArgument
 UnixProcess. Exit, Failure, Success
 
 RuleChecker
-RuleConfig. InitRules, IsRule
+RuleConfig. InitRules, IsRule, ShowRules
 StringTokenizer. Trim, Join
 Version. LongVersion
 
@@ -32,6 +32,8 @@ EOF : Eof = Eof()
 
 global
 
+MySelf : String = "GawlKeeper"
+NL: String = "\n"
 SRCFILE : String|NIL := NIL
 
 functions
@@ -46,7 +48,7 @@ ReadSwitches()
 {
   [ { ReadSwitch(GetArgument(i)) } | i : Int <- 1 .. (NoOfArguments() - 1) ]
   if SRCFILE = NIL then
-    { "Usage: GawlKeeper <inputfile>\n" } astype Message
+    Usage()
     Exit(Failure)
   fi
 }
@@ -63,16 +65,41 @@ ReadSwitch(sw : String)
 GetSwitch(opt : String) {
   i : Int = opt > '='
   sw : String := opt
-  arg : String := ""
 
   if i # -1 then
     sw := SubString(opt, 0, i - 1)
-    arg := SubString(opt, i + 1, #opt - 1)
   fi
-  if IsRule(sw, arg) then
+  if IsRule(sw) then
     // side effects are handled by IsRule function
     RuleChecker.IS_ENABLED := TRUE
+  elsif sw == "-help" then
+    Usage()
+    Exit(Success)
+  elsif sw == "-showrules" then
+    ShowRules()
+    Exit(Success)
+  elsif sw == "-version" then
+    Version()
+    Exit(Success)
   fi
+}
+
+Version(): Output
+{
+  LongVersion(MySelf) NL
+}
+
+Usage(): Message
+{
+  "Usage" NL
+  "  " MySelf " [<option>|<rule>]... <file>" NL NL
+  "where <rule> is of the form" NL
+  "  --<rule_nr> enables rule nr <rule_nr>" NL
+  "  Example: --C007" NL
+  "  -help      show all possible options" NL
+  "  -showrules show a table of rules" NL
+  "  -version   print version info and terminate" NL
+  "and <file> is an AWL file" NL
 }
 
 GetFile(file : String)

@@ -59,10 +59,26 @@ TrimQuotes(s : String) : String
 }
 
 
+IsNetwTitleWellFormed(title: String): Bool
+{
+    return #title > 5 & IsUpper(title@0) & IsUpper(title@1) &
+           title@2 = ':' & title@3 = ' '
+}
+
 IsLabelWellFormed(label: String, net_prefix: String): Bool
 {
-  return #label = 4 & #net_prefix = 2 &
-         net_prefix@0 = label@0       &
-         net_prefix@1 = label@1       &
-         IsDigit(label@2) & IsDigit(label@3)
+    return #label = 4 & #net_prefix = 2 &
+           net_prefix@0 = label@0       &
+           net_prefix@1 = label@1       &
+           IsDigit(label@2) & IsDigit(label@3)
+}
+
+
+GetAwlBaseFileName(file : String): String
+{
+  j : Int = #file - 1 - #".awl"
+  i : Int := j
+
+  while 0 <= i & ~(file@i <- "\\/") { i :- 1 }
+  return SubString(file, i + 1, j)
 }

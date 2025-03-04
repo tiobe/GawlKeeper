@@ -143,10 +143,10 @@ CheckLabelsForm(instList: ([Instruction]), prefix: String)
 {
   [
     { AddViolation("C011", inst.src_info.loc,
-                   ["Label '"+ inst.label.id +"' is wrongly formatted; it should start with '" +
+                   ["Label '"+ GetLabel(inst) +"' is wrongly formatted; it should start with '" +
                     prefix +"' and continue with 2 digits."]) }
     | inst: (Instruction, label: (Identifier, id # NIL)) <- instList,
-    (~ IsLabelWellFormed(inst.label.id, prefix))
+    (~ IsLabelWellFormed(GetLabel(inst), prefix))
   ]
 }
 
@@ -167,7 +167,7 @@ CheckLabelsOrder(instList: ([Instruction]), prefix: String)
       fi
     }
     | inst: (Instruction, label: (Identifier, id # NIL)) <- instList,
-    (IsLabelWellFormed(inst.label.id, prefix))
+    (IsLabelWellFormed(GetLabel(inst), prefix))
   ]
 }
 

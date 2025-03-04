@@ -61,7 +61,7 @@ TrimQuotes(s : String) : String
 
 IsNetwTitleWellFormed(title: String): Bool
 {
-    return #title > 5 & IsUpper(title@0) & IsUpper(title@1) &
+    return #title > 4 & IsUpper(title@0) & IsUpper(title@1) &
            title@2 = ':' & title@3 = ' '
 }
 

@@ -152,11 +152,11 @@ CheckLabelsForm(instList: ([Instruction]), prefix: String)
 
 CheckLabelsOrder(instList: ([Instruction]), prefix: String)
 {
-  previous: Int := -1
+  previous: String := ".."
   [
     {
-      index: Int = GetLabelNumber(GetLabel(inst))
-      if index = -1 then // skip; bad label => another check
+      index: String = GetLabelNumber(GetLabel(inst))
+      if #index = 0 then // skip; bad label => another check
       else
         if previous < index
         then previous := index
@@ -174,8 +174,8 @@ CheckLabelsOrder(instList: ([Instruction]), prefix: String)
 CheckFirst(me: (Instruction, label = NIL)) { } // No label, no check
 CheckFirst(me: (Instruction, label: (Identifier, id # NIL)))
 {
-  index: Int = GetLabelNumber(GetLabel(me))
-  if index # 0 then
+  index: String = GetLabelNumber(GetLabel(me))
+  if ~(index == "00") then
     AddViolation("C011", me.src_info.loc,
                  ["Wrong label '"+ GetLabel(me) +
                   "' at network entry; it should have index '00'."])
@@ -185,8 +185,8 @@ CheckFirst(me: (Instruction, label: (Identifier, id # NIL)))
 CheckLast(me: (Instruction, label = NIL)) { } // No label, no check
 CheckLast(me: (Instruction, label: (Identifier, id # NIL), instruction: NoOpInstr))
 {
-  index: Int = GetLabelNumber(GetLabel(me))
-  if index # 99 then
+  index: String = GetLabelNumber(GetLabel(me))
+  if ~(index == "99") then
     AddViolation("C011", me.src_info.loc,
                  ["Wrong label '"+ GetLabel(me) +
                   "' at network exit; it should have index '99'."])
@@ -205,8 +205,8 @@ CheckSpecialIndexes(instList: ([Instruction]), label: String)
 {
   [
     {
-      index: Int = GetLabelNumber(label)
-      side: String = if index = 0 then "beginning" else "end" fi
+      index: String = GetLabelNumber(label)
+      side: String = if index == "00" then "beginning" else "end" fi
       AddViolation("C011", inst.src_info.loc,
         ["A label with index '" + index + "' can only occur at the " + side +
          " of a network's code."]

@@ -77,10 +77,10 @@ IsLabelWellFormed(label: String, net_prefix: String): Bool
            net_prefix@0 = label@0 & net_prefix@1 = label@1
 }
 
-GetLabelNumber(label: String): Int
+GetLabelNumber(label: String): String
 {
-    return if ~ IsLabelWellFormed(label) then -1
-           else Int(SubString(label, 2, 3)) fi
+    return if ~ IsLabelWellFormed(label) then ""
+           else SubString(label, 2, 3) fi
 }
 
 

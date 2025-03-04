@@ -34,9 +34,9 @@ IsLabelWellFormed(label: String): Bool
 // and in relation with the prefix of the network it belongs to.
 IsLabelWellFormed(label: String, net_prefix: String): Bool
 
-// Extracts and returns (as a number) the numberical index of a jump label.
-// If no digits are found where expected, -1 is returned.
-GetLabelNumber(label: String): Int
+// Extracts and returns (as a string) the numberical index of a jump label.
+// If no digits are found where expected, an empty string is returned.
+GetLabelNumber(label: String): String
 
 
 // Returns the file name out of a path (i.e., the part behind the last directory

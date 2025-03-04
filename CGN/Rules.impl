@@ -205,10 +205,10 @@ CheckSpecialIndexes(instList: ([Instruction]), label: String)
 {
   [
     {
-      index: String = SubString(label, 2, 3)
-      side: String = if index == "00" then "beginning" else "end" fi
+      index: Int = GetLabelNumber(label)
+      side: String = if index = 0 then "beginning" else "end" fi
       AddViolation("C011", inst.src_info.loc,
-        ["Label with index '" + index + "' can only occur at the " + side +
+        ["A label with index '" + index + "' can only occur at the " + side +
          " of a network's code."]
       )
     }

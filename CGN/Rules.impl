@@ -15,7 +15,7 @@ RuleViolation. ', AddViolation
 ScanIO. FindFileName, FindLocation
 StringTokenizer. Split, Trim
 Syntactics. IsCommentWellFormatted, IsLabelWellFormed, IsNetwTitleWellFormed,
-            IsNewline, FilterComments, TrimQuotes, GetAwlBaseFileName
+            IsNewline, FilterComments, TrimQuotes, GetAwlBaseFileName, GetLabelNumber
 
 functions
 
@@ -155,13 +155,15 @@ CheckLabelsOrder(instList: ([Instruction]), prefix: String)
   previous: Int := -1
   [
     {
-      label: String = inst.label.id
-      index: Int = Int(SubString(label, 2, 3))
-      if previous < index
-          then previous := index
-          else AddViolation("C011", inst.src_info.loc,
-                            ["Label '"+ label +"' is out of order. Labels should" + 
-                             " be in sequential ascending order within a network."])
+      index: Int = GetLabelNumber(GetLabel(inst))
+      if index = -1 then // skip; bad label => another check
+      else
+        if previous < index
+        then previous := index
+        else AddViolation("C011", inst.src_info.loc,
+                          ["Label '"+ GetLabel(inst) +"' is out of order. Labels should" +
+                           " be in sequential ascending order within a network."])
+        fi
       fi
     }
     | inst: (Instruction, label: (Identifier, id # NIL)) <- instList,
@@ -170,34 +172,24 @@ CheckLabelsOrder(instList: ([Instruction]), prefix: String)
 }
 
 CheckFirst(me: (Instruction, label = NIL)) { } // No label, no check
-CheckFirst(me: (Instruction, label: (Identifier, id = NIL)))
-{ }   // Actually, this can't happen, but the compiler warns anyway
 CheckFirst(me: (Instruction, label: (Identifier, id # NIL)))
-conditions #(me.label.id) # 4
-{ }   // Bad label => that's another check
-CheckFirst(me: (Instruction, label: (Identifier, id # NIL)))
-conditions #(me.label.id) = 4
 {
-  label: String = me.label.id
-  if ~( label@2 = '0' & label@3 = '0' ) then
+  index: Int = GetLabelNumber(GetLabel(me))
+  if index # 0 then
     AddViolation("C011", me.src_info.loc,
-                 ["Wrong label '"+ label +"' at network entry; it should have index '00'."])
+                 ["Wrong label '"+ GetLabel(me) +
+                  "' at network entry; it should have index '00'."])
   fi
 }
 
 CheckLast(me: (Instruction, label = NIL)) { } // No label, no check
-CheckLast(me: (Instruction, label: (Identifier, id = NIL)))
-{ }   // Actually, this can't happen, but the compiler warns anyway
-CheckLast(me: (Instruction, label: (Identifier, id # NIL)))
-conditions #(me.label.id) # 4
-{ }   // Bad label => that's another check
 CheckLast(me: (Instruction, label: (Identifier, id # NIL), instruction: NoOpInstr))
-conditions #(me.label.id) = 4
 {
-  label: String = me.label.id
-  if ~( label@2 = '9' & label@3 = '9' ) then
+  index: Int = GetLabelNumber(GetLabel(me))
+  if index # 99 then
     AddViolation("C011", me.src_info.loc,
-                 ["Wrong label '"+ label +"' at network exit; it should have index '99'."])
+                 ["Wrong label '"+ GetLabel(me) +
+                  "' at network exit; it should have index '99'."])
   fi
 }
 CheckLast(me: (Instruction, label # NIL, instruction: InstructionName))

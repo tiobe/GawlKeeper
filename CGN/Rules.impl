@@ -199,7 +199,7 @@ CheckSpecialIndexes(instList: ([Instruction]), label: String)
       side: String = if index == "00" then "beginning" else "end" fi
       AddViolation("C011", inst.src_info.loc,
         ["Label with index '" + index + "' can only occur at the " + side +
-         " of a netwok's code."]
+         " of a network's code."]
       )
     }
     | inst: (Instruction, label: (Identifier, id # NIL)) <- instList,

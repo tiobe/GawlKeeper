@@ -15,6 +15,7 @@ GetTitle(network : Network): (String)
 GetTitle(block : DataBlock)     : String { return block.block_name.str }
 GetTitle(block : Function)      : String { return block.function_name.str }
 GetTitle(block : FunctionBlock) : String { return block.function_name.str }
+GetTitle(block : OrgBlock)      : String { return block.org_name.str }
 GetTitle(block : TypeBlock)     : String { return block.type_name.str }
 
 

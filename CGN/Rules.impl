@@ -19,10 +19,13 @@ Syntactics. IsCommentWellFormatted, IsLabelWellFormed, IsNetwTitleWellFormed,
 
 functions
 
+Check(rule : String, loc : Int, me : HeaderBlock)     // C001
+conditions ~IsRuleEnabled(rule) { }
+
 Check(rule : String, loc : Int, me : GawlKeeper)      // C015, G003
 conditions ~IsRuleEnabled(rule) { }
 
-Check(rule : String, loc : Int, me : Network)         // C006, G026, G041, G043
+Check(rule : String, loc : Int, me : Network)         // C006, C007, G026, G041, G043
 conditions ~IsRuleEnabled(rule) { }
 
 Check(rule : String, loc : Int, me : Instruction)     // G028
@@ -34,6 +37,14 @@ conditions ~IsRuleEnabled(rule) { }
 Check(rule : String, loc : Int, me : Field)           // G021, C042
 conditions ~IsRuleEnabled(rule) { }
 
+
+Check(rule : String, loc : Int, me : (HeaderBlock, author # NIL))
+conditions rule == "C001"
+{ AddViolation(rule, me.author.src_info.loc, ["AUTHOR"]) }
+
+Check(rule : String, loc : Int, me : (HeaderBlock, name # NIL))
+conditions rule == "C001"
+{ AddViolation(rule, me.name.src_info.loc, ["NAME"]) }
 
 
 Check(rule : String, loc : Int, me : GawlKeeper)
@@ -133,8 +144,8 @@ conditions rule == "G026" & me.instructions # NIL
     (inst.label # NIL & SingleInstrCheckG26(rule, inst, net_prefix))
   ]
 
-  //CheckFirst(net_prefix, me.instructions.head)
-  CheckLast(net_prefix, Reverse(me.instructions).head)
+  //CheckFirstInst(rule, net_prefix, me.instructions.head)
+  CheckLastInstr(rule, net_prefix, Reverse(me.instructions).head)
 }
 SingleInstrCheckG26(rule : String, me : Instruction, net_prefix : String): Bool
 {
@@ -148,19 +159,21 @@ SingleInstrCheckG26(rule : String, me : Instruction, net_prefix : String): Bool
     return FALSE
   fi
 }
-//CheckFirst(net_prefix: String, me: Instruction) {}
-CheckLast(net_prefix: String, me: (Instruction, label = NIL)) { } // No label, no check
-CheckLast(net_prefix: String, me: (Instruction, label # NIL, instruction: NoOpInstr))
+//CheckFirstInst(rule: String, net_prefix: String, me: Instruction) {}
+CheckLastInstr(rule: String, net_prefix: String, me: (Instruction, label = NIL)) { } // No label, no check
+CheckLastInstr(rule: String, net_prefix: String, me: (Instruction, label # NIL,
+                                                      instruction: NoOpInstr))
 {
   label: String = me.label.id
   if ~( #label = 4 & label@2 = '9' & label@3 = '9' ) then
-    AddViolation("G026", me.src_info.loc,
+    AddViolation(rule, me.src_info.loc,
                  ["Wrong label '"+ label +"' at network exit; it should be '"+ net_prefix + "99'."])
   fi
 }
-CheckLast(net_prefix: String, me: (Instruction, label # NIL, instruction: InstructionName))
+CheckLastInstr(rule: String, net_prefix: String, me: (Instruction, label # NIL,
+                                                      instruction: InstructionName))
 {
-  AddViolation("G026", me.src_info.loc, [
+  AddViolation(rule, me.src_info.loc, [
     "If there is a label at the end of a network, it must go with a "+
     "NOP instruction, and the label must be indexed as 99."])
 }
@@ -232,3 +245,4 @@ Check(rule : String, loc : Int, me : Network)       { }
 Check(rule : String, loc : Int, me : Instruction)   { }
 Check(rule : String, loc : Int, me : FunctionBody)  { }
 Check(rule : String, loc : Int, me : Field)         { }
+Check(rule : String, loc : Int, me : HeaderBlock)   { }

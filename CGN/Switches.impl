@@ -101,7 +101,7 @@ Usage(): Message
   "  -version   print version info and terminate" NL
   "and <file> is an AWL file" NL
 }
-                             
+
 GetFile(file : String)
 conditions SRCFILE = NIL
 {

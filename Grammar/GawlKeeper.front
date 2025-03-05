@@ -12,6 +12,7 @@ Block ::= <
     DataBlock
   | Function
   | FunctionBlock
+  | OrgBlock
   | TypeBlock
 > ;
 
@@ -34,6 +35,11 @@ FunctionBlock < Block ::=
   body: FunctionBody
   "END_FUNCTION_BLOCK"
 ;
+OrgBlock < Block ::=
+  ORGANIZATION_BLOCK org_name: StringLiteral
+  body: FunctionBody    %% only VAR_TEMP blocks and declarations start with "OB" or with "t_"
+  "END_ORGANIZATION_BLOCK"
+;
 FunctionBody ::=
   header: HeaderBlock
   [ "VAR_INPUT"  inputs:  { Field }+ "END_VAR" ]
@@ -54,7 +60,9 @@ TypeBlock < Block ::=
 HeaderBlock ::=
   title: TITLE
   [ params: ParamsInitComma ]
-  [ "FAMILY" ":" family: Identifier ]
+  [ "AUTHOR" ":" author: Reference ]
+  [ "FAMILY" ":" family: Reference ]
+  [ "NAME"   ":" name:   Reference ]
   "VERSION" ":" version: REAL
 ;
 ParamsInitComma ::= "{" params: ParamsInitListComma "}" ;
@@ -139,11 +147,15 @@ InstrExpression ::= <
 InstructionName ::= <
   AccuDecInstr ::= "DEC"
 | AccuIncInstr ::= "INC"
+| AccuTakInstr ::= "TAK"
+| AccuToAR1    ::= "+AR1" NAME AccuAR1Op
+| AccuToAR2    ::= "+AR2" NAME AccuAR2Op
 | ArithSumInstr ::= "+"
 | ArithDblSumInstr  ::= "+D" NAME SumDblOp
 | ArithDblSubInstr  ::= "-D" NAME SubDblOp
 | ArithDblMultInstr ::= "*D" NAME MulDblOp
 | ArithDblDivInstr  ::= "/D" NAME DivDblOp
+| ArithDblModInstr  ::= "MOD"
 | ArithIntSumInstr  ::= "+I" NAME SumIntOp
 | ArithIntSubInstr  ::= "-I" NAME SubIntOp
 | ArithIntMultInstr ::= "*I" NAME MulIntOp
@@ -170,6 +182,13 @@ InstructionName ::= <
 | CompIntLtInstr ::= "<I"  NAME LessThanIntOp
 | CompIntNEInstr ::= "<>I" NAME NotEqIntOp
 | CompLEInstr ::= "<="  NAME LessEqualsOp
+| ConvBTDInst  ::= "BTD"
+| ConvBTIInst  ::= "BTI"
+| ConvITBInst  ::= "ITB"
+| ConvCAWInst  ::= "CAW"
+| ConvRndInst  ::= "RND"
+| ConvRndUInst ::= "RND+" NAME rndUpOp
+| ConvRndLInst ::= "RND-" NAME rndDownOp
 | DtbInstr ::= "DTB"
 | DtrInstr ::= "DTR"
 | FpInstr ::= "FP"
@@ -179,6 +198,7 @@ InstructionName ::= <
 | JcInstr   ::= "JC"
 | JcbInstr  ::= "JCB"
 | JcnInstr  ::= "JCN"
+| JlInstr   ::= "JL"
 | JmInstr   ::= "JM"
 | JmzInstr  ::= "JMZ"
 | JnbiInstr ::= "JNBI"
@@ -186,6 +206,7 @@ InstructionName ::= <
 | JpInstr   ::= "JP"
 | JpzInstr  ::= "JPZ"
 | JuInstr   ::= "JU"
+| JzInstr   ::= "JZ"
 | LInstr ::= "L"
 | Lar1Instr ::= "LAR1"
 | Lar2Instr ::= "LAR2"
@@ -213,7 +234,7 @@ InstructionName ::= <
 | NoOpInstr ::= "NOP"
 | OpnInstr ::= "OPN"
 | RInstr ::= "R"
-| RndInstr ::= "RND"
+| SaveInstr ::= "SAVE"
 | SInstr ::= "S"
 | SetInstr ::= "SET"
 | ShiftLeftDblInstr   ::= "SLD"
@@ -241,6 +262,7 @@ ArgumentsList ::= args: ArgumentsAssignment // "," ;
 Expression < InstrExpression ::= <
   AtomicExpression
 | ArrayExpression
+| LogicCompExpression
 | FieldExpression
 | ConstExpression
 | MemoryAccess
@@ -266,6 +288,15 @@ ArrayExpression < Expression ::=
   "[" arg1: Expression  args: { "," Expression } "]"
 ;
 
+LogicCompExpression < Expression ::= <
+  LgCmpEq  ::= "==0" NAME eqOp
+| LgCmpNeq ::= "<>0" NAME neOp
+| LgCmpGt  ::= ">0"  NAME gtOp
+| LgCmpLt  ::= "<0"  NAME ltOp
+| LgCmpGeq ::= ">=0" NAME geOp
+| LgCmpLeq ::= "<=0" NAME leOp
+> ;
+
 FieldExpression < Expression ::= expr: Expression "." field: AtomicExpression ;
 ConstExpression < Expression ::= size: [ SIZE ] "#" expr: AtomicExpression ;
 MemoryAccess    < Expression ::= "%" id: AtomicExpression ;
@@ -287,7 +318,7 @@ SCAN TYPE String TITLE ::= "TITLE" { Space } "=" { AnyCharExceptNewline } ;
 SCAN Space = < SP | HT | VT | FF > ;
 
 SCAN TYPE String SIZE ::= <
-  "B" | "BYTE" | "DINT" | "DW" | "DWORD" |"DWORD" | "w" | "W" | "WORD"
+  "B" | "BYTE" | "CHAR" | "DINT" | "DW" | "DWORD" | "T" | "w" | "W" | "WORD"
 > ;
 
 SCAN TYPE String POINTER_OP ::= "P#" NAME ptrOp [ "DBX" ] ;
@@ -316,8 +347,14 @@ SCAN HexDigit ::= < '0' .. '9' | 'A' .. 'F' | '_' > ;
 SCAN EOF ::= "$" "$" "$" "$" "$" "$" ;
 
 SCAN COMMENT LineComment ::= "//" NAME SlashSlashOp { AnyCharExceptNewline } ;
+SCAN COMMENT BlockComment ::= "(*" NAME OpenCommBlock { AnyCharExceptNewline }
+                              "*)" NAME CloseCommBlock ;
 SCAN AnyCharExceptNewline ::= < NUL .. HT | VT | FF | SO .. EOF > ;
 
 SCAN COMMENT Whitespace ::= { Space }+ ;
 SCAN COMMENT LineTerm ::= { Newline }+ ;
 SCAN Newline = < CR | LF | CR LF > ;
+
+
+%% Add '-' to IDs
+%% Binary numbers: 2#10101100000

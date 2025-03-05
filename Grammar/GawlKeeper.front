@@ -317,7 +317,6 @@ PointerReference ::= <
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 SCAN TYPE String TITLE ::= "TITLE" { Space } "=" { AnyCharExceptNewline } ;
-SCAN Space = < SP | HT | VT | FF > ;
 
 SCAN TYPE String SIZE ::= <
   "B" | "BYTE" | "CHAR" | "WCHAR" | "DINT" | "DW" | "DWORD" | "T" |
@@ -353,10 +352,14 @@ SCAN BinDigit ::= < '0' .. '1' > ;
 SCAN EOF ::= "$" "$" "$" "$" "$" "$" ;
 
 SCAN COMMENT LineComment ::= "//" NAME SlashSlashOp { AnyCharExceptNewline } ;
-SCAN COMMENT BlockComment ::= "(*" NAME OpenCommBlock { AnyChar } "*)" NAME CloseCommBlock [";"] ;
-SCAN AnyCharExceptNewline ::= < NUL .. HT | VT | FF | SO .. EOF > ;
-SCAN AnyChar ::= < NUL .. EOF > ;
+SCAN COMMENT BlockComment ::= "(*" NAME OpenCommBlock { AnyPrintChar }
+                              "*)" NAME CloseCommBlock [";"] ;
+%% Until EOF instead of just to end of ASCII table, to cover off-ASCII characters.
+SCAN AnyCharExceptNewline ::= < HT | SP .. EOF > ;
+SCAN AnyPrintChar ::= < CR | LF | HT | SP .. EOF > ;
+%% Why this doesn't work? SCAN AnyPrintChar ::= < Newline | AnyCharExceptNewline > ;
 
 SCAN COMMENT Whitespace ::= { Space }+ ;
 SCAN COMMENT LineTerm ::= { Newline }+ ;
-SCAN Newline = < CR | LF | CR LF > ;
+SCAN Space = < SP | HT | VT | FF > ;
+SCAN Newline = < CR | LF > ;

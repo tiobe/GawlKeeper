@@ -15,11 +15,14 @@ RuleViolation. ', AddViolation
 ScanIO. FindFileName, FindLocation
 StringTokenizer. Split, Trim
 Syntactics. IsCommentWellFormatted, IsLabelWellFormed, IsNetwTitleWellFormed,
-            IsNewline, FilterComments, TrimQuotes, GetAwlBaseFileName
+            IsNewline, StartsWithCap, FilterComments, TrimQuotes, GetAwlBaseFileName
 
 functions
 
 Check(rule : String, loc : Int, me : HeaderBlock)     // C001
+conditions ~IsRuleEnabled(rule) { }
+
+Check(rule : String, loc : Int, me : Block)           // C014
 conditions ~IsRuleEnabled(rule) { }
 
 Check(rule : String, loc : Int, me : GawlKeeper)      // C015, G003
@@ -34,7 +37,7 @@ conditions ~IsRuleEnabled(rule) { }
 Check(rule : String, loc : Int, me : FunctionBody)    // C007, C020
 conditions ~IsRuleEnabled(rule) { }
 
-Check(rule : String, loc : Int, me : Field)           // G021, C042
+Check(rule : String, loc : Int, me : Field)           // C014(2), C042, G021
 conditions ~IsRuleEnabled(rule) { }
 
 
@@ -46,6 +49,35 @@ Check(rule : String, loc : Int, me : (HeaderBlock, name # NIL))
 conditions rule == "C001"
 { AddViolation(rule, me.name.src_info.loc, ["NAME"]) }
 
+
+Check(rule : String, loc : Int, me : DataBlock)
+conditions rule == "C014"
+{ CheckBlockC14(loc, me.block_name) }
+
+Check(rule : String, loc : Int, me : Function)
+conditions rule == "C014"
+{ CheckBlockC14(loc, me.function_name) }
+
+Check(rule : String, loc : Int, me : FunctionBlock)
+conditions rule == "C014"
+{ CheckBlockC14(loc, me.function_name) }
+
+Check(rule : String, loc : Int, me : OrgBlock)
+conditions rule == "C014"
+{ CheckBlockC14(loc, me.org_name) }
+
+Check(rule : String, loc : Int, me : TypeBlock)
+conditions rule == "C014"
+{ CheckBlockC14(loc, me.type_name) }
+
+CheckBlockC14(loc: Int, name: StringLiteral)
+{
+  if ~CheckC14(loc, TrimQuotes(name.str)) then
+    AddViolation("C014", loc, ["block", name.str])
+  fi
+}
+CheckC14(loc: Int, name: String): Bool
+{ return All(StartsWithCap, Split(name, '_')) }
 
 Check(rule : String, loc : Int, me : GawlKeeper)
 conditions rule == "C015"
@@ -237,6 +269,17 @@ conditions rule == "G021"
   fi
 }
 
+Check(rule : String, loc : Int, me : Field)
+conditions rule == "C014"
+{
+  name: String = GetName(me.name)
+  start: Int = if name@0 <- ['i', 'o', 's', 't'] & name@1 = '_' then 2 else 0 fi
+  if ~ CheckC14(loc, SubString(name, start, #name-1)) then
+    AddViolation("C014", loc, ["local variable", name])
+  fi
+}
+
+
 
 //// Catch-all ////
 
@@ -246,3 +289,4 @@ Check(rule : String, loc : Int, me : Instruction)   { }
 Check(rule : String, loc : Int, me : FunctionBody)  { }
 Check(rule : String, loc : Int, me : Field)         { }
 Check(rule : String, loc : Int, me : HeaderBlock)   { }
+Check(rule : String, loc : Int, me : Block)         { }

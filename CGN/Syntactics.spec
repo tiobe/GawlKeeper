@@ -34,3 +34,6 @@ IsLabelWellFormed(label: String, net_prefix: String): Bool
 // Returns the file name out of a path (i.e., the part behind the last directory
 // separator)
 GetAwlBaseFileName(file : String): String
+
+// Returns TRUE if s starts with a capital letter or a digit, or if s is empty.
+StartsWithCap(s: String): Bool

@@ -86,6 +86,10 @@ GetRules() : [([String])]
       "The names of local variables (other than the preset local variables of OB's) shall start with a lower-case prefix character according to its type.",
       "Variable '\027' must start with '\027'."
     ],
+    [ "C030",
+      "If a Global Variable is changed more than once in a block, the changes should be made within the same Network.",
+      ""
+    ],
     [ "C042",
       "All arrays must start from zero.",
       "Array '\027' must start at 0 instead of \027. Adjust the upper bound accordingly."

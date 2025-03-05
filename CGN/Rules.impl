@@ -15,7 +15,8 @@ RuleViolation. ', AddViolation
 ScanIO. FindFileName, FindLocation
 StringTokenizer. Split, Trim
 Syntactics. IsCommentWellFormatted, IsLabelWellFormed, IsNetwTitleWellFormed,
-            IsNewline, FilterComments, TrimQuotes, GetAwlBaseFileName
+            IsNewline, IsOperandChanging, IsGlobalVar, FilterComments,
+            TrimQuotes, GetAwlBaseFileName
 
 functions
 
@@ -25,7 +26,7 @@ conditions ~IsRuleEnabled(rule) { }
 Check(rule : String, loc : Int, me : GawlKeeper)      // C015, G003
 conditions ~IsRuleEnabled(rule) { }
 
-Check(rule : String, loc : Int, me : Network)         // C006, C007, G026, G041, G043
+Check(rule : String, loc : Int, me : Network)         // C006, C007, C030, G026, G041, G043
 conditions ~IsRuleEnabled(rule) { }
 
 Check(rule : String, loc : Int, me : Instruction)     // G028
@@ -96,6 +97,21 @@ conditions rule == "G043"
   if #comments = 0 then
     AddViolation(rule, loc, [GetTitle(me)], offset)
   fi
+}
+
+Check(rule : String, loc : Int, me : (Network, instructions # NIL))
+conditions rule == "C030"
+{
+  [ {
+      gv: GlobalVariable|NIL = IsGlobalVar(inst.arg)
+      if gv # NIL then CheckC30(loc, gv, me) fi
+    }
+    | inst: Instruction <- me.instructions,
+    (IsOperandChanging(inst))]
+}
+CheckC30(loc: Int, gv: GlobalVariable, netw: Network)
+{
+  {"C030: change to global variable '" gv.vbl.str "' in network " GetTitle(netw) "\n"} astype Message
 }
 
 

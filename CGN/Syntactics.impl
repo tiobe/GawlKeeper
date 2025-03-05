@@ -82,3 +82,14 @@ GetAwlBaseFileName(file : String): String
   while 0 <= i & ~(file@i <- "\\/") { i :- 1 }
   return SubString(file, i + 1, j)
 }
+
+
+IsOperandChanging(instruction: (Instruction, instruction: TransfInstr)): Bool { return TRUE }
+IsOperandChanging(instruction: Instruction): Bool { return FALSE }
+
+IsGlobalVar(arg: GlobalVariable): GlobalVariable|NIL { return arg }
+IsGlobalVar(arg: FieldExpression): GlobalVariable|NIL { return IsGlobalVar(arg.expr) }
+IsGlobalVar(arg: ArrayExpression): GlobalVariable|NIL { return IsGlobalVar(arg.array) }
+IsGlobalVar(arg: Expression): GlobalVariable|NIL { return NIL }
+IsGlobalVar(arg: InstrExpression): GlobalVariable|NIL { return NIL }
+IsGlobalVar(NIL: InstrExpression): GlobalVariable|NIL { return NIL }

@@ -19,8 +19,8 @@ GetTitle(block : OrgBlock)      : String { return block.org_name.str }
 GetTitle(block : TypeBlock)     : String { return block.type_name.str }
 
 
-GetName(ref: Identifier)    : String { return ref.id }
-GetName(ref: StringLiteral) : String { return ref.str }
+GetName(ref: LocalVariable) : String { return ref.vbl.id }
+GetName(ref: GlobalVariable): String { return ref.vbl.str }
 GetName(fld: Field)         : String { return GetName(fld.name) }
 
 

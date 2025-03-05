@@ -1,5 +1,4 @@
 Generated/*
-!Generated/version
 .vscode/*
 CGN/StaticSemantics.*
 GawlKeeper.linux64

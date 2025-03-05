@@ -114,26 +114,17 @@ Check_FunctionBody(me : FunctionBody)
   Check_Comment(me.src_info)
   margin := fix_margin()
   Check_HeaderBlock(me.header)
+  Rules.Check("C007", LOC, me)
   Rules.Check("C020", LOC, me)
   // TODO Can we shift the comments for each Field declaration
   // (and "END_VAR") to the previous element?
-  [
-    {
-      Check_String("VAR_INPUT")
-      [ { Check_Field(xxxinputs) }
-      | xxxinputs : Field <- xxxinputs
-      ]
-      Check_String("END_VAR")
-      if xxxdb_inputs # NIL then
-        Check_String("VAR_INPUT DB_SPECIFIC")
-        [ { Check_Field(xxxdb_inputs) }
-        | xxxdb_inputs : Field <- xxxdb_inputs
-        ]
-        Check_String("END_VAR")
-      fi
-    }
-  | xxxinputs : Field, xxxdb_inputs : Field <- me.inputs, me.db_inputs
-  ]
+  if me.inputs # NIL then
+    Check_String("VAR_INPUT")
+    [ { Check_Field(xxxinputs) }
+    | xxxinputs : Field <- me.inputs
+    ]
+    Check_String("END_VAR")
+  fi
   if me.outputs # NIL then
     Check_String("VAR_OUTPUT")
     [ { Check_Field(xxxoutputs) }
@@ -575,14 +566,11 @@ Check_Network(me : Network)
   Rules.Check("G041", LOC, me)
   Check_String(me.title)
   Rules.Check("C006", LOC, me)
-  Rules.Check("C007", LOC, me)
-  Rules.Check("G026", LOC, me)
+  Rules.Check("C011", LOC, me)
   Rules.Check("G043", LOC, me)
   [
     {
-      if xxxinstructions # NIL then
-        Check_Instruction(xxxinstructions)
-      fi
+      Check_Instruction(xxxinstructions)
       Check_String(";")
     }
   | xxxinstructions : Instruction <- me.instructions
@@ -846,7 +834,6 @@ Check_InstructionName(me : AccuIncInstr)
   Check_Comment(me.src_info)
   margin := fix_margin()
   Check_String("INC")
-  Check_Comment(me.src_info)
   set_margin(margin)
 }
 
@@ -1437,6 +1424,7 @@ Check_InstructionName(me : JuInstr)
   Check_Comment(me.src_info)
   margin := fix_margin()
   Check_String("JU")
+  Check_Comment(me.src_info)
   set_margin(margin)
 }
 

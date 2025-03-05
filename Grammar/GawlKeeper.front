@@ -42,8 +42,7 @@ OrgBlock < Block ::=
 ;
 FunctionBody ::=
   header: HeaderBlock
-  { "VAR_INPUT"  inputs:  { Field }+ "END_VAR" [ "VAR_INPUT DB_SPECIFIC" NAME vidbspecfc
-              db_inputs:  { Field }+ "END_VAR" ] }
+  [ "VAR_INPUT"  inputs:  { Field }+ "END_VAR" ]
   [ "VAR_OUTPUT" outputs: { Field }+ "END_VAR" ]
   [ "VAR_IN_OUT" in_outs: { Field }+ "END_VAR" ]
   [ "VAR"        locals:  { Field }+ "END_VAR" ]

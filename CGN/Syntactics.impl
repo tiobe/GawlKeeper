@@ -61,16 +61,26 @@ TrimQuotes(s : String) : String
 
 IsNetwTitleWellFormed(title: String): Bool
 {
-    return #title > 5 & IsUpper(title@0) & IsUpper(title@1) &
+    return #title > 4 & IsUpper(title@0) & IsUpper(title@1) &
            title@2 = ':' & title@3 = ' '
 }
 
+IsLabelWellFormed(label: String): Bool
+{
+    return #label = 4 &
+           IsUpper(label@0) & IsUpper(label@1) &
+           IsDigit(label@2) & IsDigit(label@3)
+}
 IsLabelWellFormed(label: String, net_prefix: String): Bool
 {
-    return #label = 4 & #net_prefix = 2 &
-           net_prefix@0 = label@0       &
-           net_prefix@1 = label@1       &
-           IsDigit(label@2) & IsDigit(label@3)
+    return IsLabelWellFormed(label) & #net_prefix = 2 &
+           net_prefix@0 = label@0 & net_prefix@1 = label@1
+}
+
+GetLabelNumber(label: String): String
+{
+    return if ~ IsLabelWellFormed(label) then ""
+           else SubString(label, 2, 3) fi
 }
 
 

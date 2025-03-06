@@ -16,3 +16,7 @@ GetLocLine(loc: Int): Int
 
 GetComments(me : Instruction): List(Comment)
 GetComments(me : Field): List(Comment)
+
+// Returns the jump label attached to an instruction, if any, or else an
+// empty string.
+GetLabel(inst: Instruction): String

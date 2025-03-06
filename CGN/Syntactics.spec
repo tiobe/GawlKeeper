@@ -27,9 +27,17 @@ TrimQuotes(s : String) : String
 // Check morphological correction of a network title
 IsNetwTitleWellFormed(title: String): Bool
 
-// Check morphological correction of a jump label, and in relation with the
-// name of the network it belongs to.
+// Check if a jump label has the right structure (characters and digits are in
+// the expected places and in the right case).
+IsLabelWellFormed(label: String): Bool
+// Check morphological correction of a jump label (like the former function),
+// and in relation with the prefix of the network it belongs to.
 IsLabelWellFormed(label: String, net_prefix: String): Bool
+
+// Extracts and returns (as a string) the numberical index of a jump label.
+// If no digits are found where expected, an empty string is returned.
+GetLabelNumber(label: String): String
+
 
 // Returns the file name out of a path (i.e., the part behind the last directory
 // separator)

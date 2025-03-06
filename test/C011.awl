@@ -1,0 +1,244 @@
+FUNCTION_BLOCK "FB_Dispatch_Point_T"
+TITLE = %version: 5.09 % %Commit:  c3808b61 % CN: 50
+{ S7_Optimized_Access := 'FALSE' }
+FAMILY : Tubtrax
+VERSION : 0.0
+
+BEGIN
+
+NETWORK
+TITLE = BA: Search for item on Dispatch Point
+      NOP 0;
+      L #t_Fnd_Num_Items_Leading;
+AA01: L 0;
+      >I;
+      = #t_Carrier_Found;
+
+NETWORK
+TITLE = BB: Initialize values when new carrier found
+      NOP 0;
+      L #t_TIC;
+      L 0;
+      >I;
+bb01: JCN BB99;
+
+// Determine if LIC present
+BB00: CALL "FC_Read_Int_Record"
+      (  i_Record_Number             := #t_LNK , 
+         i_P_INT_Record              := "DB_UDT_LNK_Record".LIC , 
+         i_DB                        := "DB_LNK_List" , 
+         i_DB_Event_Num              := #t_DB_Event_Section , 
+         o_INT                       := #s_LIC
+      );
+
+BB99:      NOP 0;
+
+NETWORK
+TITLE = BC: Send package report when arriving
+BC01: NOP 0;
+
+// If loaded carrier arriving
+      A #s_FP_Carrier_Found;
+      A #s_Carrier_Loaded;
+BCab: JCN BC99;
+
+// 1211 = Package Report (Arrived)
+      CALL "FC_Write_Event"
+      (  i_Message_ID                := 1211 , 
+         i_Event_value               := #t_LNK , 
+         i_DB_Event_Num              := #t_DB_Event_Section , 
+         o_Return_Value              := #t_Not_Used_Int
+      );
+
+BC99:      NOP 0;
+
+NETWORK
+TITLE = CA: Check and set destination
+//If a Bag has the Dispatch Point as destination this network will search a 
+//valid destination that is available and that wasn't used recently, if any of 
+//these conditions isn't verified this network will check the same conditions for 
+//the next destination.
+CA00: NOP 0;
+
+      A #t_Carrier_Found;
+      A #s_Carrier_Loaded;
+      A(;
+      L #s_Available_Destination;
+      L 0;
+      ==I;
+      );
+      JCN CA99;
+
+// If destination bigger than zero
+CA001:      L W[ AR1, P#0.0];
+      L 0;
+      >I;
+      JCN CA02;
+
+// AND destination available
+      A[ AR1, P#2.0];
+      JCN CA02;
+
+// AND NOT used recently
+      AN[ AR2, P#0.0];
+      JCN CA02;
+
+// Copy Destination in result
+      L W[ AR1, P#0.0];
+      T #t_Destination_Found;
+
+// Set entry as used
+      SET;
+      S[ AR2, P#0.0];
+
+      JU CA03;
+
+// If destination equal or smaller than zero OR not available, checks next destination and availability
+CA02:      L P#4.0;
+      +AR1;
+
+      L P#0.1;
+      +AR2;
+
+// Increment 1 to the loop counter until a maximum of 15 destinations
+      L #t_Loop_Counter;
+      L 1;
+      +I;
+      T #t_Loop_Counter;
+
+      L #t_Loop_Counter;
+      L 15;
+      >I;
+      JCN CA01;
+
+// Restore AR content
+CA3:      L #t_AR1_Backup;
+      LAR1;
+      L #t_AR2_Backup;
+      LAR2;
+
+      L #t_Destination_Found;
+      T #s_Available_Destination;
+
+CA99:      NOP 0;
+
+NETWORK
+TITLE = DA: Reset 'used' property
+//When there is no 'available' and not 'used' station, reset 'used' indicator of 
+//all stations
+DA00: NOP 0;
+
+// Carrier on Dispatch Point AND destinations not available
+DA01: A #t_Carrier_Found;
+      A #s_Carrier_Loaded;
+      A(;
+      L #s_Available_Destination;
+      L 0;
+      ==I;
+      );
+      JCN DA99;
+
+// Preset Loop counter
+DA02: L 1;
+      T #t_Loop_Counter;
+
+// Backup AR content
+DA03: TAR1;
+      T #t_AR1_Backup;
+      TAR2;
+      T #t_AR2_Backup;
+
+// Load start position AR1 and AR2
+      LAR1 P##i_Destination_01;
+      LAR2 P##s_Dest_01_Used;
+
+// If destination bigger than zero
+DA02: L W[ AR1, P#0.0];
+      L 0;
+      >I;
+      JCN DA02;
+
+// Reset destination used
+      SET;
+      R[ AR2, P#0.0];
+
+// If destination equal or smaller than zero OR not available, checks next destination and availability
+DA04: L P#4.0;
+      +AR1;
+
+      L P#0.1;
+      +AR2;
+
+// Increment 1 to the loop counter until a maximum of 15 destinations
+DA04: L #t_Loop_Counter;
+      L 1;
+      +I;
+      T #t_Loop_Counter;
+
+      L #t_Loop_Counter;
+      L 15;
+      >I;
+      JCN DA01;
+
+      NOP 0;
+
+// Restore AR content
+      L #t_AR1_Backup;
+      LAR1;
+      L #t_AR2_Backup;
+      LAR2;
+
+DA89: NOP 0;
+
+NETWORK
+TITLE = EA: Assign carrier to a destination
+      NOP 0;
+
+      A #t_Carrier_Found;
+      A #s_Carrier_Loaded;
+      A(;
+      L #s_Available_Destination;
+      L 0;
+      >I;
+      );
+      FP #s_FP_Copy_Write_Dest;
+      = #s_FP_Write_Destination;
+      JCN EA99;
+
+// Write destination of the assigned destination in the LIC record
+      CALL "FC_Write_Int_Record"
+      (  i_Record_Number             := #s_LIC , 
+         i_P_INT_Record              := "DB_UDT_LIC_Record".BIR.Destination_5 , 
+         i_DB                        := "DB_LIC_List" , 
+         i_INT                       := #s_Available_Destination , 
+         i_DB_Event_Num              := #t_DB_Event_Section
+      );
+
+EA99: JCN EA99;
+
+NETWORK
+TITLE = FA: Reset/Set Carrier assigned
+      NOP 0;
+
+// Determine if a new destination is selected
+      L #s_Available_Destination;
+      L 0;
+      >I;
+      JCN FA99;
+
+// Set carrier assigned when carrier is assigned AND item at handover
+      A(;
+      L #s_Available_Destination;
+      L #i_Destination_01;
+      ==I;
+      );
+      A #t_Section_Item_At_HO;
+      S #o_Carrier_Assigned_01;
+
+FA99: NOP 0;
+
+      A #i_Dest_15_Available;
+      FP #s_FP_Dest_15_Avail;
+      R #o_Carrier_Assigned_15;
+
+END_FUNCTION_BLOCK

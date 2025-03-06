@@ -68,4 +68,16 @@ TITLE =
       L DBNO;
       T #t_DB_Event_Section;
 
+NETWORK
+TITLE = CC: .
+// Good enough. If the dot is removed, the trimming removes the blank space and
+// thus the title is ill-formed.
+      NOP 0;
+
+// Copy section event DB number
+      OPN "DB_Event_Section";
+
+      L DBNO;
+      T #t_DB_Event_Section;
+
 END_FUNCTION_BLOCK

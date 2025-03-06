@@ -78,6 +78,10 @@ GetRules() : [([String])]
       "The 2 capital letters at the start of network titles must reflect the order in which they are defined.",
       "Network title '\027' is out of order. Network titles must be prefixed in alphabetical ascending order."
     ],
+    [ "C011",
+      "Jump labels.",
+      "\027"
+    ],
     [ "C015",
       "The length of a block title has a maximum of 20 characters.",
       "Block title '\027' is too long."
@@ -97,10 +101,6 @@ GetRules() : [([String])]
     [ "G021",
       "Comments for declarations.",
       "Declaration needs a documentation comment starting with a space followed by an upper-case letter."
-    ],
-    [ "G026",
-      "Jump labels.",
-      "\027"
     ],
     [ "G028",
       "Comment line.",

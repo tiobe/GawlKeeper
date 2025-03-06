@@ -19,10 +19,13 @@ Syntactics. IsCommentWellFormatted, IsLabelWellFormed, IsNetwTitleWellFormed,
 
 functions
 
+Check(rule : String, loc : Int, me : HeaderBlock)     // C001
+conditions ~IsRuleEnabled(rule) { }
+
 Check(rule : String, loc : Int, me : GawlKeeper)      // C015, G003
 conditions ~IsRuleEnabled(rule) { }
 
-Check(rule : String, loc : Int, me : Network)         // C006, C011, G041, G043
+Check(rule : String, loc : Int, me : Network)         // C006, C007, C011, G026, G041, G043
 conditions ~IsRuleEnabled(rule) { }
 
 Check(rule : String, loc : Int, me : Instruction)     // G028
@@ -34,6 +37,14 @@ conditions ~IsRuleEnabled(rule) { }
 Check(rule : String, loc : Int, me : Field)           // G021, C042
 conditions ~IsRuleEnabled(rule) { }
 
+
+Check(rule : String, loc : Int, me : (HeaderBlock, author # NIL))
+conditions rule == "C001"
+{ AddViolation(rule, me.author.src_info.loc, ["AUTHOR"]) }
+
+Check(rule : String, loc : Int, me : (HeaderBlock, name # NIL))
+conditions rule == "C001"
+{ AddViolation(rule, me.name.src_info.loc, ["NAME"]) }
 
 
 Check(rule : String, loc : Int, me : GawlKeeper)
@@ -284,3 +295,4 @@ Check(rule : String, loc : Int, me : Network)       { }
 Check(rule : String, loc : Int, me : Instruction)   { }
 Check(rule : String, loc : Int, me : FunctionBody)  { }
 Check(rule : String, loc : Int, me : Field)         { }
+Check(rule : String, loc : Int, me : HeaderBlock)   { }

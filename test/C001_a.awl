@@ -1,0 +1,40 @@
+DATA_BLOCK "DB_Con_Establish"
+TITLE = %version: 5.06 % %Commit:  % CN: 10 
+{InstructionName := 'TCON_IP_v4',
+ LibVersion := '1.0',
+ S7_Optimized_Access := 'TRUE' }
+AUTHOR : SIMATIC
+FAMILY : MC7Plus
+NAME : TC_IP_v4
+VERSION : 1.0
+NON_RETAIN
+//
+//SOURCE
+//%Project:      %
+//%Repo:         %
+//%Commit:       %
+//%DateTimeUTC:  %
+//
+//%HISTORY%
+//Issue:        Commit:  Date:      Version: Author:              Description:
+//------------- -------- ---------- -------- -------------------- -----------------------------------------------------------------------
+//ALLCGEN-2405           2023-12-07 5.06     Pascal van Kempen    Added history table
+//ALLCGEN-2403           2023-12-05 5.05     Henri de Leijer      First step to remove the library files
+//ALLCGEN-316            2020-11-12 5.04     Pascal van Kempen    updated xml and awl files to prepare for insertion of metadata from git
+//ALLCGEN-253            2020-10-16 5.03     Pascal van Kempen    removed GIT from keywords
+//ALLCGEN-1              2020-08-06 5.02     Pascal van Kempen    added keywords to awl files
+//ALLCGEN-1              2020-08-05 5.01     Pascal van Kempen    initial import + adding gradle build
+//
+//Modification History:                                   By:    Date:     Rev:
+//----------------------------------------------------  -------  --------  -----
+//ra#31766: Update sources TIA with export function     nlHdL    11-12-18   4.01
+//ra#29092: Update the UDT sources for VI_GEN TIA       nlHdL    03-09-18   2.01
+//Initial version                                       nlHdL    31-05-18   0.01                                                                  
+TCON_IP_v4
+
+BEGIN
+   InterfaceId := 120;
+   ID := 1;
+   LocalPort := 2000;
+
+END_DATA_BLOCK

@@ -48,5 +48,4 @@ TITLE = CA: Good
       L DBNO;
       T #t_DB_Event_Section;
 
-
 END_FUNCTION_BLOCK

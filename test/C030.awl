@@ -1,0 +1,165 @@
+FUNCTION_BLOCK "FB_IFC_IDO_AC_T"
+TITLE = %version: 5.10 % %Commit:  % CN: 40
+{ S7_Optimized_Access := 'FALSE' }
+FAMILY : Tubtrax
+VERSION : 0.0
+//Function:
+//ID reader events interface data handling, SBT only.
+//
+//
+//SOURCE
+//%Project:      %
+//%Repo:         %
+//%Commit:       %
+//%DateTimeUTC:  %
+//
+//%HISTORY%
+//Issue:        Commit:  Date:      Version: Author:              Description:
+//------------- -------- ---------- -------- -------------------- ------------------------------------------------------------------------
+//ALLCTTT-4105           2024-01-26 5.10     Henri de Leijer      SKZ IDO on TIC=0 wrong t_Contour_Fault_From_TIC (Preset missing)
+//ALLCTTT-4059           2023-12-11 5.09     Pascal van Kempen    Added history table
+//ALLCTTT-4042           2023-12-05 5.08     Henri de Leijer      First step to remove the library files
+//ALLCTTT-1817           2022-01-17 5.07     Henri de Leijer      ALLCTTT-1817 SKZ IDO data recovery from non tracking buffer not correct.
+//ALLCTTT-1590           2021-12-01 5.06     Dennis van Maasakker Removed SKZ IFZ blocks which are part of VI_GEN
+//ALLCTTT-1416           2021-11-29 5.05     Rik Clephas          Added carrier transport events
+//ALLCTTT-1499           2021-10-08 5.04     Shilpa Das           Removed '_renamed' from the file names
+//ALLCTTT-1499           2021-10-08 5.03     Shilpa Das           Corrected file names and added '_renamed' to file names temporarily.
+//ALLCTTT-1499           2021-10-07 5.02     Shilpa Das           Minor changes
+//ALLCTTT-16             2021-04-15 5.01     Henri de Leijer      Add the interface of the SKZ to the library.
+//
+//Description:
+//Handles the incoming events from the LC about the IDO on AC side.
+//The presence of an item in the DB PLT is used to determine the status of reading.
+//NoRead: No carrierID is received while a carrier passed the IDO (tubID := 0).
+//Illegal_carrierID: The information from the tag has an invalid format or two
+//                   tubIDs are received for the same carrier (tubID := 0).
+//Unexpected_Tag: A tag is received while no carrier was present at the IDO.
+   VAR_INPUT 
+      i_ID : DWord;   // ID Record HEX AAAAZZSS
+      i_CFG_Restore_Requests : Bool;   // CFG: Restore current requests over restored data from buffer
+      i_CFG_Retrieve_Cntr_Flt : Bool;   // CFG: Retrieve contour fault when data recovery from L&F
+      i_DB_PLT : DB_ANY := DB1;   // Data Structure: DB PLT
+      i_DB_LC_Items : DB_ANY;   // Number of DB LC/AC Items
+      i_DB_PLT_Non_Track : DB_ANY := DB1;   // Data Structure: DB PLT non tracking buffer
+      i_DB_PLT_Lost_And_Found : DB_ANY := DB1;   // Data Structure: DB PLT lost & found buffer
+      i_DB_Event : DB_ANY := DB1;   // Data Structure: DB event
+      i_DB_Event_Rcv : DB_ANY := DB1;   // Data Structure: DB event receive from LC to AC
+   END_VAR
+
+   VAR 
+      s_LNK_AC : Int;   // Link number found in DB PLT within the search window
+      s_TubID_IDO : Int;   // Tub ID read from ID-reader
+      s_Fnd_Position_Leading : Int;   // [cm] Position of leading edge found in DB PLT within the search window
+   END_VAR
+
+   VAR_TEMP 
+      t_DB_Event_Num : Int;   // Number of DB event
+      t_DB_PLT_Num : Int;   // Number of DB PLT
+      t_DB_PLT_Non_Trk_Num : Int;   // Number of non tracking PLT DB
+      t_DB_PLT_Lost_Found_Num : Int;   // Number of DB PLT lost & found buffer
+      t_Section_Length : Int;   // [cm] Section length
+      t_Fnd_DB_PLT_Num_Leading : Int;   // DB PLT number where leading edge was found within the search window
+      t_lnk : Int;   // LNK number
+      t_LIC : Int;   // LIC number
+      t_TIC : Int;   // TIC number
+      t_ECS : Int;   // ECS number
+      t_Fnd_Position_Carrier : Int;   // [cm] Position of carrier found in DB PLT
+      t_Fnd_Info_Carrier : Int;   // Info found in DB PLT within the search window
+      t_Fnd_Link_Carrier : Int;   // Link number found in DB PLT within the search window
+      t_Not_Used_Int : Int;   // Not used integer
+      t_Good_Read : Bool;   // A good read in this PLC cycle (valid TubID)
+      t_Gap_Too_Small : Bool;   // Gap between item upstream and/or downstream is too small
+      t_No_TIC : Bool;   // No TIC record
+      t_Contour_Fault_From_TIC : Bool;   // Contour fault from TIC record
+      t_Requested_TFC : Bool;   // Carrier was requested by TFC
+      t_Requested_Operator : Bool;   // Carrier was requested by operator
+      t_Requested_Loader : Bool;   // Carrier was requested by loader
+      t_Entries_Used : Int;   // Number ot the entries used in the Local Event DB
+      t_Adres_Next_Message : Int;   // Calculated addres of next record
+      t_Next_Message_to_Read : Int;   // Next Event wich is going to be read
+      t_Message_Value : Int;   // Message value
+      t_Event_ID : Int;   // Event ID for Event DB
+      t_ZZSS : Word;   // ZZ zone SS Section or Object number
+   END_VAR
+
+
+BEGIN
+NETWORK
+TITLE = CA:Good Read
+// Check if LNK record is present
+      A #t_Good_Read;
+      JCN CA99;
+
+// Send carrier transport event - Identification
+      L 1;// 1 = AUTO_READ
+      T "DB_Outgoing_Msgs".Carr_Ident.Body.Identification.RecognitionResult;
+      L 1;// 1 = DATA_ON_ITEM
+      T "DB_Outgoing_Msgs".Carr_Ident.Body.Identification.IdentificationResult;
+      L 0;
+      T "DB_Outgoing_Msgs".Carr_Ident.Body.Identification.ClassificationResult;
+
+      CALL "FC_Write_Event"
+      (  i_Message_ID                := 2702 , 
+         i_Event_value               := #s_LNK_AC , 
+         i_DB_Event_Num              := #t_DB_Event_Num , 
+         o_Return_Value              := #t_Not_Used_Int
+      );
+
+// Read contour fault from TIC record. If this is true no data recovery is allowed
+      CALL "FC_Read_Bool_Record"
+      (  i_Record_Number             := #t_TIC , 
+         i_P_BOOL_Record             := "DB_UDT_TIC_Record".TIR.Contour_Fault , 
+         i_DB                        := "DB_TIC_List" , 
+         i_DB_Event_Num              := #t_DB_Event_Num , 
+         o_BOOL                      := #t_Contour_Fault_From_TIC
+      );
+
+// If LIC present, write carrier info into BIR
+      CALL "FC_Read_Int_Record"
+      (  i_Record_Number             := #s_LNK_AC , 
+         i_P_INT_Record              := "DB_UDT_LNK_Record".LIC , 
+         i_DB                        := "DB_LNK_List" , 
+         i_DB_Event_Num              := #t_DB_Event_Num , 
+         o_INT                       := #t_LIC
+      );
+
+      L #t_LIC;
+      L 0;
+      >I;
+      JCN CA99;
+
+      CALL "FC_Write_Int_Record"
+      (  i_Record_Number             := #t_LIC , 
+         i_P_INT_Record              := "DB_UDT_LIC_Record".BIR.Carrier.ID_1 , 
+         i_DB                        := "DB_LIC_List" , 
+         i_INT                       := #s_TubID_IDO , 
+         i_DB_Event_Num              := #t_DB_Event_Num
+      );
+
+      CALL "FC_Write_Int_Record"
+      (  i_Record_Number             := #t_LIC , 
+         i_P_INT_Record              := "DB_UDT_LIC_Record".BIR.Carrier.Type_1 , 
+         i_DB                        := "DB_LIC_List" , 
+         i_INT                       := 512 , //Type of carrier after byte swap (1=CART, 2=TUB, 3= TRAY)
+         i_DB_Event_Num              := #t_DB_Event_Num
+      );
+
+CA99:      NOP 0;
+
+NETWORK
+TITLE = DA: Check the non tracking DB PLT buffer for data
+//If a non tracking buffer is located in front of the IDO, this DB PLT is 
+//configured at the inputs of the IDO and will be searched for the record data 
+//which contains the read carrier ID.
+//If there was no data found and the item had data connected, then the IDO 
+//decides to hold the buffer restore action once.
+      NOP 0;
+
+      L 1;// 1 = AUTO_READ
+      T "DB_Outgoing_Msgs".Carr_Ident.Body.Identification.RecognitionResult;
+      L 1;// 1 = DATA_ON_ITEM
+      T "DB_Outgoing_Msgs".Carr_Ident.Body.Identification.IdentificationResult;
+      L 0;
+      T "DB_Outgoing_Msgs".Carr_Ident.Body.Identification.ClassificationResult;
+
+END_FUNCTION_BLOCK

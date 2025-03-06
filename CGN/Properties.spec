@@ -8,6 +8,8 @@ functions
 GetTitle(network : Network): (String)
 GetTitle(block : Block): String
 
+GetNetwPrefix(network: Network): String
+
 GetName(ref: Reference): String
 GetName(fld: Field): String
 
@@ -20,3 +22,8 @@ GetComments(me : Field): List(Comment)
 // Returns the jump label attached to an instruction, if any, or else an
 // empty string.
 GetLabel(inst: Instruction): String
+
+// Does this instruction modify its argument?
+IsOperandChanging(instruction: Instruction): Bool
+
+IsGlobalVar(arg: InstrExpression): GlobalVariable|NIL

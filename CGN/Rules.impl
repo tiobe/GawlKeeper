@@ -9,7 +9,8 @@ impl unit Rules
 use
 
 KMPMatch. Match
-Properties. GetTitle, GetName, GetLocLine, GetComments, GetLabel
+Properties. GetTitle, GetName, GetLocLine, GetComments, GetLabel, GetNetwPrefix,
+            IsOperandChanging //, IsGlobalVar
 RuleConfig. IsRuleEnabled
 RuleViolation. ', AddViolation
 ScanIO. FindFileName, FindLocation
@@ -29,7 +30,7 @@ conditions ~IsRuleEnabled(rule) { }
 Check(rule : String, loc : Int, me : GawlKeeper)      // C015, G003
 conditions ~IsRuleEnabled(rule) { }
 
-Check(rule : String, loc : Int, me : Network)         // C006, C007, C011, G026, G041, G043
+Check(rule : String, loc : Int, me : Network)         // C006, C007, C011, C030, G026, G041, G043
 conditions ~IsRuleEnabled(rule) { }
 
 Check(rule : String, loc : Int, me : Instruction)     // G028
@@ -131,6 +132,29 @@ conditions rule == "G043"
   fi
 }
 
+Check(rule : String, loc : Int, me : (Network, instructions # NIL))
+conditions rule == "C030"
+{
+  [ {
+      gv: GlobalVariable|NIL = NIL //IsGlobalVar(inst.arg)
+      if gv # NIL then CheckC30(loc, gv, me) fi
+    }
+    | inst: Instruction <- me.instructions,
+    (IsOperandChanging(inst))]
+}
+CheckC30(loc: Int, gv: GlobalVariable, netw: Network)
+{
+  globVar: Ident = Ident(GetName(gv))
+  net_prefix: Ident = GetTitle(netw)
+  {"C030: change to global variable '" GetName(gv) "' in network " GetTitle(netw) "\n"} astype Message
+  if globVar.info = NIL then
+    globVar.info := netw
+  else if globVar.info # NIL & globVar.info # netw then
+        AddViolation("C030", loc, [GetName(gv), GetTitle(netw)])
+      fi
+  fi
+}
+
 
 Check(rule : String, loc : Int, me : Network)
 conditions rule == "C006"
@@ -159,8 +183,7 @@ conditions rule == "G041"
 Check(rule : String, loc : Int, me : (Network, instructions # NIL))
 conditions rule == "C011"
 {
-  net_title: String = GetTitle(me)
-  net_prefix: String = if #net_title < 2 then "" else SubString(net_title, 0, 1) fi
+  net_prefix: String = GetNetwPrefix(me)
 
   if #net_prefix = 0 then
     // The network title is ill-formed; this is caught by another convention.

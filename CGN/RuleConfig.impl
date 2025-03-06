@@ -78,6 +78,10 @@ GetRules() : [([String])]
       "The 2 capital letters at the start of network titles must reflect the order in which they are defined.",
       "Network title '\027' is out of order. Network titles must be prefixed in alphabetical ascending order."
     ],
+    [ "C011",
+      "Jump labels.",
+      "\027"
+    ],
     [ "C014",
       "All Symbolic Operand Names are a concatenation of nouns, which each start with a Capital, connected by underscores.",
       "Name of \027 '\027' does not match the required pattern."
@@ -101,10 +105,6 @@ GetRules() : [([String])]
     [ "G021",
       "Comments for declarations.",
       "Declaration needs a documentation comment starting with a space followed by an upper-case letter."
-    ],
-    [ "G026",
-      "Jump labels.",
-      "\027"
     ],
     [ "G028",
       "Comment line.",

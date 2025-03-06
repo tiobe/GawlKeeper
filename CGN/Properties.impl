@@ -34,3 +34,7 @@ GetLocLine(loc: Int): Int
 
 GetComments(me : Instruction): List(Comment)  { return GetComments(me.src_info.pre_comment) }
 GetComments(me : Field): List(Comment)        { return GetComments(me.src_info.pre_comment) }
+
+GetLabel(inst: (Instruction, label = NIL)): String { return "" }
+GetLabel(inst: (Instruction, label: (Identifier, id # NIL))): String
+{ return inst.label.id }

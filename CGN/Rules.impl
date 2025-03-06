@@ -9,13 +9,14 @@ impl unit Rules
 use
 
 KMPMatch. Match
-Properties. GetTitle, GetName, GetLocLine, GetComments
+Properties. GetTitle, GetName, GetLocLine, GetComments, GetLabel
 RuleConfig. IsRuleEnabled
 RuleViolation. ', AddViolation
 ScanIO. FindFileName, FindLocation
 StringTokenizer. Split, Trim
 Syntactics. IsCommentWellFormatted, IsLabelWellFormed, IsNetwTitleWellFormed,
-            IsNewline, StartsWithCap, FilterComments, TrimQuotes, GetAwlBaseFileName
+            IsNewline, FilterComments, TrimQuotes, GetAwlBaseFileName,
+            GetLabelNumber, StartsWithCap
 
 functions
 
@@ -28,7 +29,7 @@ conditions ~IsRuleEnabled(rule) { }
 Check(rule : String, loc : Int, me : GawlKeeper)      // C015, G003
 conditions ~IsRuleEnabled(rule) { }
 
-Check(rule : String, loc : Int, me : Network)         // C006, C007, G026, G041, G043
+Check(rule : String, loc : Int, me : Network)         // C006, C007, C011, G026, G041, G043
 conditions ~IsRuleEnabled(rule) { }
 
 Check(rule : String, loc : Int, me : Instruction)     // G028
@@ -155,59 +156,109 @@ conditions rule == "G041"
 }
 
 
-Check(rule : String, loc : Int, me : Network)
-conditions rule == "G026" & me.instructions # NIL
+Check(rule : String, loc : Int, me : (Network, instructions # NIL))
+conditions rule == "C011"
 {
-  net_prefix: String = SubString(GetTitle(me), 0, 1)
-  labels: [String] := NIL
+  net_title: String = GetTitle(me)
+  net_prefix: String = if #net_title < 2 then "" else SubString(net_title, 0, 1) fi
 
-  if #net_prefix = 0 return fi     // What TODO if the network title is ill-formed? Skip?
+  if #net_prefix = 0 then
+    // The network title is ill-formed; this is caught by another convention.
+    // The checks done by this rule will wait until the network title is fine.
+    return
+  fi
+
+  // Verify that all labels are in proper form...
+  CheckLabelsForm(me.instructions, net_prefix)
+  // ... and in the right order.
+  CheckLabelsOrder(me.instructions, net_prefix)
+
+  // Check first and last instructions of the network
+  CheckFirst(Head(me.instructions))
+  CheckLast(Last(me.instructions))
+
+  // Also check that special indexes 00 and 99 are nowhere but, respectively,
+  // at the entry and exit of the network's code, or nowhere at all.
+  CheckSpecialIndexes(Tail(me.instructions), net_prefix + "00") // Tail = all but first
+  CheckSpecialIndexes(Init(me.instructions), net_prefix + "99") // Init = all but last
+}
+
+CheckLabelsForm(instList: ([Instruction]), prefix: String)
+{
+  [
+    { AddViolation("C011", inst.src_info.loc,
+                   ["Label '"+ GetLabel(inst) +"' is wrongly formatted; it should start with '" +
+                    prefix +"' and continue with 2 digits."]) }
+    | inst: (Instruction, label: (Identifier, id # NIL)) <- instList,
+    (~ IsLabelWellFormed(GetLabel(inst), prefix))
+  ]
+}
+
+CheckLabelsOrder(instList: ([Instruction]), prefix: String)
+{
+  previous: String := ".."
   [
     {
-      label: String = inst.label.id
-      if labels = NIL | label > labels.head  // it is the 1st one, or in order
-          then labels := label + labels
-          else AddViolation(rule, inst.src_info.loc,
-                            ["Label '"+ label +"' is out of order. Labels should" + 
-                             " be in sequential ascending order within a network."])
+      index: String = GetLabelNumber(GetLabel(inst))
+      if #index = 0 then // skip; bad label => another check
+      else
+        if previous < index
+        then previous := index
+        else AddViolation("C011", inst.src_info.loc,
+                          ["Label '"+ GetLabel(inst) +"' is out of order. Labels should" +
+                           " be in sequential ascending order within a network."])
+        fi
       fi
     }
-    | inst: Instruction <- me.instructions,
-    (inst.label # NIL & SingleInstrCheckG26(rule, inst, net_prefix))
+    | inst: (Instruction, label: (Identifier, id # NIL)) <- instList,
+    (IsLabelWellFormed(GetLabel(inst), prefix))
   ]
+}
 
-  //CheckFirstInst(rule, net_prefix, me.instructions.head)
-  CheckLastInstr(rule, net_prefix, Reverse(me.instructions).head)
-}
-SingleInstrCheckG26(rule : String, me : Instruction, net_prefix : String): Bool
+CheckFirst(me: (Instruction, label = NIL)) { } // No label, no check
+CheckFirst(me: (Instruction, label: (Identifier, id # NIL)))
 {
-  label: String = me.label.id
-  if IsLabelWellFormed(label, net_prefix) then
-    return TRUE
-  else
-    AddViolation(rule, me.src_info.loc,
-                 ["Label '"+ label +"' is wrongly formatted; it should start with '"+
-                  net_prefix +"' and continue with 2 digits."])
-    return FALSE
+  index: String = GetLabelNumber(GetLabel(me))
+  if ~(index == "00") then
+    AddViolation("C011", me.src_info.loc,
+                 ["Wrong label '"+ GetLabel(me) +
+                  "' at network entry; it should have index '00'."])
   fi
 }
-//CheckFirstInst(rule: String, net_prefix: String, me: Instruction) {}
-CheckLastInstr(rule: String, net_prefix: String, me: (Instruction, label = NIL)) { } // No label, no check
-CheckLastInstr(rule: String, net_prefix: String, me: (Instruction, label # NIL,
-                                                      instruction: NoOpInstr))
+
+CheckLast(me: (Instruction, label = NIL)) { } // No label, no check
+CheckLast(me: (Instruction, label: (Identifier, id # NIL), instruction: NoOpInstr))
 {
-  label: String = me.label.id
-  if ~( #label = 4 & label@2 = '9' & label@3 = '9' ) then
-    AddViolation(rule, me.src_info.loc,
-                 ["Wrong label '"+ label +"' at network exit; it should be '"+ net_prefix + "99'."])
+  index: String = GetLabelNumber(GetLabel(me))
+  if ~(index == "99") then
+    AddViolation("C011", me.src_info.loc,
+                 ["Wrong label '"+ GetLabel(me) +
+                  "' at network exit; it should have index '99'."])
   fi
 }
-CheckLastInstr(rule: String, net_prefix: String, me: (Instruction, label # NIL,
-                                                      instruction: InstructionName))
+CheckLast(me: (Instruction, label # NIL, instruction: InstructionName))
 {
-  AddViolation(rule, me.src_info.loc, [
-    "If there is a label at the end of a network, it must go with a "+
-    "NOP instruction, and the label must be indexed as 99."])
+  AddViolation("C011", me.src_info.loc,
+    ["If there is a label at the end of a network, it must go with a "+
+     "NOP instruction, and the label must be indexed as 99."])
+}
+
+CheckSpecialIndexes(NIL: [Instruction], label: String)
+{ } // Seems like the network had only one instruction
+CheckSpecialIndexes(instList: ([Instruction]), label: String)
+{
+  [
+    {
+      index: String = GetLabelNumber(label)
+      side: String = if index == "00" then "beginning" else "end" fi
+      AddViolation("C011", inst.src_info.loc,
+        ["A label with index '" + index + "' can only occur at the " + side +
+         " of a network's code."]
+      )
+    }
+    | inst: (Instruction, label: (Identifier, id # NIL)) <- instList,
+    (label == GetLabel(inst))
+  ]
 }
 
 

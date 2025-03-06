@@ -82,6 +82,10 @@ GetRules() : [([String])]
       "Jump labels.",
       "\027"
     ],
+    [ "C014",
+      "All Symbolic Operand Names are a concatenation of nouns, which each start with a Capital, connected by underscores.",
+      "Name of \027 '\027' does not match the required pattern."
+    ],
     [ "C015",
       "The length of a block title has a maximum of 20 characters.",
       "Block title '\027' is too long."

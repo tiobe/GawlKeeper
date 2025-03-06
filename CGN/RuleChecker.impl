@@ -22,6 +22,7 @@ Check_GawlKeeper(me : GawlKeeper)
   Check_Comment(me.src_info)
   margin := fix_margin()
   Check_Block(me.block_type)
+  Rules.Check("C014", LOC, me.block_type)
   Rules.Check("C015", LOC, me)
   Rules.Check("G003", LOC, me)
   Check_Comment(me.src_info)
@@ -262,6 +263,7 @@ Check_Field(me : Field)
   Check_Comment(me.src_info)
   margin := fix_margin()
   Check_InstrExpression(me.name)
+  Rules.Check("C014", LOC, me)
   if me.params # NIL then
     Check_ParamsInitSC(me.params)
   fi
@@ -657,7 +659,6 @@ Check_InstrExpression(me : Identifier)
   margin := fix_margin()
   Check_Ident(me.id)
   Check_Comment(me.src_info)
-  //Rules.Check("C014", LOC, me)
   set_margin(margin)
 }
 

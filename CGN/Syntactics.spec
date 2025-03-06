@@ -34,8 +34,3 @@ IsLabelWellFormed(label: String, net_prefix: String): Bool
 // Returns the file name out of a path (i.e., the part behind the last directory
 // separator)
 GetAwlBaseFileName(file : String): String
-
-// Does this instruction modify its argument?
-IsOperandChanging(instruction: Instruction): Bool
-
-IsGlobalVar(arg: InstrExpression): GlobalVariable|NIL

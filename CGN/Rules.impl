@@ -9,14 +9,14 @@ impl unit Rules
 use
 
 KMPMatch. Match
-Properties. GetTitle, GetName, GetLocLine, GetComments
+Properties. GetTitle, GetName, GetLocLine, GetComments, GetNetwPrefix,
+            IsOperandChanging //, IsGlobalVar
 RuleConfig. IsRuleEnabled
 RuleViolation. ', AddViolation
 ScanIO. FindFileName, FindLocation
 StringTokenizer. Split, Trim
 Syntactics. IsCommentWellFormatted, IsLabelWellFormed, IsNetwTitleWellFormed,
-            IsNewline, IsOperandChanging, IsGlobalVar, FilterComments,
-            TrimQuotes, GetAwlBaseFileName
+            IsNewline, FilterComments, TrimQuotes, GetAwlBaseFileName
 
 functions
 
@@ -103,7 +103,7 @@ Check(rule : String, loc : Int, me : (Network, instructions # NIL))
 conditions rule == "C030"
 {
   [ {
-      gv: GlobalVariable|NIL = IsGlobalVar(inst.arg)
+      gv: GlobalVariable|NIL = NIL //IsGlobalVar(inst.arg)
       if gv # NIL then CheckC30(loc, gv, me) fi
     }
     | inst: Instruction <- me.instructions,
@@ -111,7 +111,15 @@ conditions rule == "C030"
 }
 CheckC30(loc: Int, gv: GlobalVariable, netw: Network)
 {
-  {"C030: change to global variable '" gv.vbl.str "' in network " GetTitle(netw) "\n"} astype Message
+  globVar: Ident = Ident(GetName(gv))
+  net_prefix: Ident = GetTitle(netw)
+  {"C030: change to global variable '" GetName(gv) "' in network " GetTitle(netw) "\n"} astype Message
+  if globVar.info = NIL then
+    globVar.info := netw
+  else if globVar.info # NIL & globVar.info # netw then
+        AddViolation("C030", loc, [GetName(gv), GetTitle(netw)])
+      fi
+  fi
 }
 
 
@@ -142,7 +150,7 @@ conditions rule == "G041"
 Check(rule : String, loc : Int, me : Network)
 conditions rule == "G026" & me.instructions # NIL
 {
-  net_prefix: String = SubString(GetTitle(me), 0, 1)
+  net_prefix: String = GetNetwPrefix(me)
   labels: [String] := NIL
 
   if #net_prefix = 0 return fi     // What TODO if the network title is ill-formed? Skip?

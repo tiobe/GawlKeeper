@@ -136,24 +136,31 @@ Check(rule : String, loc : Int, me : (Network, instructions # NIL))
 conditions rule == "C030"
 {
   [ {
-      gv: GlobalVariable|NIL = NIL //IsGlobalVar(inst.arg)
-      if gv # NIL then CheckC30(loc, gv, me) fi
+      gv: GlobalVariable|NIL = IsGlobalVar(inst.arg)
+      if gv # NIL then CheckC30(gv, me) fi
     }
     | inst: Instruction <- me.instructions,
     (IsOperandChanging(inst))]
 }
-CheckC30(loc: Int, gv: GlobalVariable, netw: Network)
+CheckC30(gv: GlobalVariable, netw: Network)
 {
   globVar: Ident = Ident(GetName(gv))
-  net_prefix: Ident = GetTitle(netw)
-  {"C030: change to global variable '" GetName(gv) "' in network " GetTitle(netw) "\n"} astype Message
-  if globVar.info = NIL then
-    globVar.info := netw
-  else if globVar.info # NIL & globVar.info # netw then
-        AddViolation("C030", loc, [GetName(gv), GetTitle(netw)])
-      fi
+  net_prefix: String = GetNetwPrefix(netw)
+  if globVar.info astype String = NIL then
+    globVar.info := net_prefix
+  else if ~(globVar.info == net_prefix) then
+    AddViolation("C030", gv.src_info.loc, [GetName(gv), GetTitle(netw)])
+  fi
   fi
 }
+
+//***** Copied here from Properties.impl so it would compile ******//
+IsGlobalVar(arg: GlobalVariable):   GlobalVariable|NIL { return arg }
+IsGlobalVar(arg: FieldExpression):  GlobalVariable|NIL { return IsGlobalVar(arg.expr) }
+IsGlobalVar(arg: ArrayExpression):  GlobalVariable|NIL { return IsGlobalVar(arg.array) }
+IsGlobalVar(arg: Expression):       GlobalVariable|NIL { return NIL }
+IsGlobalVar(arg: InstrExpression):  GlobalVariable|NIL { return NIL }
+IsGlobalVar(NIL: InstrExpression):  GlobalVariable|NIL { return NIL }
 
 
 Check(rule : String, loc : Int, me : Network)

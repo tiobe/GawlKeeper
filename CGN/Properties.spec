@@ -26,4 +26,4 @@ GetLabel(inst: Instruction): String
 // Does this instruction modify its argument?
 IsOperandChanging(instruction: Instruction): Bool
 
-IsGlobalVar(arg: InstrExpression): GlobalVariable|NIL
+//IsGlobalVar(arg: InstrExpression): GlobalVariable|NIL

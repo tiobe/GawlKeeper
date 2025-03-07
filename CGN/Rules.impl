@@ -9,8 +9,8 @@ impl unit Rules
 use
 
 KMPMatch. Match
-Properties. GetTitle, GetName, GetLocLine, GetComments, GetLabel, GetNetwPrefix
-            //, GetGlobalVar
+Properties. GetTitle, GetName, GetLocLine, GetComments, GetLabel, GetNetwPrefix,
+            GetGlobalVar
 RuleConfig. IsRuleEnabled
 RuleViolation. ', AddViolation
 ScanIO. FindFileName, FindLocation
@@ -141,29 +141,23 @@ conditions rule == "C030"
     (IsOperandChanging(instruction))
   ]
 }
-CheckC30(NIL: GlobalVariable, netw: Network) { }
+CheckC30(NIL: GlobalVariable, netw: Network)
+{ }
 CheckC30(gv: GlobalVariable, netw: Network)
 {
-  CheckC30(Ident(GetName(gv)), gv.src_info.loc, netw)
+  gvarIdent: Ident = Ident(GetName(gv))
+  CheckC30(gvarIdent, gvarIdent.info, gv.src_info.loc, netw)
 }
-CheckC30(globVar: (Ident, info: String), loc: Int, netw: Network)
-{
-  if ~(globVar.info == GetNetwPrefix(netw)) then
-    AddViolation("C030", loc, [globVar, GetTitle(netw)])
-  fi
-}
-CheckC30(globVar: Ident, loc: Int, netw: Network)
+CheckC30(globVar: Ident, NIL: String, loc: Int, netw: Network)
 {
   globVar.info := GetNetwPrefix(netw)
 }
-
-//***** Copied here from Properties.impl so it would compile ******//
-GetGlobalVar(arg: GlobalVariable):   GlobalVariable|NIL { return arg }
-GetGlobalVar(arg: FieldExpression):  GlobalVariable|NIL { return GetGlobalVar(arg.expr) }
-GetGlobalVar(arg: ArrayExpression):  GlobalVariable|NIL { return GetGlobalVar(arg.array) }
-GetGlobalVar(arg: Expression):       GlobalVariable|NIL { return NIL }
-GetGlobalVar(arg: InstrExpression):  GlobalVariable|NIL { return NIL }
-GetGlobalVar(NIL: InstrExpression):  GlobalVariable|NIL { return NIL }
+CheckC30(globVar: Ident, netwPrefix: String, loc: Int, netw: Network)
+{
+  if ~(netwPrefix == GetNetwPrefix(netw)) then
+    AddViolation("C030", loc, [globVar, GetTitle(netw)])
+  fi
+}
 
 
 Check(rule : String, loc : Int, me : Network)

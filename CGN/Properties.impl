@@ -50,4 +50,3 @@ GetGlobalVar(arg: FieldExpression):  GlobalVariable|NIL { return GetGlobalVar(ar
 GetGlobalVar(arg: ArrayExpression):  GlobalVariable|NIL { return GetGlobalVar(arg.array) }
 GetGlobalVar(arg: Expression):       GlobalVariable|NIL { return NIL }
 GetGlobalVar(arg: InstrExpression):  GlobalVariable|NIL { return NIL }
-GetGlobalVar(NIL: InstrExpression):  GlobalVariable|NIL { return NIL }

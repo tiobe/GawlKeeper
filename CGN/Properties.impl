@@ -12,15 +12,21 @@ functions
 GetTitle(network : Network): (String)
 { return Trim(SubString(network.title, IndexOf(network.title, '=')+1, #network.title-1)) }
 
+GetNetwPrefix(network: Network): String
+{
+    title: (String) = GetTitle(network)
+    return if #title < 2 then NIL else SubString(title, 0, 1) fi
+}
+
+
 GetTitle(block : DataBlock)     : String { return block.block_name.str }
 GetTitle(block : Function)      : String { return block.function_name.str }
 GetTitle(block : FunctionBlock) : String { return block.function_name.str }
 GetTitle(block : OrgBlock)      : String { return block.org_name.str }
 GetTitle(block : TypeBlock)     : String { return block.type_name.str }
 
-
-GetName(ref: Identifier)    : String { return ref.id }
-GetName(ref: StringLiteral) : String { return ref.str }
+GetName(ref: LocalVariable) : String { return ref.vbl.id }
+GetName(ref: GlobalVariable): String { return ref.vbl.str }
 GetName(fld: Field)         : String { return GetName(fld.name) }
 
 
@@ -38,3 +44,9 @@ GetComments(me : Field): List(Comment)        { return GetComments(me.src_info.p
 GetLabel(inst: (Instruction, label = NIL)): String { return "" }
 GetLabel(inst: (Instruction, label: (Identifier, id # NIL))): String
 { return inst.label.id }
+
+GetGlobalVar(arg: GlobalVariable):   GlobalVariable|NIL { return arg }
+GetGlobalVar(arg: FieldExpression):  GlobalVariable|NIL { return GetGlobalVar(arg.expr) }
+GetGlobalVar(arg: ArrayExpression):  GlobalVariable|NIL { return GetGlobalVar(arg.array) }
+GetGlobalVar(arg: Expression):       GlobalVariable|NIL { return NIL }
+GetGlobalVar(arg: InstrExpression):  GlobalVariable|NIL { return NIL }

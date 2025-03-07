@@ -9,14 +9,15 @@ impl unit Rules
 use
 
 KMPMatch. Match
-Properties. GetTitle, GetName, GetLocLine, GetComments, GetLabel
+Properties. GetTitle, GetName, GetLocLine, GetComments, GetLabel, GetNetwPrefix,
+            GetGlobalVar
 RuleConfig. IsRuleEnabled
 RuleViolation. ', AddViolation
 ScanIO. FindFileName, FindLocation
 StringTokenizer. Split, Trim
 Syntactics. IsCommentWellFormatted, IsLabelWellFormed, IsNetwTitleWellFormed,
-            IsNewline, FilterComments, TrimQuotes, GetAwlBaseFileName,
-            GetLabelNumber, StartsWithCap
+            IsNewline, IsOperandChanging, FilterComments, TrimQuotes,
+            GetAwlBaseFileName, GetLabelNumber, StartsWithCap
 
 functions
 
@@ -29,7 +30,7 @@ conditions ~IsRuleEnabled(rule) { }
 Check(rule : String, loc : Int, me : GawlKeeper)      // C015, G003
 conditions ~IsRuleEnabled(rule) { }
 
-Check(rule : String, loc : Int, me : Network)         // C006, C007, C011, G026, G041, G043
+Check(rule : String, loc : Int, me : Network)         // C006, C007, C011, C030, G026, G041, G043
 conditions ~IsRuleEnabled(rule) { }
 
 Check(rule : String, loc : Int, me : Instruction)     // G028
@@ -131,6 +132,33 @@ conditions rule == "G043"
   fi
 }
 
+Check(rule : String, loc : Int, me : (Network, instructions # NIL))
+conditions rule == "C030"
+{
+  [
+    CheckC30(GetGlobalVar(instruction.arg), me)
+    | instruction: Instruction <- me.instructions,
+    (IsOperandChanging(instruction))
+  ]
+}
+CheckC30(NIL: GlobalVariable, netw: Network)
+{ }
+CheckC30(gv: GlobalVariable, netw: Network)
+{
+  gvarIdent: Ident = Ident(GetName(gv))
+  CheckC30(gvarIdent, gvarIdent.info, gv.src_info.loc, netw)
+}
+CheckC30(globVar: Ident, NIL: String, loc: Int, netw: Network)
+{
+  globVar.info := GetNetwPrefix(netw)
+}
+CheckC30(globVar: Ident, netwPrefix: String, loc: Int, netw: Network)
+{
+  if ~(netwPrefix == GetNetwPrefix(netw)) then
+    AddViolation("C030", loc, [globVar, GetTitle(netw)])
+  fi
+}
+
 
 Check(rule : String, loc : Int, me : Network)
 conditions rule == "C006"
@@ -159,8 +187,7 @@ conditions rule == "G041"
 Check(rule : String, loc : Int, me : (Network, instructions # NIL))
 conditions rule == "C011"
 {
-  net_title: String = GetTitle(me)
-  net_prefix: String = if #net_title < 2 then "" else SubString(net_title, 0, 1) fi
+  net_prefix: String = GetNetwPrefix(me)
 
   if #net_prefix = 0 then
     // The network title is ill-formed; this is caught by another convention.

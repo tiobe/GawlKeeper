@@ -45,3 +45,6 @@ GetAwlBaseFileName(file : String): String
 
 // Returns TRUE if s starts with a capital letter or a digit, or if s is empty.
 StartsWithCap(s: String): Bool
+
+// Does this instruction modify its argument?
+IsOperandChanging(instruction: Instruction): Bool

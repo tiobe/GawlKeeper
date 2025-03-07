@@ -35,7 +35,7 @@ Check_Block(me : DataBlock)
   Check_Comment(me.src_info)
   margin := fix_margin()
   Check_String("DATA_BLOCK")
-  Check_InstrExpression(me.block_name)
+  Check_StringLiteral(me.block_name)
   Check_HeaderBlock(me.header)
   if me.non_retain then
     Check_String("NON_RETAIN")
@@ -60,7 +60,7 @@ Check_Block(me : Function)
   Check_Comment(me.src_info)
   margin := fix_margin()
   Check_String("FUNCTION")
-  Check_InstrExpression(me.function_name)
+  Check_StringLiteral(me.function_name)
   Check_String(":")
   Check_Type(me.return_type)
   Check_FunctionBody(me.body)
@@ -75,7 +75,7 @@ Check_Block(me : FunctionBlock)
   Check_Comment(me.src_info)
   margin := fix_margin()
   Check_String("FUNCTION_BLOCK")
-  Check_InstrExpression(me.function_name)
+  Check_StringLiteral(me.function_name)
   Check_FunctionBody(me.body)
   Check_String("END_FUNCTION_BLOCK")
   Check_Comment(me.src_info)
@@ -87,7 +87,7 @@ Check_Block(me : OrgBlock)
   margin : Int := 0
   Check_Comment(me.src_info)
   margin := fix_margin()
-  Check_InstrExpression(me.org_name)
+  Check_StringLiteral(me.org_name)
   Check_FunctionBody(me.body)
   Check_String("END_ORGANIZATION_BLOCK")
   Check_Comment(me.src_info)
@@ -100,7 +100,7 @@ Check_Block(me : TypeBlock)
   Check_Comment(me.src_info)
   margin := fix_margin()
   Check_String("TYPE")
-  Check_InstrExpression(me.type_name)
+  Check_StringLiteral(me.type_name)
   Check_HeaderBlock(me.header)
   Check_StructBlock(me.struct)
   Check_String(";")
@@ -570,6 +570,8 @@ Check_Network(me : Network)
   Check_String(me.title)
   Rules.Check("C006", LOC, me)
   Rules.Check("C011", LOC, me)
+  Rules.Check("C030", LOC, me)
+  Rules.Check("G026", LOC, me)
   Rules.Check("G043", LOC, me)
   [
     {
@@ -588,13 +590,14 @@ Check_Instruction(me : Instruction)
   Check_Comment(me.src_info)
   margin := fix_margin()
   if me.label # NIL then
-    Check_InstrExpression(me.label)
+    Check_Identifier(me.label)
     Check_String(":")
   fi
   Check_InstructionName(me.instruction)
   if me.arg # NIL then
     Check_InstrExpression(me.arg)
   fi
+  Rules.Check("C030", LOC, me)
   Check_Comment(me.src_info)
   Rules.Check("G028", LOC, me)
   set_margin(margin)
@@ -652,22 +655,22 @@ Check_InstrExpression(me : RealLiteral)
   set_margin(margin)
 }
 
-Check_InstrExpression(me : Identifier)
+Check_InstrExpression(me : LocalVariable)
 {
   margin : Int := 0
   Check_Comment(me.src_info)
   margin := fix_margin()
-  Check_Ident(me.id)
+  Check_Identifier(me.vbl)
   Check_Comment(me.src_info)
   set_margin(margin)
 }
 
-Check_InstrExpression(me : StringLiteral)
+Check_InstrExpression(me : GlobalVariable)
 {
   margin : Int := 0
   Check_Comment(me.src_info)
   margin := fix_margin()
-  Check_String(me.str)
+  Check_StringLiteral(me.vbl)
   Check_Comment(me.src_info)
   set_margin(margin)
 }
@@ -1770,7 +1773,7 @@ Check_InstructionName(me : ShiftRightWordInstr)
   set_margin(margin)
 }
 
-Check_InstructionName(me : TInstr)
+Check_InstructionName(me : TransfInstr)
 {
   margin : Int := 0
   Check_Comment(me.src_info)
@@ -1879,6 +1882,22 @@ Check_ArgumentsList(me : ArgumentsList)
   | xxxargs : ArgumentsAssignment <- Tail(me.args, NIL)
   ]
   Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
+Check_Identifier(me : Identifier)
+{
+  margin : Int := 0
+  margin := fix_margin()
+  Check_Ident(me.id)
+  set_margin(margin)
+}
+
+Check_StringLiteral(me : StringLiteral)
+{
+  margin : Int := 0
+  margin := fix_margin()
+  Check_String(me.str)
   set_margin(margin)
 }
 

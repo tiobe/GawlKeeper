@@ -23,7 +23,4 @@ GetComments(me : Field): List(Comment)
 // empty string.
 GetLabel(inst: Instruction): String
 
-// Does this instruction modify its argument?
-IsOperandChanging(instruction: Instruction): Bool
-
-//IsGlobalVar(arg: InstrExpression): GlobalVariable|NIL
+GetGlobalVar(arg: InstrExpression): GlobalVariable|NIL

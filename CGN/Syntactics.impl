@@ -94,3 +94,6 @@ GetAwlBaseFileName(file : String): String
 }
 
 StartsWithCap(s: String): Bool { return #s = 0 | IsUpper(s@0) | IsDigit(s@0) }
+
+IsOperandChanging(instruction: (Instruction, instruction: TransfInstr)): Bool { return TRUE }
+IsOperandChanging(instruction: Instruction): Bool { return FALSE }

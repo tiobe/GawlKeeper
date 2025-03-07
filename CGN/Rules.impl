@@ -9,15 +9,15 @@ impl unit Rules
 use
 
 KMPMatch. Match
-Properties. GetTitle, GetName, GetLocLine, GetComments, GetLabel, GetNetwPrefix,
-            IsOperandChanging //, IsGlobalVar
+Properties. GetTitle, GetName, GetLocLine, GetComments, GetLabel, GetNetwPrefix
+            //, GetGlobalVar
 RuleConfig. IsRuleEnabled
 RuleViolation. ', AddViolation
 ScanIO. FindFileName, FindLocation
 StringTokenizer. Split, Trim
 Syntactics. IsCommentWellFormatted, IsLabelWellFormed, IsNetwTitleWellFormed,
-            IsNewline, FilterComments, TrimQuotes, GetAwlBaseFileName,
-            GetLabelNumber, StartsWithCap
+            IsNewline, IsOperandChanging, FilterComments, TrimQuotes,
+            GetAwlBaseFileName, GetLabelNumber, StartsWithCap
 
 functions
 
@@ -135,32 +135,35 @@ conditions rule == "G043"
 Check(rule : String, loc : Int, me : (Network, instructions # NIL))
 conditions rule == "C030"
 {
-  [ {
-      gv: GlobalVariable|NIL = IsGlobalVar(inst.arg)
-      if gv # NIL then CheckC30(gv, me) fi
-    }
-    | inst: Instruction <- me.instructions,
-    (IsOperandChanging(inst))]
+  [
+    CheckC30(GetGlobalVar(instruction.arg), me)
+    | instruction: Instruction <- me.instructions,
+    (IsOperandChanging(instruction))
+  ]
 }
+CheckC30(NIL: GlobalVariable, netw: Network) { }
 CheckC30(gv: GlobalVariable, netw: Network)
 {
-  globVar: Ident = Ident(GetName(gv))
-  net_prefix: String = GetNetwPrefix(netw)
-  if globVar.info astype String = NIL then
-    globVar.info := net_prefix
-  else if ~(globVar.info == net_prefix) then
-    AddViolation("C030", gv.src_info.loc, [GetName(gv), GetTitle(netw)])
+  CheckC30(Ident(GetName(gv)), gv.src_info.loc, netw)
+}
+CheckC30(globVar: (Ident, info: String), loc: Int, netw: Network)
+{
+  if ~(globVar.info == GetNetwPrefix(netw)) then
+    AddViolation("C030", loc, [globVar, GetTitle(netw)])
   fi
-  fi
+}
+CheckC30(globVar: Ident, loc: Int, netw: Network)
+{
+  globVar.info := GetNetwPrefix(netw)
 }
 
 //***** Copied here from Properties.impl so it would compile ******//
-IsGlobalVar(arg: GlobalVariable):   GlobalVariable|NIL { return arg }
-IsGlobalVar(arg: FieldExpression):  GlobalVariable|NIL { return IsGlobalVar(arg.expr) }
-IsGlobalVar(arg: ArrayExpression):  GlobalVariable|NIL { return IsGlobalVar(arg.array) }
-IsGlobalVar(arg: Expression):       GlobalVariable|NIL { return NIL }
-IsGlobalVar(arg: InstrExpression):  GlobalVariable|NIL { return NIL }
-IsGlobalVar(NIL: InstrExpression):  GlobalVariable|NIL { return NIL }
+GetGlobalVar(arg: GlobalVariable):   GlobalVariable|NIL { return arg }
+GetGlobalVar(arg: FieldExpression):  GlobalVariable|NIL { return GetGlobalVar(arg.expr) }
+GetGlobalVar(arg: ArrayExpression):  GlobalVariable|NIL { return GetGlobalVar(arg.array) }
+GetGlobalVar(arg: Expression):       GlobalVariable|NIL { return NIL }
+GetGlobalVar(arg: InstrExpression):  GlobalVariable|NIL { return NIL }
+GetGlobalVar(NIL: InstrExpression):  GlobalVariable|NIL { return NIL }
 
 
 Check(rule : String, loc : Int, me : Network)

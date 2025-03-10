@@ -117,22 +117,8 @@ Check_FunctionBody(me : FunctionBody)
   Rules.Check("C020", LOC, me)
   // TODO Can we shift the comments for each Field declaration
   // (and "END_VAR") to the previous element?
-  [
-    {
-      Check_String("VAR_INPUT")
-      [ { Check_Field(xxxinputs) }
-      | xxxinputs : Field <- xxxinputs
-      ]
-      Check_String("END_VAR")
-      if xxxdb_inputs # NIL then
-        Check_String("VAR_INPUT DB_SPECIFIC")
-        [ { Check_Field(xxxdb_inputs) }
-        | xxxdb_inputs : Field <- xxxdb_inputs
-        ]
-        Check_String("END_VAR")
-      fi
-    }
-  | xxxinputs : Field, xxxdb_inputs : Field <- me.inputs, me.db_inputs
+  [ { Check_LocalVarInputs(xxxinputs) }
+  | xxxinputs : LocalVarInputs <- me.inputs
   ]
   if me.outputs # NIL then
     Check_String("VAR_OUTPUT")
@@ -228,6 +214,27 @@ Check_ParamsInitListComma(me : ParamsInitListComma)
     }
   | xxxargs : ArgumentsAssignment <- Tail(me.args, NIL)
   ]
+  Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
+Check_LocalVarInputs(me : LocalVarInputs)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  Check_String("VAR_INPUT")
+  [ { Check_Field(xxxnormal_inputs) }
+  | xxxnormal_inputs : Field <- me.normal_inputs
+  ]
+  Check_String("END_VAR")
+  if me.niks # NIL & me.db_inputs # NIL then
+    Check_String(me.niks)
+    [ { Check_Field(xxxdb_inputs) }
+    | xxxdb_inputs : Field <- me.db_inputs
+    ]
+    Check_String("END_VAR")
+  fi
   Check_Comment(me.src_info)
   set_margin(margin)
 }

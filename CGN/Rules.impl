@@ -168,21 +168,24 @@ CheckLastInstr(rule: String, net_prefix: String, me: (Instruction, label # NIL,
 }
 
 
-Check(rule : String, loc: Int, me: FunctionBody) conditions rule == "C020"
+Check(rule : String, loc: Int, me: FunctionBody)
+conditions rule == "C020"
 {
-  CheckC20(rule, me.inputs , 'i')
-  CheckC20(rule, me.outputs, 'o')
-  CheckC20(rule, me.locals , 's')
-  CheckC20(rule, me.temps  , 't')
+//  CheckC20(me.inputs.normal_inputs, 'i')
+//  CheckC20(me.inputs.db_inputs,     'i')
+  CheckC20(me.outputs, 'o')
+  CheckC20(me.locals , 's')
+  CheckC20(me.temps  , 't')
 }
-CheckC20(rule : String, NIL: [Field], prefix: Char) { }
-CheckC20(rule : String, declarations: ([Field]), prefix: Char) {
-  [CheckC20(rule, field, prefix) | field: Field <- declarations ]
+CheckC20(NIL: [Field], prefix: Char) { }
+CheckC20(declarations: ([Field]), prefix: Char) {
+  [CheckC20(field, prefix) | field: Field <- declarations ]
 }
-CheckC20(rule : String, me: Field, prefix: Char) {
+CheckC20(me: Field, prefix: Char)
+{
   field : String = GetName(me.name)
   if #field < 2 | field@0 # prefix | field@1 # '_' then
-    AddViolation(rule, me.src_info.loc, [field, prefix])
+    AddViolation("C020", me.src_info.loc, [field, prefix])
   fi
 }
 

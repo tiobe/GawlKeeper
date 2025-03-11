@@ -69,8 +69,7 @@ ParamsInitComma ::= "{" params: ParamsInitListComma "}" ;
 ParamsInitListComma ::= args: ArgumentsAssignment // "," ;
 
 LocalVarInputs ::=
-  "VAR_INPUT" normal_inputs: { Field }+ "END_VAR"
-  [ niks: DB_VAR_INPUT  db_inputs: { Field }+ "END_VAR" ]
+  "VAR_INPUT" [ dbSpecf: "DB_SPECIFIC" ] inputs: { Field }+ "END_VAR"
 ;
 
 DataForBlock ::= <
@@ -323,8 +322,6 @@ PointerReference ::= <
 
 SCAN TYPE String TITLE ::= "TITLE" { Space } "=" { AnyCharExceptNewline } ;
 SCAN Space = < SP | HT | VT | FF > ;
-
-SCAN TYPE String DB_VAR_INPUT ::= "VAR_INPUT" { Space } "DB_SPECIFIC" ;
 
 SCAN TYPE String SIZE ::= <
   "B" | "BYTE" | "CHAR" | "WCHAR" | "DINT" | "DW" | "DWORD" | "T" |

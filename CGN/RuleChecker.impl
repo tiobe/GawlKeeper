@@ -224,17 +224,13 @@ Check_LocalVarInputs(me : LocalVarInputs)
   Check_Comment(me.src_info)
   margin := fix_margin()
   Check_String("VAR_INPUT")
-  [ { Check_Field(xxxnormal_inputs) }
-  | xxxnormal_inputs : Field <- me.normal_inputs
+  if me.dbSpecf then
+    Check_String("DB_SPECIFIC")
+  fi
+  [ { Check_Field(xxxinputs) }
+  | xxxinputs : Field <- me.inputs
   ]
   Check_String("END_VAR")
-  if me.niks # NIL & me.db_inputs # NIL then
-    Check_String(me.niks)
-    [ { Check_Field(xxxdb_inputs) }
-    | xxxdb_inputs : Field <- me.db_inputs
-    ]
-    Check_String("END_VAR")
-  fi
   Check_Comment(me.src_info)
   set_margin(margin)
 }

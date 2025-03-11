@@ -171,11 +171,10 @@ CheckLastInstr(rule: String, net_prefix: String, me: (Instruction, label # NIL,
 Check(rule : String, loc: Int, me: FunctionBody)
 conditions rule == "C020"
 {
-//  CheckC20(me.inputs.normal_inputs, 'i')
-//  CheckC20(me.inputs.db_inputs,     'i')
+  [CheckC20(inputs_block.inputs, 'i') | inputs_block: LocalVarInputs <- me.inputs] astype VOID
   CheckC20(me.outputs, 'o')
-  CheckC20(me.locals , 's')
-  CheckC20(me.temps  , 't')
+  CheckC20(me.locals, 's')
+  CheckC20(me.temps, 't')
 }
 CheckC20(NIL: [Field], prefix: Char) { }
 CheckC20(declarations: ([Field]), prefix: Char) {

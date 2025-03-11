@@ -9,6 +9,56 @@ VERSION : 0.0
 //
 BEGIN
 NETWORK
+TITLE = aa: bad
+      NOP 0;
+
+// Copy section event DB number
+      OPN "DB_Event_Section";
+
+      L DBNO;
+      T #t_DB_Event_Section;
+
+NETWORK
+TITLE = AAlso bad
+      NOP 0;
+
+// Copy section event DB number
+      OPN "DB_Event_Section";
+
+      L DBNO;
+      T #t_DB_Event_Section;
+
+NETWORK
+TITLE = AA Too bad
+      NOP 0;
+
+// Copy section event DB number
+      OPN "DB_Event_Section";
+
+      L DBNO;
+      T #t_DB_Event_Section;
+
+NETWORK
+TITLE = AA: Good
+      NOP 0;
+
+// Copy section event DB number
+      OPN "DB_Event_Section";
+
+      L DBNO;
+      T #t_DB_Event_Section;
+
+NETWORK
+TITLE = AA:Not So Good
+      NOP 0;
+
+// Copy section event DB number
+      OPN "DB_Event_Section";
+
+      L DBNO;
+      T #t_DB_Event_Section;
+
+NETWORK
 TITLE =
       NOP 0;
 
@@ -19,17 +69,9 @@ TITLE =
       T #t_DB_Event_Section;
 
 NETWORK
-TITLE = AA
-      NOP 0;
-
-// Copy section event DB number
-      OPN "DB_Event_Section";
-
-      L DBNO;
-      T #t_DB_Event_Section;
-
-NETWORK
-TITLE = AA:  
+TITLE = CC: .
+// Good enough. If the dot is removed, the trimming removes the blank space and
+// thus the title is ill-formed.
       NOP 0;
 
 // Copy section event DB number

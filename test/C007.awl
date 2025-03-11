@@ -9,7 +9,7 @@ VERSION : 0.0
 //
 BEGIN
 NETWORK
-TITLE = aa: bad
+TITLE = AA: Some network title
       NOP 0;
 
 // Copy section event DB number
@@ -19,7 +19,7 @@ TITLE = aa: bad
       T #t_DB_Event_Section;
 
 NETWORK
-TITLE = AAlso bad
+TITLE = BB: Some network title out of order
       NOP 0;
 
 // Copy section event DB number
@@ -29,7 +29,7 @@ TITLE = AAlso bad
       T #t_DB_Event_Section;
 
 NETWORK
-TITLE = AA Too bad
+TITLE = BA: Some network title taking the blame
       NOP 0;
 
 // Copy section event DB number
@@ -39,17 +39,7 @@ TITLE = AA Too bad
       T #t_DB_Event_Section;
 
 NETWORK
-TITLE = AA: Good
-      NOP 0;
-
-// Copy section event DB number
-      OPN "DB_Event_Section";
-
-      L DBNO;
-      T #t_DB_Event_Section;
-
-NETWORK
-TITLE = AA:Not So Good
+TITLE = CA: Good
       NOP 0;
 
 // Copy section event DB number

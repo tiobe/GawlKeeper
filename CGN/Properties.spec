@@ -8,6 +8,8 @@ functions
 GetTitle(network : Network): (String)
 GetTitle(block : Block): String
 
+GetNetwPrefix(network: Network): String
+
 GetName(ref: Reference): String
 GetName(fld: Field): String
 
@@ -16,3 +18,9 @@ GetLocLine(loc: Int): Int
 
 GetComments(me : Instruction): List(Comment)
 GetComments(me : Field): List(Comment)
+
+// Returns the jump label attached to an instruction, if any, or else an
+// empty string.
+GetLabel(inst: Instruction): String
+
+GetGlobalVar(arg: InstrExpression): GlobalVariable|NIL

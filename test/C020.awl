@@ -43,10 +43,10 @@ VERSION : 0.0
 //will prioritize available and unused destinations.
    VAR_INPUT
       i_ID : DWord;   //  ID Record HEX AAAAZZSS/OO
-      CFG_Position_Node : Int;   //  CFG: [cm] Node border position in DB PLT
+      CFG_Position_node : Int;   //  CFG: [cm] Node border position in DB PLT
    END_VAR
    VAR_INPUT DB_SPECIFIC
-      i_CFG_Destination : Int;   //  CFG: Destination number of the Dispatch Point
+      i_CFG_destination : Int;   //  CFG: Destination number of the Dispatch Point
       DB_PLT : DB_ANY := DB1;   //  Data Structure: DB PLT
    END_VAR
    VAR_INPUT
@@ -72,7 +72,7 @@ VERSION : 0.0
       s_Available_Destination : Int;   //  Destination available
       Dest_01_Used : Bool;   //  Destination 01 used
       s_Dest_02_Used : Bool;   //  Destination 02 used
-      s_FB_DAT_T : "FB_DAT_T";   //  Block call static FB_DAT_T
+      s_FB_dat_T : "FB_DAT_T";   //  Block call static FB_DAT_T
       s_FB_DAT : "FB_DAT";   //  Block call static FB_DAT
    END_VAR
 

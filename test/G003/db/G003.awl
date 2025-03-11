@@ -1,4 +1,4 @@
-DATA_BLOCK "G003_db"
+DATA_BLOCK "G003"
 TITLE = %version: 5.10 % %Commit:  fbddf08d % CN: 20
 { S7_Optimized_Access := 'FALSE' }
 FAMILY : Tubtrax

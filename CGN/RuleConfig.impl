@@ -39,17 +39,52 @@ RulesShown = enum { RS_IMPLEMENTED | RS_RESERVED | RS_ALL }
 
 functions
 
+ShowRules()
+{
+  [ { ShowRule(GetRuleInfo(r.head)) }
+  | r : ([String]) <- GetRules()
+  ]
+}
+
+//
+// format:
+//    id | synopsis
+//
+
+ShowRule(NIL : RuleInfo): Message
+{}
+
+ShowRule(rule : RuleInfo): Message
+{
+  "  "
+  String(3 - #rule.id, SP)  rule.id
+  "  |  "
+  rule.synopsis "\n"
+}
+
 GetRules() : [([String])]
 {
-  rules : [([String])] = 
+  rules : [([String])] =
   [
+    [ "C001",
+      "Name (Header) and Author are not used and must be empty.",
+      "Do not use header field '\027'; it must be empty."
+    ],
     [ "C006",
-      "Each network must have a Network Title, which must be chosen obvious: indicating the fulfilled functionality of the code in the network.",
-      "There is a network without title."
+      "Each network must have a Network Title, which must indicate its functionality, and it must begin with 2 uppercase letters, a colon and a space.",
+      "Network title '\027' is not correctly formatted: it should begin with 2 uppercase letters, a colon and a space."
     ],
     [ "C007",
-      "Network title should start with 2 capital letters, a colon and a space.",
-      "Network title '\027' is not correctly formatted: it should begin with 2 uppercase letters, a colon and a space."
+      "The 2 capital letters at the start of network titles must reflect the order in which they are defined.",
+      "Network title '\027' is out of order. Network titles must be prefixed in alphabetical ascending order."
+    ],
+    [ "C011",
+      "Jump labels.",
+      "\027"
+    ],
+    [ "C014",
+      "All Symbolic Operand Names are a concatenation of nouns, which each start with a Capital, connected by underscores.",
+      "Name of \027 '\027' does not match the required pattern."
     ],
     [ "C015",
       "The length of a block title has a maximum of 20 characters.",
@@ -58,6 +93,10 @@ GetRules() : [([String])]
     [ "C020",
       "The names of local variables (other than the preset local variables of OB's) shall start with a lower-case prefix character according to its type.",
       "Variable '\027' must start with '\027'."
+    ],
+    [ "C030",
+      "If a Global Variable is changed more than once in a block, the changes should be made within the same Network.",
+      "Gobal variables '\027' was already modified in network '\027'."
     ],
     [ "C042",
       "All arrays must start from zero.",
@@ -70,10 +109,6 @@ GetRules() : [([String])]
     [ "G021",
       "Comments for declarations.",
       "Declaration needs a documentation comment starting with a space followed by an upper-case letter."
-    ],
-    [ "G026",
-      "Jump labels.",
-      "\027"
     ],
     [ "G028",
       "Comment line.",
@@ -104,13 +139,12 @@ InitRulesSet(rs : RulesShown)
 }
 
 // rule switch has form: --d+[=p[,p]...]
-IsRule(s : String, arg : String): Bool
+IsRule(s : String): Bool
 {
   i : Int = 2
   j : Int = #s
   sw : String = SubString(s, i, j - 1)
   id : String := ""
-  p : List(String) := NIL
 
   //IsRuleId
   if s@0 = '-' & s@1 = '-' & j - i > 0 then
@@ -118,10 +152,6 @@ IsRule(s : String, arg : String): Bool
   else
     // not a valid rule switch
     return FALSE
-  fi
-  //GetArguments
-  if arg@0 # '\000'  then
-    p := Split(arg, ',')
   fi
   //SetRule
   switch GetRuleInfo(id) {
@@ -132,7 +162,6 @@ IsRule(s : String, arg : String): Bool
     Exit(Failure)
   case r : RuleInfo
     r.apply := TRUE
-    r.parameters := p
   }
   return TRUE
 }

@@ -246,7 +246,7 @@ InstructionName ::= <
 | ShiftLeftWordInstr  ::= "SLW"
 | ShiftRightDblInstr  ::= "SRD"
 | ShiftRightWordInstr ::= "SRW"
-| TInstr ::= "T"
+| TransfInstr ::= "T"
 | Tar1Instr ::= "TAR1"
 | Tar2Instr ::= "TAR2"
 > ;
@@ -283,11 +283,14 @@ AtomicExpression < Expression ::= <
 | Reference
 > ;
 Reference < AtomicExpression ::= <
-  Identifier
-| StringLiteral
+  LocalVariable
+| GlobalVariable
 > ;
-Identifier    < Reference ::= id: ID ;
-StringLiteral < Reference ::= str: StringConstant ;
+LocalVariable  < Reference ::= vbl: Identifier ;
+GlobalVariable < Reference ::= vbl: StringLiteral ;
+
+Identifier ::= id: ID ;
+StringLiteral ::= str: StringConstant ;
 
 ArrayExpression < Expression ::=
   array: Expression

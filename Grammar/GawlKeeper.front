@@ -42,7 +42,7 @@ OrgBlock < Block ::=
 ;
 FunctionBody ::=
   header: HeaderBlock
-  [ "VAR_INPUT"  inputs:  { Field }+ "END_VAR" ]
+  { inputs: LocalVarInputs }
   [ "VAR_OUTPUT" outputs: { Field }+ "END_VAR" ]
   [ "VAR_IN_OUT" in_outs: { Field }+ "END_VAR" ]
   [ "VAR"        locals:  { Field }+ "END_VAR" ]
@@ -67,6 +67,10 @@ HeaderBlock ::=
 ;
 ParamsInitComma ::= "{" params: ParamsInitListComma "}" ;
 ParamsInitListComma ::= args: ArgumentsAssignment // "," ;
+
+LocalVarInputs ::=
+  "VAR_INPUT" [ dbSpecf: "DB_SPECIFIC" ] inputs: { Field }+ "END_VAR"
+;
 
 DataForBlock ::= <
   ImportedIdentifier ::= id: Reference
@@ -224,6 +228,7 @@ InstructionName ::= <
 | LogicOrDblInstr      ::= "OD"
 | LogicOrWordInstr     ::= "OW"
 | LogicXorInstr        ::= "X"
+| LogicXorNotInstr     ::= "XN"
 | LogicXorDblInstr     ::= "XOD"
 | LogicXorWordInstr    ::= "XOW"
 | LoopInstr ::= "LOOP"
@@ -273,6 +278,7 @@ Expression < InstrExpression ::= <
 AtomicExpression < Expression ::= <
   DecimalLiteral ::= sign: [ SIGN ] value: INT
 | HexadecimalLiteral ::= value: HEX_INT
+| BinaryLiteral ::= value: BIN_INT
 | RealLiteral ::= value: REAL
 | Reference
 > ;
@@ -321,14 +327,15 @@ SCAN TYPE String TITLE ::= "TITLE" { Space } "=" { AnyCharExceptNewline } ;
 SCAN Space = < SP | HT | VT | FF > ;
 
 SCAN TYPE String SIZE ::= <
-  "B" | "BYTE" | "CHAR" | "DINT" | "DW" | "DWORD" | "T" | "w" | "W" | "WORD"
+  "B" | "BYTE" | "CHAR" | "WCHAR" | "DINT" | "DW" | "DWORD" | "T" |
+  "w" | "W" | "WORD" | "WSTRING"
 > ;
 
 SCAN TYPE String POINTER_OP ::= "P#" NAME ptrOp [ "DBX" ] ;
 
 SCAN TYPE Ident ID ::= IdentifierStart { IdentifierChar } ;
 SCAN IdentifierStart ::= < '_' | 'a' .. 'z' | 'A' .. 'Z' > ;
-SCAN IdentifierChar = < IdentifierStart | Digit > ;
+SCAN IdentifierChar = < IdentifierStart | Digit | '-' > ;
 
 SCAN TYPE String StringConstant ::= < DOUBLE_QUOTED_STRING | SINGLE_QUOTED_STRING > ;
 SCAN DOUBLE_QUOTED_STRING = '"' { AnyCharExceptDoubleQuoteNewline } '"' ;
@@ -347,17 +354,16 @@ SCAN Digit ::= < '0' .. '9' > ;
 SCAN TYPE String HEX_INT ::= "16#" NAME HexPrefix { HexDigit }+ ;
 SCAN HexDigit ::= < '0' .. '9' | 'A' .. 'F' | '_' > ;
 
+SCAN TYPE String BIN_INT ::= "2#" NAME BinPrefix { BinDigit }+ ;
+SCAN BinDigit ::= < '0' .. '1' > ;
+
 SCAN EOF ::= "$" "$" "$" "$" "$" "$" ;
 
 SCAN COMMENT LineComment ::= "//" NAME SlashSlashOp { AnyCharExceptNewline } ;
-SCAN COMMENT BlockComment ::= "(*" NAME OpenCommBlock { AnyCharExceptNewline }
-                              "*)" NAME CloseCommBlock ;
+SCAN COMMENT BlockComment ::= "(*" NAME OpenCommBlock { AnyChar } "*)" NAME CloseCommBlock [";"] ;
 SCAN AnyCharExceptNewline ::= < NUL .. HT | VT | FF | SO .. EOF > ;
+SCAN AnyChar ::= < NUL .. EOF > ;
 
 SCAN COMMENT Whitespace ::= { Space }+ ;
 SCAN COMMENT LineTerm ::= { Newline }+ ;
 SCAN Newline = < CR | LF | CR LF > ;
-
-
-%% Add '-' to IDs
-%% Binary numbers: 2#10101100000

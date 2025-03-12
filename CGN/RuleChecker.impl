@@ -119,13 +119,9 @@ Check_FunctionBody(me : FunctionBody)
   Rules.Check("C020", LOC, me)
   // TODO Can we shift the comments for each Field declaration
   // (and "END_VAR") to the previous element?
-  if me.inputs # NIL then
-    Check_String("VAR_INPUT")
-    [ { Check_Field(xxxinputs) }
-    | xxxinputs : Field <- me.inputs
-    ]
-    Check_String("END_VAR")
-  fi
+  [ { Check_LocalVarInputs(xxxinputs) }
+  | xxxinputs : LocalVarInputs <- me.inputs
+  ]
   if me.outputs # NIL then
     Check_String("VAR_OUTPUT")
     [ { Check_Field(xxxoutputs) }
@@ -221,6 +217,23 @@ Check_ParamsInitListComma(me : ParamsInitListComma)
     }
   | xxxargs : ArgumentsAssignment <- Tail(me.args, NIL)
   ]
+  Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
+Check_LocalVarInputs(me : LocalVarInputs)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  Check_String("VAR_INPUT")
+  if me.dbSpecf then
+    Check_String("DB_SPECIFIC")
+  fi
+  [ { Check_Field(xxxinputs) }
+  | xxxinputs : Field <- me.inputs
+  ]
+  Check_String("END_VAR")
   Check_Comment(me.src_info)
   set_margin(margin)
 }
@@ -575,7 +588,9 @@ Check_Network(me : Network)
   Rules.Check("G043", LOC, me)
   [
     {
-      Check_Instruction(xxxinstructions)
+      if xxxinstructions # NIL then
+        Check_Instruction(xxxinstructions)
+      fi
       Check_String(";")
     }
   | xxxinstructions : Instruction <- me.instructions
@@ -636,6 +651,16 @@ Check_InstrExpression(me : DecimalLiteral)
 }
 
 Check_InstrExpression(me : HexadecimalLiteral)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  Check_String(me.value)
+  Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
+Check_InstrExpression(me : BinaryLiteral)
 {
   margin : Int := 0
   Check_Comment(me.src_info)
@@ -1599,6 +1624,16 @@ Check_InstructionName(me : LogicXorInstr)
   Check_Comment(me.src_info)
   margin := fix_margin()
   Check_String("X")
+  Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
+Check_InstructionName(me : LogicXorNotInstr)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  Check_String("XN")
   Check_Comment(me.src_info)
   set_margin(margin)
 }

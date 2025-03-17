@@ -143,7 +143,7 @@ DA02: L 1;
       T #t_Loop_Counter;
 
 // Backup AR content
-DA03: TAR1;
+DA30: TAR1;
       T #t_AR1_Backup;
       TAR2;
       T #t_AR2_Backup;
@@ -153,7 +153,7 @@ DA03: TAR1;
       LAR2 P##s_Dest_01_Used;
 
 // If destination bigger than zero
-DA02: L W[ AR1, P#0.0];
+DA04: L W[ AR1, P#0.0];
       L 0;
       >I;
       JCN DA02;
@@ -163,14 +163,14 @@ DA02: L W[ AR1, P#0.0];
       R[ AR2, P#0.0];
 
 // If destination equal or smaller than zero OR not available, checks next destination and availability
-DA04: L P#4.0;
+DA05: L P#4.0;
       +AR1;
 
       L P#0.1;
       +AR2;
 
 // Increment 1 to the loop counter until a maximum of 15 destinations
-DA04: L #t_Loop_Counter;
+DA06: L #t_Loop_Counter;
       L 1;
       +I;
       T #t_Loop_Counter;

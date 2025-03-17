@@ -227,15 +227,12 @@ CheckLabelsOrder(instList: ([Instruction]), prefix: String)
   [
     {
       index: String = GetLabelNumber(GetLabel(inst))
-      if #index = 0 then // skip; bad label => another check
-      else
-        if previous < index
-        then previous := index
-        else AddViolation("C011", inst.src_info.loc,
-                          ["Label '"+ GetLabel(inst) +"' is out of order. Labels should" +
-                           " be in sequential ascending order within a network."])
-        fi
+      if previous >= index
+      then AddViolation("C011", inst.src_info.loc,
+                        ["Label '"+ GetLabel(inst) +"' is out of order. Labels should" +
+                          " be in sequential ascending order within a network."])
       fi
+      previous := index
     }
     | inst: (Instruction, label: (Identifier, id # NIL)) <- instList,
     (IsLabelWellFormed(GetLabel(inst), prefix))

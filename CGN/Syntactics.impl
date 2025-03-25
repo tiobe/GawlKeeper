@@ -61,8 +61,15 @@ TrimQuotes(s : String) : String
 
 IsNetwTitleWellFormed(title: String): Bool
 {
-    return #title > 4 & IsUpper(title@0) & IsUpper(title@1) &
-           title@2 = ':' & title@3 = ' '
+    return (
+            // The general-case check
+            #title > 4 & IsUpper(title@0) & IsUpper(title@1) &
+            title@2 = ':' & title@3 = ' '
+        ) | (
+            // The exceptions (see RM#36084)
+            title == "#Insert# // Insertion point code generator" |
+            title == "Example code"
+        )
 }
 
 IsLabelWellFormed(label: String): Bool

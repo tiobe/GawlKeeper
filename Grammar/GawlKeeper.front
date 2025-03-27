@@ -59,14 +59,14 @@ TypeBlock < Block ::=
 
 HeaderBlock ::=
   title: TITLE
-  [ params: ParamsInitComma ]
+  [ params: ParamsInitSemicolon ]
   [ "AUTHOR" ":" author: Reference ]
   [ "FAMILY" ":" family: Reference ]
   [ "NAME"   ":" name:   Reference ]
   "VERSION" ":" version: REAL
 ;
-ParamsInitComma ::= "{" params: ParamsInitListComma "}" ;
-ParamsInitListComma ::= args: ArgumentsAssignment // "," ;
+ParamsInitSemicolon ::= "{" params: ParamsInitListSemicolon "}" ;
+ParamsInitListSemicolon ::= args: ArgumentsAssignment // ";" ;
 
 LocalVarInputs ::=
   "VAR_INPUT" [ dbSpecf: "DB_SPECIFIC" ] inputs: { Field }+ "END_VAR"
@@ -263,6 +263,9 @@ CalleeExpression ::= <
 > ;
 Arguments ::= "(" args: ArgumentsList ")" ;
 ArgumentsList ::= args: ArgumentsAssignment // "," ;
+
+ParamsInitComma ::= "{" params: ParamsInitListComma "}" ;
+ParamsInitListComma ::= args: ArgumentsAssignment // "," ;
 
 Expression < InstrExpression ::= <
   AtomicExpression

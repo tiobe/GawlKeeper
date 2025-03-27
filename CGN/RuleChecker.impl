@@ -720,6 +720,18 @@ Check_InstrExpression(me : ArrayExpression)
   set_margin(margin)
 }
 
+Check_InstrExpression(me : ArrayInitialization)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  Check_String("[")
+  Check_String(me.init)
+  Check_String("]")
+  Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
 Check_InstrExpression(me : LgCmpEq)
 {
   margin : Int := 0

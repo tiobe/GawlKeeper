@@ -248,6 +248,20 @@ Check_DataForBlock(me : ImportedIdentifier)
   set_margin(margin)
 }
 
+Check_DataForBlock(me : DataBlockVars)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  Check_String("VAR")
+  [ { Check_Field(xxxvars) }
+  | xxxvars : Field <- me.vars
+  ]
+  Check_String("END_VAR")
+  Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
 Check_DataForBlock(me : StructForDataBlock)
 {
   margin : Int := 0

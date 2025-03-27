@@ -74,6 +74,7 @@ LocalVarInputs ::=
 
 DataForBlock ::= <
   ImportedIdentifier ::= id: Reference
+| DataBlockVars ::= "VAR" vars: { Field }+ "END_VAR"
 | StructForDataBlock ::= struct: StructBlock ";"
 > ;
 StructBlock ::= "STRUCT" struct: StructBody ;

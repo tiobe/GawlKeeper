@@ -168,7 +168,7 @@ Check_HeaderBlock(me : HeaderBlock)
   Rules.Check("C001", LOC, me)
   Check_String(me.title)
   if me.params # NIL then
-    Check_ParamsInitComma(me.params)
+    Check_ParamsInitSemicolon(me.params)
   fi
   if me.author # NIL then
     Check_String("AUTHOR")
@@ -192,19 +192,19 @@ Check_HeaderBlock(me : HeaderBlock)
   set_margin(margin)
 }
 
-Check_ParamsInitComma(me : ParamsInitComma)
+Check_ParamsInitSemicolon(me : ParamsInitSemicolon)
 {
   margin : Int := 0
   Check_Comment(me.src_info)
   margin := fix_margin()
   Check_String("{")
-  Check_ParamsInitListComma(me.params)
+  Check_ParamsInitListSemicolon(me.params)
   Check_String("}")
   Check_Comment(me.src_info)
   set_margin(margin)
 }
 
-Check_ParamsInitListComma(me : ParamsInitListComma)
+Check_ParamsInitListSemicolon(me : ParamsInitListSemicolon)
 {
   margin : Int := 0
   Check_Comment(me.src_info)
@@ -212,7 +212,7 @@ Check_ParamsInitListComma(me : ParamsInitListComma)
   Check_ArgumentsAssignment(me.args.head)
   [
     {
-      Check_String(",")
+      Check_String(";")
       Check_ArgumentsAssignment(xxxargs)
     }
   | xxxargs : ArgumentsAssignment <- Tail(me.args, NIL)
@@ -1920,19 +1920,52 @@ Check_ArgumentsList(me : ArgumentsList)
   set_margin(margin)
 }
 
+Check_ParamsInitComma(me : ParamsInitComma)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  Check_String("{")
+  Check_ParamsInitListComma(me.params)
+  Check_String("}")
+  Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
+Check_ParamsInitListComma(me : ParamsInitListComma)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  Check_ArgumentsAssignment(me.args.head)
+  [
+    {
+      Check_String(",")
+      Check_ArgumentsAssignment(xxxargs)
+    }
+  | xxxargs : ArgumentsAssignment <- Tail(me.args, NIL)
+  ]
+  Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
 Check_Identifier(me : Identifier)
 {
   margin : Int := 0
+  Check_Comment(me.src_info)
   margin := fix_margin()
   Check_Ident(me.id)
+  Check_Comment(me.src_info)
   set_margin(margin)
 }
 
 Check_StringLiteral(me : StringLiteral)
 {
   margin : Int := 0
+  Check_Comment(me.src_info)
   margin := fix_margin()
   Check_String(me.str)
+  Check_Comment(me.src_info)
   set_margin(margin)
 }
 

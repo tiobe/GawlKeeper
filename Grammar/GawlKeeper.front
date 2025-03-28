@@ -340,8 +340,8 @@ SCAN TYPE String SIZE ::= <
 
 SCAN TYPE String POINTER_OP ::= "P#" NAME ptrOp [ "DBX" ] ;
 
-SCAN TYPE String ARRAY_INIT ::= NonzeroInteger "(" "'" ANY_PRINT_CHAR "'" ")" ;
-SCAN TYPE Char ANY_PRINT_CHAR ::= < SP .. '~' > ;
+SCAN TYPE String ARRAY_INIT ::= NonzeroInteger "(" "'" AnyPrintChar "'" ")" ;
+SCAN AnyPrintChar ::= < SP .. '~' > ;
 
 SCAN TYPE Ident ID ::= IdentifierStart { IdentifierChar } ;
 SCAN IdentifierStart ::= < '_' | 'a' .. 'z' | 'A' .. 'Z' > ;

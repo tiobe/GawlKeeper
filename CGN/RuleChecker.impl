@@ -185,9 +185,11 @@ Check_HeaderBlock(me : HeaderBlock)
     Check_String(":")
     Check_InstrExpression(me.name)
   fi
-  Check_String("VERSION")
-  Check_String(":")
-  Check_String(me.version)
+  if me.version # NIL then
+    Check_String("VERSION")
+    Check_String(":")
+    Check_String(me.version)
+  fi
   Check_Comment(me.src_info)
   set_margin(margin)
 }

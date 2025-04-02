@@ -60,10 +60,10 @@ TypeBlock < Block ::=
 HeaderBlock ::=
   title: TITLE
   [ params: ParamsInitSemicolon ]
-  [ "AUTHOR" ":" author: Reference ]
-  [ "FAMILY" ":" family: Reference ]
-  [ "NAME"   ":" name:   Reference ]
-  "VERSION" ":" version: REAL
+  [ "AUTHOR"  ":" author: Reference ]
+  [ "FAMILY"  ":" family: Reference ]
+  [ "NAME"    ":" name:   Reference ]
+  [ "VERSION" ":" version: REAL ]
 ;
 ParamsInitSemicolon ::= "{" params: ParamsInitListSemicolon "}" ;
 ParamsInitListSemicolon ::= args: ArgumentsAssignment // ";" ;

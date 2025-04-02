@@ -1784,6 +1784,16 @@ Check_InstructionName(me : SInstr)
   set_margin(margin)
 }
 
+Check_InstructionName(me : SSInstr)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  Check_String("SS")
+  Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
 Check_InstructionName(me : SetInstr)
 {
   margin : Int := 0

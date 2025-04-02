@@ -242,6 +242,7 @@ InstructionName ::= <
 | RInstr ::= "R"
 | SaveInstr ::= "SAVE"
 | SInstr ::= "S"
+| SSInstr ::= "SS"
 | SetInstr ::= "SET"
 | ShiftLeftDblInstr   ::= "SLD"
 | ShiftLeftWordInstr  ::= "SLW"

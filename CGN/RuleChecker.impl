@@ -1766,16 +1766,6 @@ Check_InstructionName(me : RInstr)
   set_margin(margin)
 }
 
-Check_InstructionName(me : SaveInstr)
-{
-  margin : Int := 0
-  Check_Comment(me.src_info)
-  margin := fix_margin()
-  Check_String("SAVE")
-  Check_Comment(me.src_info)
-  set_margin(margin)
-}
-
 Check_InstructionName(me : SInstr)
 {
   margin : Int := 0
@@ -1786,12 +1776,12 @@ Check_InstructionName(me : SInstr)
   set_margin(margin)
 }
 
-Check_InstructionName(me : SSInstr)
+Check_InstructionName(me : SaveInstr)
 {
   margin : Int := 0
   Check_Comment(me.src_info)
   margin := fix_margin()
-  Check_String("SS")
+  Check_String("SAVE")
   Check_Comment(me.src_info)
   set_margin(margin)
 }
@@ -1802,6 +1792,16 @@ Check_InstructionName(me : SetInstr)
   Check_Comment(me.src_info)
   margin := fix_margin()
   Check_String("SET")
+  Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
+Check_InstructionName(me : SSInstr)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  Check_String("SS")
   Check_Comment(me.src_info)
   set_margin(margin)
 }

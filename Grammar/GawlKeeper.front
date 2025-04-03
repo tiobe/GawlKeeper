@@ -128,8 +128,12 @@ ArrayRangeDecl ::= "Array" "[" range: Range "]" "of" type: Type ;
 Range ::=
   start: INT
   ".." NAME rangeOp
-  end: INT
+  end: IntegerValue
 ;
+IntegerValue ::= < IntLiteral | IntVariable > ;
+IntLiteral  < IntegerValue ::= int: INT ;
+IntVariable < IntegerValue ::= int: Reference ;
+
 VectorDecl ::= type: BasicType "[" dimensions: INT "]" ;
 
 StructBody  ::= fields: { Field }+ "END_STRUCT" ;

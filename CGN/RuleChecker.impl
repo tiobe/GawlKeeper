@@ -539,11 +539,9 @@ Check_ArrayRangeDecl(me : ArrayRangeDecl)
   margin : Int := 0
   Check_Comment(me.src_info)
   margin := fix_margin()
-  Check_String("Array")
   Check_String("[")
   Check_Range(me.range)
   Check_String("]")
-  Check_String("of")
   Check_Type(me.type)
   Check_Comment(me.src_info)
   set_margin(margin)
@@ -604,9 +602,7 @@ Check_Network(me : Network)
   Rules.Check("G043", LOC, me)
   [
     {
-      if xxxinstructions # NIL then
-        Check_Instruction(xxxinstructions)
-      fi
+      Check_Instruction(xxxinstructions)
       Check_String(";")
     }
   | xxxinstructions : Instruction <- me.instructions

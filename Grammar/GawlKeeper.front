@@ -124,7 +124,7 @@ ComplexType < Type ::= <
 | StructType ::= "Struct" struct: StructBody
 | VectorType ::= vector: VectorDecl
 > ;
-ArrayRangeDecl ::= "Array" "[" range: Range "]" "of" type: Type ;
+ArrayRangeDecl ::= ARRAY "[" range: Range "]" OF type: Type ;
 Range ::=
   start: INT
   ".." NAME rangeOp
@@ -333,6 +333,9 @@ PointerReference ::= <
 
 SCAN TYPE String TITLE ::= "TITLE" { Space } "=" { AnyCharExceptNewline } ;
 SCAN Space = < SP | HT | VT | FF > ;
+
+SCAN ARRAY ::= < "Array" | "ARRAY" > ;
+SCAN OF ::= < "of" | "OF"> ;
 
 SCAN TYPE String SIZE ::= <
   "B" | "BYTE" | "CHAR" | "WCHAR" | "DINT" | "DW" | "DWORD" | "T" |

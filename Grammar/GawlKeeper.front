@@ -286,6 +286,7 @@ AtomicExpression < Expression ::= <
 | HexadecimalLiteral ::= value: HEX_INT
 | BinaryLiteral ::= value: BIN_INT
 | RealLiteral ::= value: REAL
+| TimeLiteral ::= value: TIME
 | Reference
 > ;
 Reference < AtomicExpression ::= <
@@ -367,6 +368,9 @@ SCAN HexDigit ::= < '0' .. '9' | 'A' .. 'F' | '_' > ;
 
 SCAN TYPE String BIN_INT ::= "2#" NAME BinPrefix { BinDigit }+ ;
 SCAN BinDigit ::= < '0' .. '1' > ;
+
+SCAN TYPE String TIME ::= ["S5"] < 't' | 'T' > '#' { Digit }+ TimeUnit ;
+SCAN TimeUnit = < 'H' | 'h' | 'M' | 'm' | 'S' | 's' | "MS" | "ms" > ;
 
 SCAN EOF ::= "$" "$" "$" "$" "$" "$" ;
 

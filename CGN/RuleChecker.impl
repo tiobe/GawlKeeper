@@ -102,7 +102,7 @@ Check_Block(me : TypeBlock)
   Check_String("TYPE")
   Check_StringLiteral(me.type_name)
   Check_HeaderBlock(me.header)
-  Check_StructBlock(me.struct)
+  Check_Type(me.type)
   Check_String(";")
   Check_String("END_TYPE")
   Check_Comment(me.src_info)
@@ -264,24 +264,13 @@ Check_DataForBlock(me : DataBlockVars)
   set_margin(margin)
 }
 
-Check_DataForBlock(me : StructForDataBlock)
+Check_DataForBlock(me : SingleDeclaration)
 {
   margin : Int := 0
   Check_Comment(me.src_info)
   margin := fix_margin()
-  Check_StructBlock(me.struct)
+  Check_Type(me.type)
   Check_String(";")
-  Check_Comment(me.src_info)
-  set_margin(margin)
-}
-
-Check_StructBlock(me : StructBlock)
-{
-  margin : Int := 0
-  Check_Comment(me.src_info)
-  margin := fix_margin()
-  Check_String("STRUCT")
-  Check_StructBody(me.struct)
   Check_Comment(me.src_info)
   set_margin(margin)
 }
@@ -294,7 +283,7 @@ Check_Field(me : Field)
   Check_InstrExpression(me.name)
   Rules.Check("C014", LOC, me)
   if me.params # NIL then
-    Check_ParamsInitSC(me.params)
+    Check_ParamsInitSemicolon(me.params)
   fi
   Check_String(":")
   Rules.Check("C042", LOC, me)
@@ -307,35 +296,6 @@ Check_Field(me : Field)
   Rules.Check("G021", LOC, me)
   // TODO get the comment from the closure of the declarations block
   // (i.e. END_STRUCT or END_VAR)
-  set_margin(margin)
-}
-
-Check_ParamsInitSC(me : ParamsInitSC)
-{
-  margin : Int := 0
-  Check_Comment(me.src_info)
-  margin := fix_margin()
-  Check_String("{")
-  Check_ParamsInitListSC(me.params)
-  Check_String("}")
-  Check_Comment(me.src_info)
-  set_margin(margin)
-}
-
-Check_ParamsInitListSC(me : ParamsInitListSC)
-{
-  margin : Int := 0
-  Check_Comment(me.src_info)
-  margin := fix_margin()
-  Check_ArgumentsAssignment(me.args.head)
-  [
-    {
-      Check_String(";")
-      Check_ArgumentsAssignment(xxxargs)
-    }
-  | xxxargs : ArgumentsAssignment <- Tail(me.args, NIL)
-  ]
-  Check_Comment(me.src_info)
   set_margin(margin)
 }
 
@@ -518,8 +478,12 @@ Check_Type(me : StructType)
   margin : Int := 0
   Check_Comment(me.src_info)
   margin := fix_margin()
-  Check_String("Struct")
-  Check_StructBody(me.struct)
+  // TODO Can we shift the comments for each Field declaration
+  // (and "END_STRUCT") to the previous element?
+  [ { Check_Field(xxxfields) }
+    | xxxfields : Field <- me.fields
+  ]
+  Check_String("END_STRUCT")
   Check_Comment(me.src_info)
   set_margin(margin)
 }
@@ -574,21 +538,6 @@ Check_VectorDecl(me : VectorDecl)
   set_margin(margin)
 }
 
-Check_StructBody(me : StructBody)
-{
-  margin : Int := 0
-  Check_Comment(me.src_info)
-  margin := fix_margin()
-  // TODO Can we shift the comments for each Field declaration
-  // (and "END_STRUCT") to the previous element?
-  [ { Check_Field(xxxfields) }
-  | xxxfields : Field <- me.fields
-  ]
-  Check_String("END_STRUCT")
-  Check_Comment(me.src_info)
-  set_margin(margin)
-}
-
 Check_Network(me : Network)
 {
   margin : Int := 0
@@ -604,9 +553,7 @@ Check_Network(me : Network)
   Rules.Check("G043", LOC, me)
   [
     {
-      if xxxinstructions # NIL then
-        Check_Instruction(xxxinstructions)
-      fi
+      Check_Instruction(xxxinstructions)
       Check_String(";")
     }
   | xxxinstructions : Instruction <- me.instructions

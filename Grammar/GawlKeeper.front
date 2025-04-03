@@ -53,7 +53,7 @@ FunctionBody ::=
 TypeBlock < Block ::=
   "TYPE" type_name: StringLiteral
   header: HeaderBlock
-  struct: StructBlock ";"
+  type: ComplexType ";"
   "END_TYPE"
 ;
 
@@ -75,17 +75,14 @@ LocalVarInputs ::=
 DataForBlock ::= <
   ImportedIdentifier ::= id: Reference
 | DataBlockVars ::= "VAR" vars: { Field }+ "END_VAR"
-| StructForDataBlock ::= struct: StructBlock ";"
+| SingleDeclaration ::= type: ComplexType ";"
 > ;
-StructBlock ::= "STRUCT" struct: StructBody ;
 
 Field ::=
-  name: Reference [ params: ParamsInitSC ]
+  name: Reference [ params: ParamsInitSemicolon ]
   ":" type: Type
   init: [ Assignment ] ";"
 ;
-ParamsInitSC ::= "{" params: ParamsInitListSC "}" ;
-ParamsInitListSC ::= args: ArgumentsAssignment // ";" ;
 
 ArgumentsAssignment ::=
   name: Expression
@@ -121,7 +118,7 @@ BasicType < Type ::= <
 > ;
 ComplexType < Type ::= <
   ArrayRangeType ::= array: ArrayRangeDecl
-| StructType ::= "Struct" struct: StructBody
+| StructType ::= STRUCT fields: { Field }+ "END_STRUCT"
 | VectorType ::= vector: VectorDecl
 > ;
 ArrayRangeDecl ::= "Array" "[" range: Range "]" "of" type: Type ;
@@ -131,8 +128,6 @@ Range ::=
   end: INT
 ;
 VectorDecl ::= type: BasicType "[" dimensions: INT "]" ;
-
-StructBody  ::= fields: { Field }+ "END_STRUCT" ;
 
 Network ::=
    "NETWORK" title: TITLE
@@ -333,6 +328,8 @@ PointerReference ::= <
 
 SCAN TYPE String TITLE ::= "TITLE" { Space } "=" { AnyCharExceptNewline } ;
 SCAN Space = < SP | HT | VT | FF > ;
+
+SCAN STRUCT ::= < "Struct" | "STRUCT" > ;
 
 SCAN TYPE String SIZE ::= <
   "B" | "BYTE" | "CHAR" | "WCHAR" | "DINT" | "DW" | "DWORD" | "T" |

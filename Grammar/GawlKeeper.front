@@ -121,7 +121,7 @@ ComplexType < Type ::= <
 | StructType ::= STRUCT fields: { Field }+ "END_STRUCT"
 | VectorType ::= vector: VectorDecl
 > ;
-ArrayRangeDecl ::= "Array" "[" range: Range "]" "of" type: Type ;
+ArrayRangeDecl ::= ARRAY "[" range: Range "]" OF type: Type ;
 Range ::=
   start: INT
   ".." NAME rangeOp
@@ -330,6 +330,8 @@ SCAN TYPE String TITLE ::= "TITLE" { Space } "=" { AnyCharExceptNewline } ;
 SCAN Space = < SP | HT | VT | FF > ;
 
 SCAN STRUCT ::= < "Struct" | "STRUCT" > ;
+SCAN ARRAY ::= < "Array" | "ARRAY" > ;
+SCAN OF ::= < "of" | "OF"> ;
 
 SCAN TYPE String SIZE ::= <
   "B" | "BYTE" | "CHAR" | "WCHAR" | "DINT" | "DW" | "DWORD" | "T" |

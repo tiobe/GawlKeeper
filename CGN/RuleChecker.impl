@@ -481,7 +481,7 @@ Check_Type(me : StructType)
   // TODO Can we shift the comments for each Field declaration
   // (and "END_STRUCT") to the previous element?
   [ { Check_Field(xxxfields) }
-    | xxxfields : Field <- me.fields
+  | xxxfields : Field <- me.fields
   ]
   Check_String("END_STRUCT")
   Check_Comment(me.src_info)
@@ -503,11 +503,9 @@ Check_ArrayRangeDecl(me : ArrayRangeDecl)
   margin : Int := 0
   Check_Comment(me.src_info)
   margin := fix_margin()
-  Check_String("Array")
   Check_String("[")
   Check_Range(me.range)
   Check_String("]")
-  Check_String("of")
   Check_Type(me.type)
   Check_Comment(me.src_info)
   set_margin(margin)

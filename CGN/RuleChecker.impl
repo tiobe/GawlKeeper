@@ -481,7 +481,7 @@ Check_Type(me : StructType)
   // TODO Can we shift the comments for each Field declaration
   // (and "END_STRUCT") to the previous element?
   [ { Check_Field(xxxfields) }
-    | xxxfields : Field <- me.fields
+  | xxxfields : Field <- me.fields
   ]
   Check_String("END_STRUCT")
   Check_Comment(me.src_info)

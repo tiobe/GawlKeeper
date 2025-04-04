@@ -518,7 +518,27 @@ Check_Range(me : Range)
   margin := fix_margin()
   Check_String(me.start)
   Check_String("..")
-  Check_String(me.end)
+  Check_IntegerValue(me.end)
+  Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
+Check_IntegerValue(me : IntLiteral)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  Check_String(me.int)
+  Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
+Check_IntegerValue(me : IntVariable)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  Check_InstrExpression(me.int)
   Check_Comment(me.src_info)
   set_margin(margin)
 }

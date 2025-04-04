@@ -125,8 +125,12 @@ ArrayRangeDecl ::= ARRAY "[" range: Range "]" OF type: Type ;
 Range ::=
   start: INT
   ".." NAME rangeOp
-  end: INT
+  end: IntegerValue
 ;
+IntegerValue ::= < IntLiteral | IntVariable > ;
+IntLiteral  < IntegerValue ::= int: INT ;
+IntVariable < IntegerValue ::= int: Reference ;
+
 VectorDecl ::= type: BasicType "[" dimensions: INT "]" ;
 
 Network ::=

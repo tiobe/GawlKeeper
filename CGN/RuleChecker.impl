@@ -1,6 +1,6 @@
 impl unit RuleChecker
 
-use 
+use
 
 print_support
 
@@ -11,7 +11,7 @@ Syntactics. IsComment
 global
 
 IS_ENABLED : Bool := FALSE
-LOC : Int := 0 
+LOC : Int := 0
 
 functions
 
@@ -594,8 +594,8 @@ Check_Instruction(me : Instruction)
     Check_InstrExpression(me.arg)
   fi
   Rules.Check("C030", LOC, me)
-  Check_Comment(me.src_info)
   Rules.Check("G028", LOC, me)
+  Check_Comment(me.src_info)
   set_margin(margin)
 }
 

@@ -661,6 +661,16 @@ Check_InstrExpression(me : RealLiteral)
   set_margin(margin)
 }
 
+Check_InstrExpression(me : TimeLiteral)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  Check_String(me.value)
+  Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
 Check_InstrExpression(me : LocalVariable)
 {
   margin : Int := 0

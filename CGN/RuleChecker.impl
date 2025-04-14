@@ -569,18 +569,14 @@ Check_Network(me : Network)
   Rules.Check("C030", LOC, me)
   Rules.Check("G026", LOC, me)
   Rules.Check("G043", LOC, me)
-  [
-    {
-      Check_Instruction(xxxinstructions)
-      Check_String(";")
-    }
+  [ { Check_Instruction(xxxinstructions) }
   | xxxinstructions : Instruction <- me.instructions
   ]
   Check_Comment(me.src_info)
   set_margin(margin)
 }
 
-Check_Instruction(me : Instruction)
+Check_Instruction(me : ActualInstruction)
 {
   margin : Int := 0
   Check_Comment(me.src_info)

@@ -135,9 +135,10 @@ VectorDecl ::= type: BasicType "[" dimensions: INT "]" ;
 
 Network ::=
    "NETWORK" title: TITLE
-   instructions: { Instruction ";" }
+   instructions: { Instruction }
 ;
-Instruction ::=
+Instruction ::= < ActualInstruction ";" | ";" > ;
+ActualInstruction < Instruction ::=
   label : [ Identifier ":" ]
   instruction: InstructionName
   arg: [ InstrExpression ]
@@ -379,7 +380,7 @@ SCAN EOF ::= "$" "$" "$" "$" "$" "$" ;
 
 SCAN COMMENT LineComment ::= "//" NAME SlashSlashOp { AnyCharExceptNewline } ;
 SCAN COMMENT SHORTEST BlockComment ::= "(*" NAME OpenCommBlock { AnyChar }
-                                       "*)" NAME CloseCommBlock [ ";" ];
+                                       "*)" NAME CloseCommBlock ;
 SCAN AnyCharExceptNewline ::= < NUL .. HT | VT | FF | SO .. EOF > ;
 SCAN AnyChar ::= < NUL .. EOF > ;
 

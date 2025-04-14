@@ -345,7 +345,7 @@ SCAN TYPE String SIZE ::= <
 
 SCAN TYPE String POINTER_OP ::= "P#" NAME ptrOp [ "DBX" ] ;
 
-SCAN TYPE String ARRAY_INIT ::= NonzeroInteger "(" "'" AnyPrintChar "'" ")" ;
+SCAN TYPE String ARRAY_INIT ::= Integer "(" "'" AnyPrintChar "'" ")" ;
 SCAN AnyPrintChar ::= < SP .. '~' > ;
 
 SCAN TYPE Ident ID ::= IdentifierStart { IdentifierChar } ;
@@ -358,12 +358,11 @@ SCAN SINGLE_QUOTED_STRING = "'" { AnyCharExceptSingleQuoteNewline } "'" ;
 SCAN AnyCharExceptDoubleQuoteNewline ::= < NUL .. HT | VT | FF | SO .. '!' | '#' .. EOF > ;
 SCAN AnyCharExceptSingleQuoteNewline ::= < NUL .. HT | VT | FF | SO .. '&' | '(' .. EOF > ;
 
-SCAN TYPE String REAL ::= { Digit }+ '.' { Digit }+ ;
+SCAN TYPE String REAL ::= Integer '.' Integer ;
 
-SCAN TYPE String INT ::= < '0' | NonzeroInteger > ;
+SCAN TYPE String INT ::= Integer ;
 SCAN TYPE String SIGN ::= < '+' | '-' > ;
-SCAN NonzeroInteger = NonzeroDigit { Digit } ;
-SCAN NonzeroDigit ::= < '1' .. '9' > ;
+SCAN Integer = { Digit }+ ;
 SCAN Digit ::= < '0' .. '9' > ;
 
 SCAN TYPE String HEX_INT ::= "16#" NAME HexPrefix { HexDigit }+ ;

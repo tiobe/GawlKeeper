@@ -378,7 +378,7 @@ SCAN EOF ::= "$" "$" "$" "$" "$" "$" ;
 
 SCAN COMMENT LineComment ::= "//" NAME SlashSlashOp { AnyCharExceptNewline } ;
 SCAN COMMENT SHORTEST BlockComment ::= "(*" NAME OpenCommBlock { AnyChar }
-                                       "*)" NAME CloseCommBlock [ ";" ];
+                                       "*)" NAME CloseCommBlock ;
 SCAN AnyCharExceptNewline ::= < NUL .. HT | VT | FF | SO .. EOF > ;
 SCAN AnyChar ::= < NUL .. EOF > ;
 

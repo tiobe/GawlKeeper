@@ -1448,6 +1448,7 @@ Check_InstructionName(me : JuInstr)
   Check_Comment(me.src_info)
   margin := fix_margin()
   Check_String("JU")
+  Check_Comment(me.src_info)
   set_margin(margin)
 }
 

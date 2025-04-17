@@ -3,6 +3,7 @@ impl unit Syntactics
 use
 Comments. Comment
 StringTokenizer. IndexOf, Trim
+Properties. GetTitle
 
 functions
 
@@ -65,11 +66,18 @@ IsNetwTitleWellFormed(title: String): Bool
             // The general-case check
             #title > 4 & IsUpper(title@0) & IsUpper(title@1) &
             title@2 = ':' & title@3 = ' '
-        ) | (
-            // The exceptions (see RM#36084)
-            title == "#Insert# // Insertion point code generator" |
-            title == "Example code"
-        )
+        ) |
+        IsExceptionNetwork(title) // The exceptions (see RM#36084)
+}
+
+IsExceptionNetwork(title: String): Bool
+{
+    return title == "#Insert# // Insertion point code generator" |
+           title == "Example code"
+}
+IsExceptionNetwork(netw: Network): Bool
+{
+    return IsExceptionNetwork(GetTitle(netw))
 }
 
 IsLabelWellFormed(label: String): Bool

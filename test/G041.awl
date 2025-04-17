@@ -88,5 +88,11 @@ TITLE = BA: Search for item on Dispatch Point
       >I;
       = #t_Carrier_Found;
 
-END_FUNCTION_BLOCK
+NETWORK
+TITLE = #Insert# // Insertion point code generator
+      NOP 0;
 
+NETWORK
+TITLE = Example code
+
+END_FUNCTION_BLOCK

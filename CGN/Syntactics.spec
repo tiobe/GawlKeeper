@@ -27,6 +27,10 @@ TrimQuotes(s : String) : String
 // Check morphological correction of a network title
 IsNetwTitleWellFormed(title: String): Bool
 
+// Network stubs are empty and have names which don't follow the rules, but they
+// are to be exempted from checks.
+IsExceptionNetwork(netw: Network): Bool
+
 // Check if a jump label has the right structure (characters and digits are in
 // the expected places and in the right case).
 IsLabelWellFormed(label: String): Bool

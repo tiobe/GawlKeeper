@@ -24,6 +24,7 @@ Check_GawlKeeper(me : GawlKeeper)
   Check_Block(me.block_type)
   Rules.Check("C014", LOC, me.block_type)
   Rules.Check("C015", LOC, me)
+  Rules.Check("C020", LOC, me.block_type)
   Rules.Check("G003", LOC, me)
   Check_Comment(me.src_info)
   set_margin(margin)
@@ -116,7 +117,6 @@ Check_FunctionBody(me : FunctionBody)
   margin := fix_margin()
   Check_HeaderBlock(me.header)
   Rules.Check("C007", LOC, me)
-  Rules.Check("C020", LOC, me)
   // TODO Can we shift the comments for each Field declaration
   // (and "END_VAR") to the previous element?
   [ { Check_LocalVarInputs(xxxinputs) }

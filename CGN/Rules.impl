@@ -24,7 +24,7 @@ functions
 Check(rule : String, loc : Int, me : HeaderBlock)     // C001
 conditions ~IsRuleEnabled(rule) { }
 
-Check(rule : String, loc : Int, me : Block)           // C014
+Check(rule : String, loc : Int, me : Block)           // C014, C020
 conditions ~IsRuleEnabled(rule) { }
 
 Check(rule : String, loc : Int, me : GawlKeeper)      // C015, G003
@@ -36,7 +36,7 @@ conditions ~IsRuleEnabled(rule) { }
 Check(rule : String, loc : Int, me : Instruction)     // G028
 conditions ~IsRuleEnabled(rule) { }
 
-Check(rule : String, loc : Int, me : FunctionBody)    // C007, C020
+Check(rule : String, loc : Int, me : FunctionBody)    // C007
 conditions ~IsRuleEnabled(rule) { }
 
 Check(rule : String, loc : Int, me : Field)           // C014(2), C042, G021
@@ -303,8 +303,21 @@ conditions rule == "C007"
   ]
 }
 
-Check(rule : String, loc: Int, me: FunctionBody)
+
+Check(rule : String, loc : Int, me : Function)
 conditions rule == "C020"
+{ CheckC20(loc, me.body) }
+
+Check(rule : String, loc : Int, me : FunctionBlock)
+conditions rule == "C020"
+{ CheckC20(loc, me.body) }
+
+Check(rule : String, loc : Int, me : Block)
+conditions rule == "C020"
+{ } // DATA_BLOCK's and TYPE blocks don't have local variables, and we exclude
+    // ORGANIZATION_BLOCK's from this check.
+
+CheckC20(loc: Int, me: FunctionBody)
 {
   [CheckC20(inputs_block.inputs, 'i') | inputs_block: LocalVarInputs <- me.inputs] astype VOID
   CheckC20(me.outputs, 'o')

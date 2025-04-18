@@ -16,8 +16,8 @@ RuleViolation. ', AddViolation
 ScanIO. FindFileName, FindLocation
 StringTokenizer. Split, Trim
 Syntactics. IsCommentWellFormatted, IsLabelWellFormed, IsNetwTitleWellFormed,
-            IsNewline, IsOperandChanging, FilterComments, TrimQuotes,
-            GetAwlBaseFileName, GetLabelNumber, StartsWithCap
+            IsExceptionNetwork, IsNewline, IsOperandChanging, FilterComments,
+            TrimQuotes, GetAwlBaseFileName, GetLabelNumber, StartsWithCap
 
 functions
 
@@ -30,7 +30,7 @@ conditions ~IsRuleEnabled(rule) { }
 Check(rule : String, loc : Int, me : GawlKeeper)      // C015, G003
 conditions ~IsRuleEnabled(rule) { }
 
-Check(rule : String, loc : Int, me : Network)         // C006, C007, C011, C030, G026, G041, G043
+Check(rule : String, loc : Int, me : Network)         // C006, C011, C030, G026, G041, G043
 conditions ~IsRuleEnabled(rule) { }
 
 Check(rule : String, loc : Int, me : Instruction)     // G028
@@ -171,7 +171,9 @@ conditions rule == "C006"
 Check(rule : String, loc : Int, me : (Network, instructions = NIL))
 conditions rule == "G041"
 {
-  AddViolation(rule, loc, [GetTitle(me)])
+  if ~IsExceptionNetwork(me)
+    AddViolation(rule, loc, [GetTitle(me)])
+  fi
 }
 Check(rule : String, loc : Int, me : (Network,
                                      instructions : (List(Instruction),
@@ -180,7 +182,9 @@ Check(rule : String, loc : Int, me : (Network,
                                                      tail = NIL)))
 conditions rule == "G041"
 {
-  AddViolation(rule, loc, [GetTitle(me)])
+  if ~IsExceptionNetwork(me)
+    AddViolation(rule, loc, [GetTitle(me)])
+  fi
 }
 
 

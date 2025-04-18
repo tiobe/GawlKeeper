@@ -314,7 +314,7 @@ LogicCompExpression < Expression ::= <
 | LgCmpLeq ::= "<=0" NAME leOp
 > ;
 
-FieldExpression < Expression ::= expr: Expression "." field: Expression ;
+FieldExpression < Expression ::= expr: Expression "." field: AtomicExpression ;
 ConstExpression < Expression ::= size: [ SIZE ] "#" expr: AtomicExpression ;
 MemoryAccess    < Expression ::= "%" id: AtomicExpression ;
 PointerAccess   < Expression ::= op: POINTER_OP expr: PointerReference ;

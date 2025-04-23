@@ -95,8 +95,8 @@ GetRules() : [([String])]
       "Variable '\027' must start with '\027'."
     ],
     [ "C030",
-      "If a Global Variable is changed more than once in a block, the changes should be made within the same Network.",
-      "Gobal variables '\027' was already modified in network '\027'."
+      "If a global variable is changed more than once in a block, the changes should be made within the same Network.",
+      "Global variable '\027' was already modified in network '\027'."
     ],
     [ "C042",
       "All arrays must start from zero.",

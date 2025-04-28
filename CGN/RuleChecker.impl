@@ -304,8 +304,28 @@ Check_ArgumentsAssignment(me : ArgumentsAssignment)
   margin : Int := 0
   Check_Comment(me.src_info)
   margin := fix_margin()
-  Check_InstrExpression(me.name)
+  Check_ArgumentIdentifier(me.name)
   Check_Assignment(me.value)
+  Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
+Check_ArgumentIdentifier(me : GoodArgIdentifier)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  Check_InstrExpression(me.arg)
+  Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
+Check_ArgumentIdentifier(me : BadArgIdentifier)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  Check_InstructionName(me.arg)
   Check_Comment(me.src_info)
   set_margin(margin)
 }

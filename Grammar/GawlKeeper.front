@@ -85,12 +85,16 @@ Field ::=
 ;
 
 ArgumentsAssignment ::=
-  name: Expression
+  name: ArgumentIdentifier
   value: Assignment
 ;
-%% LET OP: there is a reason not to merge the following rule with the one above:
-%% in the struct's field declarations, the type goes between the identifier and
-%% the initialization.
+ArgumentIdentifier ::= < GoodArgIdentifier | BadArgIdentifier > ;
+GoodArgIdentifier < ArgumentIdentifier ::= arg: Expression ;
+BadArgIdentifier < ArgumentIdentifier ::= arg: InstructionName ;
+
+%% LET OP: there is a reason not to merge the following rule ('Assignment') with
+%% the one above ('ArgumentsAssignment'): in the struct's field declarations,
+%% the type goes between the identifier and the initialization.
 
 Assignment ::=
   ":=" NAME AssignOp

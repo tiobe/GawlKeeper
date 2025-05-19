@@ -104,7 +104,7 @@ GetRules() : [([String])]
     ],
     [ "G003",
       "Block name is filename.",
-      "Block '\027' should be named '\027', like the file which contains it."
+      "File '\027' should be named '\027', like the block it contains."
     ],
     [ "G021",
       "Comments for declarations.",

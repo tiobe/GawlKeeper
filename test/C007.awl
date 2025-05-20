@@ -29,7 +29,7 @@ TITLE = BB: Some network title out of order
       T #t_DB_Event_Section;
 
 NETWORK
-TITLE = BA: Some network title taking the blame
+TITLE = AB: Some network title taking the blame
       NOP 0;
 
 // Copy section event DB number
@@ -39,7 +39,7 @@ TITLE = BA: Some network title taking the blame
       T #t_DB_Event_Section;
 
 NETWORK
-TITLE = CA: Good
+TITLE = AC: Good
       NOP 0;
 
 // Copy section event DB number

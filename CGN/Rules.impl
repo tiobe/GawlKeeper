@@ -293,14 +293,13 @@ CheckSpecialIndexes(instList: ([Instruction]), label: String)
 Check(rule: String, loc: Int, me: FunctionBody)
 conditions rule == "C007"
 {
-  prefixes: [String] := NIL
+  previous: String := "00"
   [ {
       prefix: String = SubString(title, 0, 1)
-      if prefixes = NIL | Last(prefixes) < prefix then
-        prefixes :+ prefix
-      else
+      if previous >= prefix then
         AddViolation(rule, netw.src_info.loc, [title])
       fi
+      previous := prefix
     }
     | netw: Network <- me.networks, title: String = GetTitle(netw),
     (#GetTitle(netw) > 1)

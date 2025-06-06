@@ -297,7 +297,7 @@ conditions rule == "C007"
   [ {
       prefix: String = SubString(title, 0, 1)
       if previous >= prefix then
-        AddViolation(rule, netw.src_info.loc, [title])
+        AddViolation(rule, netw.title.src_info.loc, [title])
       fi
       previous := prefix
     }

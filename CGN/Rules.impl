@@ -309,18 +309,18 @@ conditions rule == "C007"
 
 Check(rule : String, loc : Int, me : Function)
 conditions rule == "C020"
-{ CheckC20(loc, me.body) }
+{ CheckC20(me.body) }
 
 Check(rule : String, loc : Int, me : FunctionBlock)
 conditions rule == "C020"
-{ CheckC20(loc, me.body) }
+{ CheckC20(me.body) }
 
 Check(rule : String, loc : Int, me : Block)
 conditions rule == "C020"
 { } // DATA_BLOCK's and TYPE blocks don't have local variables, and we exclude
     // ORGANIZATION_BLOCK's from this check.
 
-CheckC20(loc: Int, me: FunctionBody)
+CheckC20(me: FunctionBody)
 {
   [CheckC20(inputs_block.inputs, 'i') | inputs_block: LocalVarInputs <- me.inputs] astype VOID
   CheckC20(me.outputs, 'o')

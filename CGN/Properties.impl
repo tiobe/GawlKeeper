@@ -10,7 +10,10 @@ Syntactics. IndexOf
 functions
 
 GetTitle(network : Network): (String)
-{ return Trim(SubString(network.title, IndexOf(network.title, '=')+1, #network.title-1)) }
+{
+    title: String = network.title.title
+    return Trim(SubString(title, IndexOf(title, '=')+1, #title-1))
+}
 
 GetNetwPrefix(network: Network): String
 {

@@ -583,7 +583,7 @@ Check_Network(me : Network)
   margin := fix_margin()
   Check_String("NETWORK")
   Rules.Check("G041", LOC, me)
-  Check_String(me.title)
+  Check_NetworkTitle(me.title)
   Rules.Check("C006", LOC, me)
   Rules.Check("C011", LOC, me)
   Rules.Check("C030", LOC, me)
@@ -596,6 +596,16 @@ Check_Network(me : Network)
     }
   | xxxinstructions : Instruction <- me.instructions
   ]
+  Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
+Check_NetworkTitle(me : NetworkTitle)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  Check_String(me.title)
   Check_Comment(me.src_info)
   set_margin(margin)
 }

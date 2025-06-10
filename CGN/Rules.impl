@@ -95,7 +95,7 @@ conditions rule == "G003"
   filename : String = GetAwlBaseFileName(FindFileName(loc))
 
   if ~(title == filename) then
-    AddViolation(rule, loc, [title, filename])
+    AddViolation(rule, loc, [filename, title])
   fi
 }
 

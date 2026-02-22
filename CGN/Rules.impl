@@ -86,6 +86,16 @@ CheckBlockC14(loc: Int, name: StringLiteral)
 CheckC14(loc: Int, name: String): Bool
 { return All(StartsWithCap, Split(name, '_')) }
 
+Check(rule : String, loc : Int, me : Field)
+conditions rule == "C014"
+{
+  name: String = GetName(me.name)
+  start: Int = if name@0 <- ['i', 'o', 's', 't'] & name@1 = '_' then 2 else 0 fi
+  if ~ CheckC14(loc, SubString(name, start, #name-1)) then
+    AddViolation("C014", loc, ["local variable", name])
+  fi
+}
+
 Check(rule : String, loc : Int, me : GawlKeeper)
 conditions rule == "C015"
 {
@@ -127,6 +137,64 @@ CheckC30(globVar: Ident, netwPrefix: String, loc: Int, netw: Network)
 Check(rule : String, loc : Int, me : TimeLiteral)
 conditions rule == "C039"
 { AddViolation(rule, loc, [me.value]) }
+
+Check(rule : String, loc : Int, me : InstrExpression)
+conditions rule == "C040" 
+{ 
+  CheckC040(loc, me)
+}
+
+CheckC040(loc : Int, me : FieldExpression) 
+{ 
+  CheckC040(loc, me.expr) 
+  CheckC040(loc, me.field)
+}
+
+CheckC040(loc : Int, me : ConstExpression) 
+{ CheckC040(loc, me.expr) }
+
+CheckC040(loc : Int, me : MemoryAccess)
+{ CheckC040(loc, me.id) }
+
+CheckC040(loc : Int, me : (PointerAccess, expr : PointerAccessHash)) 
+{ CheckC040(loc, me.expr.hash) }
+
+CheckC040(loc : Int, me : Reference) 
+{ CheckC040(loc, GetName(me)) }
+
+CheckC040(loc : Int, me : InstrExpression) 
+{ }
+
+CheckC040(loc : Int, str : String)
+conditions ToLower(SubString(TrimQuotes(str), 0, 2)) == "di_"
+{ AddViolation("C040", loc, [TrimQuotes(str)]) }
+
+CheckC040(loc : Int, str : String)
+{ }
+
+Check(rule : String, loc : Int, me : List(CalleeExpression))
+conditions rule == "C040"
+{ CheckC040(loc, me, 1)  }
+
+CheckC040(loc : Int, NIL : List(CalleeExpression), argument : Int)
+{ }
+
+// second argument should be skipped
+CheckC040(loc : Int, me : (List(CalleeExpression)), argument : Int)
+conditions argument = 2
+{ CheckC040(loc, me.tail, argument + 1) } 
+
+CheckC040(loc : Int, me : (List(CalleeExpression), head : AtomicCallee), argument : Int)
+{ 
+  CheckC040(loc, me.head.callee) 
+  CheckC040(loc, me.tail, argument + 1) 
+} 
+
+CheckC040(loc : Int, me : (List(CalleeExpression), head : HashedCallee), argument : Int)
+{ 
+  CheckC040(loc, me.head.callee) 
+  CheckC040(loc, me.tail, argument + 1) 
+} 
 
 Check(rule : String, loc : Int, me : HeaderBlock)
 conditions rule == "C066" & ContainsSubString(ToLower(StripSpaces(me.title)), "%version:q")
@@ -365,25 +433,16 @@ conditions rule == "G021"
   fi
 }
 
-Check(rule : String, loc : Int, me : Field)
-conditions rule == "C014"
-{
-  name: String = GetName(me.name)
-  start: Int = if name@0 <- ['i', 'o', 's', 't'] & name@1 = '_' then 2 else 0 fi
-  if ~ CheckC14(loc, SubString(name, start, #name-1)) then
-    AddViolation("C014", loc, ["local variable", name])
-  fi
-}
-
 
 
 //// Catch-all ////
 
-Check(rule : String, loc : Int, me : Block)         { }
-Check(rule : String, loc : Int, me : Expression)    { }
-Check(rule : String, loc : Int, me : Field)         { }
-Check(rule : String, loc : Int, me : FunctionBody)  { }
-Check(rule : String, loc : Int, me : GawlKeeper)    { }
-Check(rule : String, loc : Int, me : HeaderBlock)   { }
-Check(rule : String, loc : Int, me : Instruction)   { }
-Check(rule : String, loc : Int, me : Network)       { }
+Check(rule : String, loc : Int, me : Block) { }
+Check(rule : String, loc : Int, me : List(CalleeExpression)) { }
+Check(rule : String, loc : Int, me : Field) { }
+Check(rule : String, loc : Int, me : FunctionBody) { }
+Check(rule : String, loc : Int, me : GawlKeeper) { }
+Check(rule : String, loc : Int, me : HeaderBlock) { }
+Check(rule : String, loc : Int, me : InstrExpression) { }
+Check(rule : String, loc : Int, me : Instruction) { }
+Check(rule : String, loc : Int, me : Network) { }

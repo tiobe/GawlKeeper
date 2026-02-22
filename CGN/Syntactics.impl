@@ -2,6 +2,7 @@ impl unit Syntactics
 
 use
 Comments. Comment
+KMPMatch. Match
 StringTokenizer. IndexOf, Trim
 Properties. GetTitle
 
@@ -112,3 +113,41 @@ StartsWithCap(s: String): Bool { return #s = 0 | IsUpper(s@0) | IsDigit(s@0) }
 
 IsOperandChanging(instruction: (Instruction, instruction: TransfInstr)): Bool { return TRUE }
 IsOperandChanging(instruction: Instruction): Bool { return FALSE }
+
+StripSpaces(s : String): String
+{ return StripSpaces(s, 0, #s - 1) }
+
+StripSpaces(s : String, i : Int, j : Int): String
+{
+  m : Int = [ /(\+, 0) 1 | k : Int <- i .. j, (IsSpace(s@k)) ]
+  t : String = NewString(j + 1 - i - m)
+  p : Int := i
+  q : Int := 0
+
+  while p <= j {
+    // Assert(q < #t)
+    if ~IsSpace(s@p) then
+      t@q := s@p
+      q :+ 1
+    fi
+    p :+ 1
+  }
+  return t
+}
+
+ToLower(s : String): String
+{
+  t : String = NewString(#s)
+  p : Int := 0
+
+  while p < #s {
+    t@p := ToLower(s@p)
+    p :+ 1
+  }
+
+  return t
+}
+
+ContainsSubString(str : String, sub : String): Bool
+{ return Match(str, sub, TRUE) # -1 }
+

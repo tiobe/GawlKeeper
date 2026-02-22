@@ -102,10 +102,13 @@ GetRules() : [([String])]
       "Siemens Timers should never be used in relation with physical movements in a conveyor system that can be stopped.",
       "Siemens Timer '\027' has been used."
     ],
-    
     [ "C042",
       "All arrays must start from zero.",
       "Array '\027' must start at 0 instead of \027. Adjust the upper bound accordingly."
+    ],
+    [ "C066",
+      "Temporary modifications to a standard block due to an approved Problem Report or Change Request, in advance of the next release, need to be indicated as a Q-Version.",
+      "The version number in the block title '\027' starts with the letter 'q'."
     ],
     [ "G003",
       "Block name is filename.",

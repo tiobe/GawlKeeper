@@ -317,6 +317,7 @@ Check_ArgumentIdentifier(me : GoodArgIdentifier)
   margin : Int := 0
   Check_Comment(me.src_info)
   margin := fix_margin()
+  Rules.Check("C040", LOC, me.arg)
   Check_InstrExpression(me.arg)
   Check_Comment(me.src_info)
   set_margin(margin)
@@ -339,6 +340,7 @@ Check_Assignment(me : Assignment)
   margin := fix_margin()
   Check_String(":=")
   if me.expr # NIL then
+    Rules.Check("C040", LOC, me.expr)
     Check_InstrExpression(me.expr)
   fi
   Check_Comment(me.src_info)
@@ -623,6 +625,7 @@ Check_Instruction(me : Instruction)
   fi
   Check_InstructionName(me.instruction)
   if me.arg # NIL then
+    Rules.Check("C040", LOC, me.arg)
     Check_InstrExpression(me.arg)
   fi
   Rules.Check("C030", LOC, me)
@@ -1906,6 +1909,7 @@ Check_CalleeList(me : CalleeList)
   margin : Int := 0
   Check_Comment(me.src_info)
   margin := fix_margin()
+  Rules.Check("C040", LOC, me.callee)
   Check_CalleeExpression(me.callee.head)
   [
     {

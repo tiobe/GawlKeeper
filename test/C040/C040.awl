@@ -1,0 +1,17 @@
+FUNCTION_BLOCK "Convention40"
+TITLE = Test for Convention 40
+BEGIN
+NETWORK TITLE = Test for Convention 40
+CALL "FB_EQP_PEC", "DI_TRS_ZZ_01_PEC_EOS"; // OK
+CALL "FB_EQP_PEC", "DI_TRS_ZZ_01_PEC_EOS" ( FOO := "DI_TES" ) ; // Violation
+CALL "D"; // OK 
+CALL "DI"; // OK 
+CALL DI_; // Violation 
+CALL "DI_"; // Violation 
+CALL "DI_TRS_ZZ_01_PEC_EOS"; // Violation 
+CALL "FB_EQP_PEC", "FOO", #DI_TRS_ZZ_01_PEC_EOS; // Violation
+L #DI_3; // Violation
+L "DI_3"; // Violation
+L DI_3; // Violation
+L DIP;  // OK
+END_FUNCTION_BLOCK

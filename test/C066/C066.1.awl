@@ -1,4 +1,4 @@
 FUNCTION_BLOCK "Convention66"
-TITLE = "%Version: Q 1.4 %" # Violation 
+TITLE = "%Version: Q 1.4 %" // Violation 
 BEGIN
 END_FUNCTION_BLOCK

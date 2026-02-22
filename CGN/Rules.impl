@@ -93,6 +93,10 @@ conditions rule == "C015"
   if #title > 20 then AddViolation(rule, loc, [title]) fi
 }
 
+Check(rule : String, loc : Int, me : Field)
+conditions rule == "C023"
+{ AddViolation(rule, me.src_info.loc, [GetName(me.name)]) }
+
 Check(rule : String, loc : Int, me : (Network, instructions # NIL))
 conditions rule == "C030"
 {

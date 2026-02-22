@@ -130,10 +130,11 @@ Check_FunctionBody(me : FunctionBody)
     Check_String("END_VAR")
   fi
   if me.in_outs # NIL then
-    // TODO Section 2.2.1 (pg. 13) of "Architectural design spec" says that
-    // "In- and Output parameter may not be used"
     Check_String("VAR_IN_OUT")
-    [ { Check_Field(xxxin_outs) }
+    [ { 
+        Rules.Check("C023", LOC, xxxin_outs)
+        Check_Field(xxxin_outs)
+      }
     | xxxin_outs : Field <- me.in_outs
     ]
     Check_String("END_VAR")

@@ -1,0 +1,10 @@
+FUNCTION_BLOCK "Convention23"
+TITLE = Test for rule Convention 23
+VAR_IN_OUT 
+foo : Any; // Violation
+END_VAR
+VAR
+bla : Any; // OK
+END_VAR
+BEGIN
+END_FUNCTION_BLOCK

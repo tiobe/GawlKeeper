@@ -8,7 +8,6 @@ impl unit Rules
 
 use
 
-KMPMatch. Match
 Properties. GetTitle, GetName, GetLocLine, GetComments, GetLabel, GetNetwPrefix,
             GetGlobalVar
 RuleConfig. IsRuleEnabled
@@ -17,7 +16,8 @@ ScanIO. FindFileName, FindLocation
 StringTokenizer. Split, Trim
 Syntactics. IsCommentWellFormatted, IsLabelWellFormed, IsNetwTitleWellFormed,
             IsExceptionNetwork, IsNewline, IsOperandChanging, FilterComments,
-            TrimQuotes, GetAwlBaseFileName, GetLabelNumber, StartsWithCap
+            TrimQuotes, GetAwlBaseFileName, GetLabelNumber, StartsWithCap,
+            StripSpaces, ToLower, ContainsSubString
 
 functions
 
@@ -123,6 +123,10 @@ CheckC30(globVar: Ident, netwPrefix: String, loc: Int, netw: Network)
 Check(rule : String, loc : Int, me : TimeLiteral)
 conditions rule == "C039"
 { AddViolation(rule, loc, [me.value]) }
+
+Check(rule : String, loc : Int, me : HeaderBlock)
+conditions rule == "C066" & ContainsSubString(ToLower(StripSpaces(me.title)), "%version:q")
+{ AddViolation(rule, loc, [me.title]) }
 
 Check(rule : String, loc : Int, me : GawlKeeper)
 conditions rule == "G003"

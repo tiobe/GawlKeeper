@@ -166,6 +166,7 @@ Check_HeaderBlock(me : HeaderBlock)
   Check_Comment(me.src_info)
   margin := fix_margin()
   Rules.Check("C001", LOC, me)
+  Rules.Check("C066", LOC, me)
   Check_String(me.title)
   if me.params # NIL then
     Check_ParamsInitSemicolon(me.params)

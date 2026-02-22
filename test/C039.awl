@@ -1,0 +1,9 @@
+FUNCTION_BLOCK "Convention39"
+TITLE = Test for Convention 39
+BEGIN
+NETWORK TITLE = Test for Convention 39
+L     S5T#5S; // Violation
+L     S5T#10S; // Violation
+L     S5t#23ms; // Violation
+L     S5t#23H; // Violation
+END_FUNCTION_BLOCK

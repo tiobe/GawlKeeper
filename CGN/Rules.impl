@@ -42,7 +42,6 @@ conditions ~IsRuleEnabled(rule) { }
 Check(rule : String, loc : Int, me : Field)           // C014(2), C042, G021
 conditions ~IsRuleEnabled(rule) { }
 
-
 Check(rule : String, loc : Int, me : (HeaderBlock, author # NIL))
 conditions rule == "C001"
 { AddViolation(rule, me.author.src_info.loc, ["AUTHOR"]) }
@@ -51,6 +50,12 @@ Check(rule : String, loc : Int, me : (HeaderBlock, name # NIL))
 conditions rule == "C001"
 { AddViolation(rule, me.name.src_info.loc, ["NAME"]) }
 
+Check(rule : String, loc : Int, me : Network)
+conditions rule == "C006"
+{
+  title: String = GetTitle(me)
+  if ~IsNetwTitleWellFormed(title) then AddViolation(rule, loc, [title]) fi
+}
 
 Check(rule : String, loc : Int, me : DataBlock)
 conditions rule == "C014"
@@ -88,50 +93,6 @@ conditions rule == "C015"
   if #title > 20 then AddViolation(rule, loc, [title]) fi
 }
 
-Check(rule : String, loc : Int, me : GawlKeeper)
-conditions rule == "G003"
-{
-  title : String = TrimQuotes(GetTitle(me.block_type))
-  filename : String = GetAwlBaseFileName(FindFileName(loc))
-
-  if ~(title == filename) then
-    AddViolation(rule, loc, [filename, title])
-  fi
-}
-
-
-Check(rule : String, loc : Int, me : Instruction)
-conditions rule == "G028"
-{
-  ignored: Int := 0
-  comm_lst: [String] = FilterComments(GetComments(me), ignored)
-  CheckG28(loc, comm_lst)
-}
-CheckG28(loc: Int, NIL: List(String))   { }  // no comment, no check
-CheckG28(loc: Int, lst: (List(String))) {
-  if ~IsCommentWellFormatted(lst.head) then
-    AddViolation("G028", loc, [], -1)
-  fi
-}
-
-
-Check(rule : String, loc : Int, me : (Network, instructions = NIL))
-conditions rule == "G043"
-{ } // Let this fall into the check for empty networks, for now.
-Check(rule : String, loc : Int, me : (Network, instructions # NIL))
-conditions rule == "G043"
-{
-  // Check the comment attached to the 1st instruction of the network as if
-  // it was the one which comes with the network heading. FIXME when we get
-  // post-comments.
-  first_instr: Instruction = me.instructions.head
-  offset: Int := 1
-  comments: [String] = FilterComments(GetComments(first_instr), offset)
-  if #comments = 0 then
-    AddViolation(rule, loc, [GetTitle(me)], offset)
-  fi
-}
-
 Check(rule : String, loc : Int, me : (Network, instructions # NIL))
 conditions rule == "C030"
 {
@@ -159,14 +120,34 @@ CheckC30(globVar: Ident, netwPrefix: String, loc: Int, netw: Network)
   fi
 }
 
+Check(rule : String, loc : Int, me : TimeLiteral)
+conditions rule == "C039"
+{ AddViolation(rule, loc, [me.value]) }
 
-Check(rule : String, loc : Int, me : Network)
-conditions rule == "C006"
+Check(rule : String, loc : Int, me : GawlKeeper)
+conditions rule == "G003"
 {
-  title: String = GetTitle(me)
-  if ~IsNetwTitleWellFormed(title) then AddViolation(rule, loc, [title]) fi
+  title : String = TrimQuotes(GetTitle(me.block_type))
+  filename : String = GetAwlBaseFileName(FindFileName(loc))
+
+  if ~(title == filename) then
+    AddViolation(rule, loc, [filename, title])
+  fi
 }
 
+Check(rule : String, loc : Int, me : Instruction)
+conditions rule == "G028"
+{
+  ignored: Int := 0
+  comm_lst: [String] = FilterComments(GetComments(me), ignored)
+  CheckG28(loc, comm_lst)
+}
+CheckG28(loc: Int, NIL: List(String))   { }  // no comment, no check
+CheckG28(loc: Int, lst: (List(String))) {
+  if ~IsCommentWellFormatted(lst.head) then
+    AddViolation("G028", loc, [], -1)
+  fi
+}
 
 Check(rule : String, loc : Int, me : (Network, instructions = NIL))
 conditions rule == "G041"
@@ -187,6 +168,22 @@ conditions rule == "G041"
   fi
 }
 
+Check(rule : String, loc : Int, me : (Network, instructions = NIL))
+conditions rule == "G043"
+{ } // Let this fall into the check for empty networks, for now.
+Check(rule : String, loc : Int, me : (Network, instructions # NIL))
+conditions rule == "G043"
+{
+  // Check the comment attached to the 1st instruction of the network as if
+  // it was the one which comes with the network heading. FIXME when we get
+  // post-comments.
+  first_instr: Instruction = me.instructions.head
+  offset: Int := 1
+  comments: [String] = FilterComments(GetComments(first_instr), offset)
+  if #comments = 0 then
+    AddViolation(rule, loc, [GetTitle(me)], offset)
+  fi
+}
 
 Check(rule : String, loc : Int, me : (Network, instructions # NIL))
 conditions rule == "C011"
@@ -374,10 +371,11 @@ conditions rule == "C014"
 
 //// Catch-all ////
 
-Check(rule : String, loc : Int, me : GawlKeeper)    { }
-Check(rule : String, loc : Int, me : Network)       { }
-Check(rule : String, loc : Int, me : Instruction)   { }
-Check(rule : String, loc : Int, me : FunctionBody)  { }
-Check(rule : String, loc : Int, me : Field)         { }
-Check(rule : String, loc : Int, me : HeaderBlock)   { }
 Check(rule : String, loc : Int, me : Block)         { }
+Check(rule : String, loc : Int, me : Expression)    { }
+Check(rule : String, loc : Int, me : Field)         { }
+Check(rule : String, loc : Int, me : FunctionBody)  { }
+Check(rule : String, loc : Int, me : GawlKeeper)    { }
+Check(rule : String, loc : Int, me : HeaderBlock)   { }
+Check(rule : String, loc : Int, me : Instruction)   { }
+Check(rule : String, loc : Int, me : Network)       { }

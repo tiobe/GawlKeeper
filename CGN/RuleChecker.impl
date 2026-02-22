@@ -696,6 +696,7 @@ Check_InstrExpression(me : TimeLiteral)
   margin : Int := 0
   Check_Comment(me.src_info)
   margin := fix_margin()
+  Rules.Check("C039", LOC, me)
   Check_String(me.value)
   Check_Comment(me.src_info)
   set_margin(margin)

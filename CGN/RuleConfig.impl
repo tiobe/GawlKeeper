@@ -94,6 +94,10 @@ GetRules() : [([String])]
       "The names of local variables (other than the preset local variables of OB's) shall start with a lower-case prefix character according to its type.",
       "Variable '\027' must start with '\027'."
     ],
+    [ "C023",
+      "Using an IO as interface is not allowed.",
+      "VAR_IN_OUT variable '\027' encountered."
+    ],
     [ "C030",
       "If a global variable is changed more than once in a block, the changes should be made within the same Network.",
       "Global variable '\027' was already modified in network '\027'."

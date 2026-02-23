@@ -1,0 +1,4 @@
+FUNCTION_BLOCK "Convention66"
+TITLE = "%Version: 1.4 %" // OK 
+BEGIN
+END_FUNCTION_BLOCK

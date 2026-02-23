@@ -52,3 +52,13 @@ StartsWithCap(s: String): Bool
 
 // Does this instruction modify its argument?
 IsOperandChanging(instruction: Instruction): Bool
+
+// Strip all spaces from a string
+StripSpaces(s : String): String
+
+// Convert all characters in a string to lower case
+ToLower(s : String): String
+
+// String contains a substring
+ContainsSubString(str : String, sub : String): Bool
+

@@ -94,6 +94,10 @@ GetRules() : [([String])]
       "The names of local variables (other than the preset local variables of OB's) shall start with a lower-case prefix character according to its type.",
       "Variable '\027' must start with '\027'."
     ],
+    [ "C023",
+      "Using an IO as interface is not allowed.",
+      "VAR_IN_OUT variable '\027' encountered."
+    ],
     [ "C030",
       "If a global variable is changed more than once in a block, the changes should be made within the same Network.",
       "Global variable '\027' was already modified in network '\027'."
@@ -102,10 +106,17 @@ GetRules() : [([String])]
       "Siemens Timers should never be used in relation with physical movements in a conveyor system that can be stopped.",
       "Siemens Timer '\027' has been used."
     ],
-    
+    [ "C040",
+      "Writing in instance blocks is in principle forbidden.",
+      "Variable '\027' starts with 'DI_', which is not allowed." 
+    ],
     [ "C042",
       "All arrays must start from zero.",
       "Array '\027' must start at 0 instead of \027. Adjust the upper bound accordingly."
+    ],
+    [ "C066",
+      "Temporary modifications to a standard block due to an approved Problem Report or Change Request, in advance of the next release, need to be indicated as a Q-Version.",
+      "The version number in the block title '\027' starts with the letter 'q'."
     ],
     [ "G003",
       "Block name is filename.",

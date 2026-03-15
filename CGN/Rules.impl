@@ -8,8 +8,8 @@ impl unit Rules
 
 use
 
-Properties. GetTitle, GetName, GetLocLine, GetComments, GetLabel, GetNetwPrefix,
-            GetGlobalVar
+Properties. GetName, GetReferences, GetTitle, GetLocLine, GetComments, GetLabel,
+            GetNetwPrefix, GetGlobalVar, IsUsed
 RuleConfig. IsRuleEnabled
 RuleViolation. ', AddViolation
 ScanIO. FindFileName, FindLocation
@@ -223,6 +223,14 @@ CheckG28(loc: Int, lst: (List(String))) {
   if ~IsCommentWellFormatted(lst.head) then
     AddViolation("G028", loc, [], -1)
   fi
+}
+
+Check(rule : String, loc : Int, me : FunctionBody)
+conditions rule == "G040"
+{
+  [ { AddViolation(rule, ref.src_info.loc, [GetName(ref)]) } 
+  | ref : Reference <- GetReferences(me), (~IsUsed(GetName(ref), me.networks)) 
+  ]
 }
 
 Check(rule : String, loc : Int, me : (Network, instructions = NIL))

@@ -1,0 +1,549 @@
+ ----- Rule C001 ------------------------------------
+
+../GawlKeeper.linux64 --C001 ./C001/C001_a.awl
+
+./C001/C001_a.awl(3):
+    Name (Header) and Author are not used and must be empty.
+    Rule ID: C001
+    Do not use header field 'AUTHOR'; it must be empty.
+
+../GawlKeeper.linux64 --C001 ./C001/C001_b.awl
+
+./C001/C001_b.awl(4):
+    Name (Header) and Author are not used and must be empty.
+    Rule ID: C001
+    Do not use header field 'NAME'; it must be empty.
+
+ ----- Rule C006 ------------------------------------
+
+../GawlKeeper.linux64 --C006 ./C006/C006.awl
+
+./C006/C006.awl(12):
+    Each network must have a Network Title, which must indicate its functionality, and it must begin with 2 uppercase letters, a colon and a space.
+    Rule ID: C006
+    Network title 'aa: bad' is not correctly formatted: it should begin with 2 uppercase letters, a colon and a space.
+
+./C006/C006.awl(22):
+    Each network must have a Network Title, which must indicate its functionality, and it must begin with 2 uppercase letters, a colon and a space.
+    Rule ID: C006
+    Network title 'AAlso bad' is not correctly formatted: it should begin with 2 uppercase letters, a colon and a space.
+
+./C006/C006.awl(32):
+    Each network must have a Network Title, which must indicate its functionality, and it must begin with 2 uppercase letters, a colon and a space.
+    Rule ID: C006
+    Network title 'AA Too bad' is not correctly formatted: it should begin with 2 uppercase letters, a colon and a space.
+
+./C006/C006.awl(52):
+    Each network must have a Network Title, which must indicate its functionality, and it must begin with 2 uppercase letters, a colon and a space.
+    Rule ID: C006
+    Network title 'AA:Not So Good' is not correctly formatted: it should begin with 2 uppercase letters, a colon and a space.
+
+./C006/C006.awl(62):
+    Each network must have a Network Title, which must indicate its functionality, and it must begin with 2 uppercase letters, a colon and a space.
+    Rule ID: C006
+    Network title '' is not correctly formatted: it should begin with 2 uppercase letters, a colon and a space.
+
+ ----- Rule C007 ------------------------------------
+
+../GawlKeeper.linux64 --C007 ./C007/C007.awl
+
+./C007/C007.awl(32):
+    The 2 capital letters at the start of network titles must reflect the order in which they are defined.
+    Rule ID: C007
+    Network title 'AB: Some network title taking the blame' is out of order. Network titles must be prefixed in alphabetical ascending order.
+
+ ----- Rule C011 ------------------------------------
+
+../GawlKeeper.linux64 --C011 ./C011/C011.awl
+
+./C011/C011.awl(13):
+    Jump labels.
+    Rule ID: C011
+    Label 'AA01' is wrongly formatted; it should start with 'BA' and continue with 2 digits.
+
+./C011/C011.awl(23):
+    Jump labels.
+    Rule ID: C011
+    Label 'bb01' is wrongly formatted; it should start with 'BB' and continue with 2 digits.
+
+./C011/C011.awl(26):
+    Jump labels.
+    Rule ID: C011
+    A label with index '00' can only occur at the beginning of a network's code.
+
+./C011/C011.awl(43):
+    Jump labels.
+    Rule ID: C011
+    Label 'BCab' is wrongly formatted; it should start with 'BC' and continue with 2 digits.
+
+./C011/C011.awl(38):
+    Jump labels.
+    Rule ID: C011
+    Wrong label 'BC01' at network entry; it should have index '00'.
+
+./C011/C011.awl(73):
+    Jump labels.
+    Rule ID: C011
+    Label 'CA001' is wrongly formatted; it should start with 'CA' and continue with 2 digits.
+
+./C011/C011.awl(115):
+    Jump labels.
+    Rule ID: C011
+    Label 'CA3' is wrongly formatted; it should start with 'CA' and continue with 2 digits.
+
+./C011/C011.awl(156):
+    Jump labels.
+    Rule ID: C011
+    Label 'DA04' is out of order. Labels should be in sequential ascending order within a network.
+
+./C011/C011.awl(191):
+    Jump labels.
+    Rule ID: C011
+    Wrong label 'DA89' at network exit; it should have index '99'.
+
+./C011/C011.awl(217):
+    Jump labels.
+    Rule ID: C011
+    If there is a label at the end of a network, it must go with a NOP instruction, and the label must be indexed as 99.
+
+./C011/C011.awl(238):
+    Jump labels.
+    Rule ID: C011
+    A label with index '99' can only occur at the end of a network's code.
+
+ ----- Rule C014 ------------------------------------
+
+../GawlKeeper.linux64 --C014 ./C014/C014.awl
+
+./C014/C014.awl(46):
+    All Symbolic Operand Names are a concatenation of nouns, which each start with a Capital, connected by underscores.
+    Rule ID: C014
+    Name of local variable 'CFG_Position_node' does not match the required pattern.
+
+./C014/C014.awl(49):
+    All Symbolic Operand Names are a concatenation of nouns, which each start with a Capital, connected by underscores.
+    Rule ID: C014
+    Name of local variable 'i_CFG_destination' does not match the required pattern.
+
+./C014/C014.awl(75):
+    All Symbolic Operand Names are a concatenation of nouns, which each start with a Capital, connected by underscores.
+    Rule ID: C014
+    Name of local variable 's_FB_dat_T' does not match the required pattern.
+
+../GawlKeeper.linux64 --C014 ./C014/C014_type.awl
+
+./C014/C014_type.awl(28):
+    All Symbolic Operand Names are a concatenation of nouns, which each start with a Capital, connected by underscores.
+    Rule ID: C014
+    Name of local variable 'OBT_onto_HSZ' does not match the required pattern.
+
+./C014/C014_type.awl(1):
+    All Symbolic Operand Names are a concatenation of nouns, which each start with a Capital, connected by underscores.
+    Rule ID: C014
+    Name of block '"UDT_HSZ5x_Int_Prog_T_this_is_a_pretty_long_title"' does not match the required pattern.
+
+../GawlKeeper.linux64 --C014 ./C014/C014_fb.awl
+
+./C014/C014_fb.awl(1):
+    All Symbolic Operand Names are a concatenation of nouns, which each start with a Capital, connected by underscores.
+    Rule ID: C014
+    Name of block '"FB_Dispatch_Point_T_this_is_a_pretty_long_title"' does not match the required pattern.
+
+../GawlKeeper.linux64 --C014 ./C014/C014_fun.awl
+
+./C014/C014_fun.awl(1):
+    All Symbolic Operand Names are a concatenation of nouns, which each start with a Capital, connected by underscores.
+    Rule ID: C014
+    Name of block '"FC_Local_Class_Dir_T_this_is_a_pretty_long_title"' does not match the required pattern.
+
+../GawlKeeper.linux64 --C014 ./C014/C014_db.awl
+
+./C014/C014_db.awl(34):
+    All Symbolic Operand Names are a concatenation of nouns, which each start with a Capital, connected by underscores.
+    Rule ID: C014
+    Name of local variable 'DB_PLT_nr_Upstream' does not match the required pattern.
+
+./C014/C014_db.awl(35):
+    All Symbolic Operand Names are a concatenation of nouns, which each start with a Capital, connected by underscores.
+    Rule ID: C014
+    Name of local variable 'DB_PLT_nr_Downstream' does not match the required pattern.
+
+./C014/C014_db.awl(39):
+    All Symbolic Operand Names are a concatenation of nouns, which each start with a Capital, connected by underscores.
+    Rule ID: C014
+    Name of local variable 'Cascade_Start_up' does not match the required pattern.
+
+./C014/C014_db.awl(42):
+    All Symbolic Operand Names are a concatenation of nouns, which each start with a Capital, connected by underscores.
+    Rule ID: C014
+    Name of local variable 'Item_at_Handover' does not match the required pattern.
+
+./C014/C014_db.awl(1):
+    All Symbolic Operand Names are a concatenation of nouns, which each start with a Capital, connected by underscores.
+    Rule ID: C014
+    Name of block '"DB_PLT_Non_Trk_Tmp_T_this_is_a_pretty_long_title"' does not match the required pattern.
+
+ ----- Rule C015 ------------------------------------
+
+../GawlKeeper.linux64 --C015 ./C015/C015_db.awl
+
+./C015/C015_db.awl(1):
+    The length of a block title has a maximum of 20 characters.
+    Rule ID: C015
+    Block title 'DB_PLT_Non_Trk_Tmp_T_this_is_a_pretty_long_title' is too long.
+
+../GawlKeeper.linux64 --C015 ./C015/C015_fun.awl
+
+./C015/C015_fun.awl(1):
+    The length of a block title has a maximum of 20 characters.
+    Rule ID: C015
+    Block title 'FC_Local_Class_Dir_T_this_is_a_pretty_long_title' is too long.
+
+../GawlKeeper.linux64 --C015 ./C015/C015_fb.awl
+
+./C015/C015_fb.awl(1):
+    The length of a block title has a maximum of 20 characters.
+    Rule ID: C015
+    Block title 'FB_Dispatch_Point_T_this_is_a_pretty_long_title' is too long.
+
+../GawlKeeper.linux64 --C015 ./C015/C015_type.awl
+
+./C015/C015_type.awl(1):
+    The length of a block title has a maximum of 20 characters.
+    Rule ID: C015
+    Block title 'UDT_HSZ5x_Int_Prog_T_this_is_a_pretty_long_title' is too long.
+
+../GawlKeeper.linux64 --C015 ./C015/C015_ok.awl
+
+ ----- Rule C020 ------------------------------------
+
+../GawlKeeper.linux64 --C020 ./C020/C020_ob.awl
+
+../GawlKeeper.linux64 --C020 ./C020/C020_fun.awl
+
+./C020/C020_fun.awl(40):
+    The names of local variables (other than the preset local variables of OB's) shall start with a lower-case prefix character according to its type.
+    Rule ID: C020
+    Variable 'Class_OBT' must start with 'i'.
+
+./C020/C020_fun.awl(42):
+    The names of local variables (other than the preset local variables of OB's) shall start with a lower-case prefix character according to its type.
+    Rule ID: C020
+    Variable 'CFG_Local_SBT_Dir' must start with 'i'.
+
+./C020/C020_fun.awl(49):
+    The names of local variables (other than the preset local variables of OB's) shall start with a lower-case prefix character according to its type.
+    Rule ID: C020
+    Variable 'Preference_A' must start with 't'.
+
+./C020/C020_fun.awl(52):
+    The names of local variables (other than the preset local variables of OB's) shall start with a lower-case prefix character according to its type.
+    Rule ID: C020
+    Variable 'FailedReason_A' must start with 't'.
+
+../GawlKeeper.linux64 --C020 ./C020/C020_fb.awl
+
+./C020/C020_fb.awl(46):
+    The names of local variables (other than the preset local variables of OB's) shall start with a lower-case prefix character according to its type.
+    Rule ID: C020
+    Variable 'CFG_Position_node' must start with 'i'.
+
+./C020/C020_fb.awl(50):
+    The names of local variables (other than the preset local variables of OB's) shall start with a lower-case prefix character according to its type.
+    Rule ID: C020
+    Variable 'DB_PLT' must start with 'i'.
+
+./C020/C020_fb.awl(54):
+    The names of local variables (other than the preset local variables of OB's) shall start with a lower-case prefix character according to its type.
+    Rule ID: C020
+    Variable 'DB_RS_Upstr' must start with 'i'.
+
+./C020/C020_fb.awl(58):
+    The names of local variables (other than the preset local variables of OB's) shall start with a lower-case prefix character according to its type.
+    Rule ID: C020
+    Variable 'DB_RS_Dwnstr' must start with 'i'.
+
+./C020/C020_fb.awl(65):
+    The names of local variables (other than the preset local variables of OB's) shall start with a lower-case prefix character according to its type.
+    Rule ID: C020
+    Variable 'Carrier_Assigned_02' must start with 'o'.
+
+./C020/C020_fb.awl(70):
+    The names of local variables (other than the preset local variables of OB's) shall start with a lower-case prefix character according to its type.
+    Rule ID: C020
+    Variable 'FB_Rte_Seg_FIFO_T' must start with 's'.
+
+./C020/C020_fb.awl(73):
+    The names of local variables (other than the preset local variables of OB's) shall start with a lower-case prefix character according to its type.
+    Rule ID: C020
+    Variable 'Dest_01_Used' must start with 's'.
+
+./C020/C020_fb.awl(80):
+    The names of local variables (other than the preset local variables of OB's) shall start with a lower-case prefix character according to its type.
+    Rule ID: C020
+    Variable 'DB_Event_Section' must start with 't'.
+
+./C020/C020_fb.awl(83):
+    The names of local variables (other than the preset local variables of OB's) shall start with a lower-case prefix character according to its type.
+    Rule ID: C020
+    Variable 'LNK' must start with 't'.
+
+ ----- Rule C023 ------------------------------------
+
+../GawlKeeper.linux64 --C023 ./C023/C023.1.awl
+
+./C023/C023.1.awl(4):
+    Using an IO as interface is not allowed.
+    Rule ID: C023
+    VAR_IN_OUT variable 'foo' encountered.
+
+../GawlKeeper.linux64 --C023 ./C023/C023.2.awl
+
+../GawlKeeper.linux64 --C023 ./C023/C023.3.awl
+
+./C023/C023.3.awl(11):
+    Using an IO as interface is not allowed.
+    Rule ID: C023
+    VAR_IN_OUT variable 'foo' encountered.
+
+./C023/C023.3.awl(13):
+    Using an IO as interface is not allowed.
+    Rule ID: C023
+    VAR_IN_OUT variable 'bar' encountered.
+
+ ----- Rule C030 ------------------------------------
+
+../GawlKeeper.linux64 --C030 ./C030/C030.awl
+
+./C030/C030.awl(159):
+    If a global variable is changed more than once in a block, the changes should be made within the same Network.
+    Rule ID: C030
+    Global variable '"DB_Outgoing_Msgs"' was already modified in network 'DA: Check the non tracking DB PLT buffer for data'.
+
+./C030/C030.awl(161):
+    If a global variable is changed more than once in a block, the changes should be made within the same Network.
+    Rule ID: C030
+    Global variable '"DB_Outgoing_Msgs"' was already modified in network 'DA: Check the non tracking DB PLT buffer for data'.
+
+./C030/C030.awl(163):
+    If a global variable is changed more than once in a block, the changes should be made within the same Network.
+    Rule ID: C030
+    Global variable '"DB_Outgoing_Msgs"' was already modified in network 'DA: Check the non tracking DB PLT buffer for data'.
+
+ ----- Rule C039 ------------------------------------
+
+../GawlKeeper.linux64 --C039 ./C039/C039.awl
+
+./C039/C039.awl(5):
+    Siemens Timers should never be used in relation with physical movements in a conveyor system that can be stopped.
+    Rule ID: C039
+    Siemens Timer 'S5T#5S' has been used.
+
+./C039/C039.awl(6):
+    Siemens Timers should never be used in relation with physical movements in a conveyor system that can be stopped.
+    Rule ID: C039
+    Siemens Timer 'S5T#10S' has been used.
+
+./C039/C039.awl(7):
+    Siemens Timers should never be used in relation with physical movements in a conveyor system that can be stopped.
+    Rule ID: C039
+    Siemens Timer 'S5t#23ms' has been used.
+
+./C039/C039.awl(8):
+    Siemens Timers should never be used in relation with physical movements in a conveyor system that can be stopped.
+    Rule ID: C039
+    Siemens Timer 'S5t#23H' has been used.
+
+ ----- Rule C040 ------------------------------------
+
+../GawlKeeper.linux64 --C040 ./C040/C040.awl
+
+./C040/C040.awl(6):
+    Writing in instance blocks is in principle forbidden.
+    Rule ID: C040
+    Variable 'DI_TES' starts with 'DI_', which is not allowed.
+
+./C040/C040.awl(9):
+    Writing in instance blocks is in principle forbidden.
+    Rule ID: C040
+    Variable 'DI_' starts with 'DI_', which is not allowed.
+
+./C040/C040.awl(10):
+    Writing in instance blocks is in principle forbidden.
+    Rule ID: C040
+    Variable 'DI_' starts with 'DI_', which is not allowed.
+
+./C040/C040.awl(11):
+    Writing in instance blocks is in principle forbidden.
+    Rule ID: C040
+    Variable 'DI_TRS_ZZ_01_PEC_EOS' starts with 'DI_', which is not allowed.
+
+./C040/C040.awl(12):
+    Writing in instance blocks is in principle forbidden.
+    Rule ID: C040
+    Variable 'DI_TRS_ZZ_01_PEC_EOS' starts with 'DI_', which is not allowed.
+
+./C040/C040.awl(13):
+    Writing in instance blocks is in principle forbidden.
+    Rule ID: C040
+    Variable 'DI_3' starts with 'DI_', which is not allowed.
+
+./C040/C040.awl(14):
+    Writing in instance blocks is in principle forbidden.
+    Rule ID: C040
+    Variable 'DI_3' starts with 'DI_', which is not allowed.
+
+./C040/C040.awl(15):
+    Writing in instance blocks is in principle forbidden.
+    Rule ID: C040
+    Variable 'DI_3' starts with 'DI_', which is not allowed.
+
+ ----- Rule C042 ------------------------------------
+
+../GawlKeeper.linux64 --C042 ./C042/C042.awl
+
+./C042/C042.awl(31):
+    All arrays must start from zero.
+    Rule ID: C042
+    Array 'Entry' must start at 0 instead of 1. Adjust the upper bound accordingly.
+
+ ----- Rule C066 ------------------------------------
+
+../GawlKeeper.linux64 --C066 ./C066/C066.4.awl
+
+./C066/C066.4.awl(2):
+    Temporary modifications to a standard block due to an approved Problem Report or Change Request, in advance of the next release, need to be indicated as a Q-Version.
+    Rule ID: C066
+    The version number in the block title 'TITLE = "% VERSION:      Q       1.4 %" // Violation ' starts with the letter 'q'.
+
+../GawlKeeper.linux64 --C066 ./C066/C066.1.awl
+
+./C066/C066.1.awl(2):
+    Temporary modifications to a standard block due to an approved Problem Report or Change Request, in advance of the next release, need to be indicated as a Q-Version.
+    Rule ID: C066
+    The version number in the block title 'TITLE = "%Version: Q 1.4 %" // Violation ' starts with the letter 'q'.
+
+../GawlKeeper.linux64 --C066 ./C066/C066.3.awl
+
+../GawlKeeper.linux64 --C066 ./C066/C066.2.awl
+
+./C066/C066.2.awl(2):
+    Temporary modifications to a standard block due to an approved Problem Report or Change Request, in advance of the next release, need to be indicated as a Q-Version.
+    Rule ID: C066
+    The version number in the block title 'TITLE = "%version: q5.13" // Violation ' starts with the letter 'q'.
+
+ ----- Rule G003 ------------------------------------
+
+../GawlKeeper.linux64 --G003 ./G003/fb/G003.awl
+
+./G003/fb/G003.awl(1):
+    Block name is filename.
+    Rule ID: G003
+    File 'G003' should be named 'FB_Dispatch_Point_T', like the block it contains.
+
+../GawlKeeper.linux64 --G003 ./G003/type/G003_type.awl
+
+../GawlKeeper.linux64 --G003 ./G003/db/G003.awl
+
+../GawlKeeper.linux64 --G003 ./G003/fun/G003_fun.awl
+
+./G003/fun/G003_fun.awl(1):
+    Block name is filename.
+    Rule ID: G003
+    File 'G003_fun' should be named 'g003_Fun', like the block it contains.
+
+ ----- Rule G021 ------------------------------------
+
+../GawlKeeper.linux64 --G021 ./G021/G021.awl
+
+./G021/G021.awl(38):
+    Comments for declarations.
+    Rule ID: G021
+    Declaration needs a documentation comment starting with a space followed by an upper-case letter.
+
+./G021/G021.awl(39):
+    Comments for declarations.
+    Rule ID: G021
+    Declaration needs a documentation comment starting with a space followed by an upper-case letter.
+
+./G021/G021.awl(45):
+    Comments for declarations.
+    Rule ID: G021
+    Declaration needs a documentation comment starting with a space followed by an upper-case letter.
+
+./G021/G021.awl(50):
+    Comments for declarations.
+    Rule ID: G021
+    Declaration needs a documentation comment starting with a space followed by an upper-case letter.
+
+./G021/G021.awl(54):
+    Comments for declarations.
+    Rule ID: G021
+    Declaration needs a documentation comment starting with a space followed by an upper-case letter.
+
+ ----- Rule G028 ------------------------------------
+
+../GawlKeeper.linux64 --G028 ./G028/G028.awl
+
+./G028/G028.awl(56):
+    Comment line.
+    Rule ID: G028
+    Comment doesn't start with a space followed by a capital letter.
+
+./G028/G028.awl(59):
+    Comment line.
+    Rule ID: G028
+    Comment doesn't start with a space followed by a capital letter.
+
+./G028/G028.awl(78):
+    Comment line.
+    Rule ID: G028
+    Comment doesn't start with a space followed by a capital letter.
+
+ ----- Rule G040 ------------------------------------
+
+../GawlKeeper.linux64 --G040 ./G040/G040.awl
+
+./G040/G040.awl(84):
+    All unused variables are removed
+    Rule ID: G040
+    Variable 's_Length_Merge_Upstream' is not used.
+
+./G040/G040.awl(135):
+    All unused variables are removed
+    Rule ID: G040
+    Variable 't_Pos_Trailing' is not used.
+
+ ----- Rule G041 ------------------------------------
+
+../GawlKeeper.linux64 --G041 ./G041/G041.awl
+
+./G041/G041.awl(62):
+    No empty networks in the block.
+    Rule ID: G041
+    Network 'AA: Get information from Data Blocks' is empty.
+
+./G041/G041.awl(66):
+    No empty networks in the block.
+    Rule ID: G041
+    Network 'AB: Testing' is empty.
+
+ ----- Rule G043 ------------------------------------
+
+../GawlKeeper.linux64 --G043 ./G043/G043.awl
+
+./G043/G043.awl(47):
+    Every network has network comments.
+    Rule ID: G043
+    Network 'AA: Get information from Data Blocks' does not have documentation comments.
+
+./G043/G043.awl(75):
+    Every network has network comments.
+    Rule ID: G043
+    Network 'BA: Search for item on Dispatch Point' does not have documentation comments.
+
+./G043/G043.awl(253):
+    Every network has network comments.
+    Rule ID: G043
+    Network 'EA: Assign carrier to a destination' does not have documentation comments.
+

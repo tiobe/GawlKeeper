@@ -3,6 +3,7 @@ impl unit Properties
 use
 
 Comments. GetComments
+FunctionPrelude. $
 ScanIO. FindLocation
 StringTokenizer. IndexOf, Trim
 Syntactics. IndexOf
@@ -28,16 +29,36 @@ GetTitle(block : FunctionBlock) : String { return block.function_name.str }
 GetTitle(block : OrgBlock)      : String { return block.org_name.str }
 GetTitle(block : TypeBlock)     : String { return block.type_name.str }
 
-GetName(ref: LocalVariable) : String { return ref.vbl.id }
-GetName(ref: GlobalVariable): String { return ref.vbl.str }
-GetName(fld: Field)         : String { return GetName(fld.name) }
+GetReferences(fb: FunctionBody): List(Reference)
+{
+  return
+    fb.inputs * GetReferences + 
+    fb.outputs * GetReference +
+    fb.in_outs * GetReference +
+    fb.locals * GetReference + 
+    fb.temps * GetReference
+}
 
+GetReferences(lvi : LocalVarInputs): List(Reference)
+{ return lvi.inputs * GetReference }
 
+GetReference(fld: Field): Reference
+{ return fld.name }
+
+GetName(fld: Field): String 
+{ return GetName(fld.name) }
+
+GetName(ref : LocalVariable): String 
+{ return ref.vbl.id }
+	
+GetName(ref : GlobalVariable): String 
+{ return ref.vbl.str }
+	
 GetLocLine(loc: Int): Int
 {
     line : Int := 0; pos : Int := 0; file : Ident := file
     FindLocation(loc, line, pos, file)
-    return (line)
+    return line
 }
 
 
@@ -53,3 +74,66 @@ GetGlobalVar(arg: FieldExpression):  GlobalVariable|NIL { return GetGlobalVar(ar
 GetGlobalVar(arg: ArrayExpression):  GlobalVariable|NIL { return GetGlobalVar(arg.array) }
 GetGlobalVar(arg: Expression):       GlobalVariable|NIL { return NIL }
 GetGlobalVar(arg: InstrExpression):  GlobalVariable|NIL { return NIL }
+
+IsUsed(ref: String, networks: List(Network)): Bool
+{ return Any(IsUsed $ ref, networks) } 
+
+IsUsed(ref: String, network: Network): Bool
+{ return Any(IsUsed $ ref, network.instructions) }
+
+IsUsed(ref: String, instr: Instruction): Bool
+{ return IsUsed(ref, instr.instruction) | IsUsed(ref, instr.arg) }
+
+IsUsed(ref: String, instr: CallInstr): Bool
+{ return Any(IsUsed $ ref, instr.args.callees.callee) | IsUsed(ref, instr.args.arguments) }
+
+IsUsed(ref: String, instr: InstructionName): Bool
+{ return FALSE }
+
+IsUsed(ref: String, expr: AtomicCallee): Bool
+{ return IsUsed(ref, expr.callee) }
+
+IsUsed(ref: String, expr: HashedCallee): Bool
+{ return IsUsed(ref, expr.callee) } 
+
+IsUsed(ref: String, NIL: Arguments): Bool
+{ return FALSE }
+
+IsUsed(ref: String, args: Arguments): Bool
+{ return Any(IsUsed $ ref, args.args.args) }
+
+IsUsed(ref: String, argassign: ArgumentsAssignment): Bool
+{ return IsUsed(ref, argassign.value.expr) }
+
+IsUsed(ref: String, NIL: InstrExpression): Bool
+{ return FALSE }
+
+IsUsed(ref: String, anarray: AnonymousArray): Bool
+{ return IsUsed(ref, anarray.head) | Any(IsUsed $ ref, anarray.tail) }
+
+IsUsed(ref: String, expr: Reference): Bool
+{ return ref == GetName(expr) }
+
+IsUsed(ref: String, expr: ArrayExpression): Bool
+{ return IsUsed(ref, expr.array) | IsUsed(ref, expr.arg1) | Any(IsUsed $ ref, expr.args) }
+
+IsUsed(ref: String, expr: FieldExpression): Bool
+{ return IsUsed(ref, expr.expr) | IsUsed(ref, expr.field) }
+
+IsUsed(ref: String, expr: ConstExpression): Bool
+{ return IsUsed(ref, expr.expr) }
+
+IsUsed(ref: String, expr: MemoryAccess): Bool
+{ return IsUsed(ref, expr.id) }
+
+IsUsed(ref: String, expr: PointerAccess): Bool
+{ return IsUsed(ref, expr.expr) }
+
+IsUsed(ref: String, expr: Expression): Bool
+{ return FALSE }
+
+IsUsed(ref: String, expr: PointerAccessHash): Bool
+{ return IsUsed(ref, expr.hash) }
+
+IsUsed(ref: String, expr: PointerReference): Bool
+{ return FALSE }

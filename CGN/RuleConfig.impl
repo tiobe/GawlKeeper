@@ -130,6 +130,10 @@ GetRules() : [([String])]
       "Comment line.",
       "Comment doesn't start with a space followed by a capital letter."
     ],
+    [ "G040",
+      "All unused variables are removed",
+      "Variable '\027' is not used."
+    ],
     [ "G041",
       "No empty networks in the block.",
       "Network '\027' is empty."

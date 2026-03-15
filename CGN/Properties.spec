@@ -10,6 +10,9 @@ GetTitle(block : Block): String
 
 GetNetwPrefix(network: Network): String
 
+// Get all declared variables
+GetReferences(fb: FunctionBody): List(Reference)
+
 GetName(ref: Reference): String
 GetName(fld: Field): String
 
@@ -24,3 +27,5 @@ GetComments(me : Field): List(Comment)
 GetLabel(inst: Instruction): String
 
 GetGlobalVar(arg: InstrExpression): GlobalVariable|NIL
+
+IsUsed(ref : String, networks: List(Network)): Bool

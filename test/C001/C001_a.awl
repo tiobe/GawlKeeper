@@ -1,8 +1,5 @@
 DATA_BLOCK "DB_Con_Establish"
 TITLE = %version: 5.06 % %Commit:  % CN: 10 
-{InstructionName := 'TCON_IP_v4',
- LibVersion := '1.0',
- S7_Optimized_Access := 'TRUE' }
 AUTHOR : SIMATIC
 FAMILY : MC7Plus
 NAME : TC_IP_v4

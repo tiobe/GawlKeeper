@@ -8,8 +8,9 @@ impl unit Rules
 
 use
 
+FunctionPrelude. $
 Properties. GetName, GetReferences, GetTitle, GetLocLine, GetComments, GetLabel,
-            GetNetwPrefix, GetGlobalVar, IsUsed
+            GetNetwPrefix, GetGlobalVar, IsDatabaseAction, IsLoadInstruction, IsUsed
 RuleConfig. IsRuleEnabled
 RuleViolation. ', AddViolation
 ScanIO. FindFileName, FindLocation
@@ -21,25 +22,28 @@ Syntactics. IsCommentWellFormatted, IsLabelWellFormed, IsNetwTitleWellFormed,
 
 functions
 
-Check(rule : String, loc : Int, me : HeaderBlock)     // C001
+Check(rule : String, loc : Int, me : HeaderBlock)
 conditions ~IsRuleEnabled(rule) { }
 
-Check(rule : String, loc : Int, me : Block)           // C014, C020
+Check(rule : String, loc : Int, me : Block)     
 conditions ~IsRuleEnabled(rule) { }
 
-Check(rule : String, loc : Int, me : GawlKeeper)      // C015, G003
+Check(rule : String, loc : Int, me : GawlKeeper)
 conditions ~IsRuleEnabled(rule) { }
 
-Check(rule : String, loc : Int, me : Network)         // C006, C011, C030, G026, G041, G043
+Check(rule : String, loc : Int, me : Network)  
 conditions ~IsRuleEnabled(rule) { }
 
-Check(rule : String, loc : Int, me : Instruction)     // G028
+Check(rule : String, loc : Int, me : List(Network)) 
 conditions ~IsRuleEnabled(rule) { }
 
-Check(rule : String, loc : Int, me : FunctionBody)    // C007
+Check(rule : String, loc : Int, me : Instruction)  
 conditions ~IsRuleEnabled(rule) { }
 
-Check(rule : String, loc : Int, me : Field)           // C014(2), C042, G021
+Check(rule : String, loc : Int, me : FunctionBody)
+conditions ~IsRuleEnabled(rule) { }
+
+Check(rule : String, loc : Int, me : Field)      
 conditions ~IsRuleEnabled(rule) { }
 
 Check(rule : String, loc : Int, me : (HeaderBlock, author # NIL))
@@ -195,6 +199,21 @@ CheckC040(loc : Int, me : (List(CalleeExpression), head : HashedCallee), argumen
   CheckC040(loc, me.head.callee) 
   CheckC040(loc, me.tail, argument + 1) 
 } 
+
+Check(rule : String, loc : Int, me : (List(Network)))
+conditions rule == "C048"
+// global data should not be written outside the first network
+{ me.tail * CheckC48 $ rule }
+
+CheckC48(rule : String, me : Network)
+{ me.instructions * CheckC48 $ rule }
+
+CheckC48(rule : String, me : (Instruction, arg # NIL))
+conditions IsLoadInstruction(me.instruction) & IsDatabaseAction(me.arg)
+{ AddViolation(rule, me.src_info.loc, []) }
+
+CheckC48(rule : String, me : Instruction)
+{}
 
 Check(rule : String, loc : Int, me : HeaderBlock)
 conditions rule == "C066" & ContainsSubString(ToLower(StripSpaces(me.title)), "%version:q")
@@ -454,3 +473,4 @@ Check(rule : String, loc : Int, me : HeaderBlock) { }
 Check(rule : String, loc : Int, me : InstrExpression) { }
 Check(rule : String, loc : Int, me : Instruction) { }
 Check(rule : String, loc : Int, me : Network) { }
+Check(rule : String, loc : Int, me : List(Network)) { }

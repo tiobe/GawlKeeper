@@ -155,6 +155,7 @@ Check_FunctionBody(me : FunctionBody)
     Check_String("END_VAR")
   fi
   Check_String("BEGIN")
+  Rules.Check("C048", LOC, me.networks)
   [ { Check_Network(xxxnetworks) }
   | xxxnetworks : Network <- me.networks
   ]

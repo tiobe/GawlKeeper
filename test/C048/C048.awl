@@ -1,0 +1,1510 @@
+FUNCTION_BLOCK "FB_HBZ01_T"
+TITLE = %version: 5.18 % %Commit:  f9a6d3b6 % CN: 60
+{ S7_Optimized_Access := 'FALSE' }
+FAMILY : Tubtrax
+VERSION : 0.0
+//Function:
+//Hold Baggage Zone 01, SBT only, L3-MV3D, standard 3 screening
+//
+//
+//SOURCE
+//%Project:      allcttt %
+//%Repo:         a_ttt %
+//%Commit:       f9a6d3b6 %
+//%DateTimeUTC:  2024-06-25T08:32:04 %
+//
+//%HISTORY%
+//Issue:        Commit:  Date:      Version: Author:              Description:
+//------------- -------- ---------- -------- -------------------- ------------------------------------------------------------------------------
+//ALLCTTT-4364  f9a6d3b6 2024-06-25 5.18     Henri de Leijer      ifz18 before hbz creates unstable gaps in hbz
+//ALLCTTT-4364  717a41d0 2024-05-21 5.17     Henri de Leijer      ifz18 before hbz creates unstable gaps in hbz
+//ALLCTTT-4364  9a54038a 2024-05-21 5.16     Henri de Leijer      T 4364 ifz18 before hbz creates unstable gaps in hbz
+//ALLCTTT-4059  c3808b61 2023-12-11 5.15     Pascal van Kempen    Added history table
+//ALLCTTT-4042  55fd833f 2023-12-05 5.14     Henri de Leijer      First step to remove the library files
+//ALLCTTT-2733  b9de761d 2022-11-23 5.13     Henri de Leijer      ALLCTTT-2733 Pending list validation for the loop concept not implemented
+//ALLCTTT-2667  008c5b6d 2022-11-11 5.12     Damayanti Bhapkar    Added fieldbus statuses for fieldbus slaves
+//ALLCTTT-2055  8eb3b68e 2022-05-30 5.11     Damayanti Bhapkar    Changed profinet device number implementation
+//ALLCTTT-1739  d3434bfd 2022-03-22 5.10     Arda Karaca          Updated to Req_Disable_Send on TRS01 also when TEP=TOP
+//ALLCTTT-1635  490a3b8f 2022-02-25 5.09     Dennis van Maasakker Updated according to HBO MV3D updates
+//ALLCTTT-1416  51c3e6d6 2021-11-29 5.08     Rik Clephas          Added carrier transport events
+//ALLCTTT-961   f54f0329 2021-08-20 5.07     Dennis van Maasakker Updated TRS01 and TRS05 to single speed versions
+//ALLCTTT-272   544e4e84 2020-12-10 5.06     Pascal van Kempen    removed keywords
+//ALLCTTT-272   9d531fbf 2020-12-10 5.05     Pascal van Kempen    Revert corrected checkin sequence for determining version information properly
+//ALLCTTT-272   ae3fa862 2020-12-10 5.04     Pascal van Kempen    corrected checkin sequence for determining version information properly
+//ALLCTTT-272   5a1edb78 2020-12-10 5.03     Pascal van Kempen    Revert keywords updates
+//ALLCTTT-272   8d62c219 2020-12-10 5.02     Pascal van Kempen    keywords updates
+//ALLCTTT-272   31a64871 2020-12-10 5.01     Pascal van Kempen    initial import
+//
+//Modification History:                                 By:      Date:     Rev:
+//----------------------------------------------------  -------  --------  -----
+//ra#37889: i_CFG_PLC_Log_Route_Msgs = FALSE            inas12   13-08-20   2.09
+//ra#35423: i_CFG_Flickering_length = 60                inas12   13-07-20   2.08
+//ra#36116: Update setting UDTs                         nldmaa   17-07-20   2.07
+//ra#37561: Function description updated                invshi   08-07-20   2.06
+//ra#36061: i_CFG_Motor_Switch_Time = 0	                nlsnaw   19-03-20   2.05
+//ra#34594: Improve speed of HBZ                        nlagad   16-09-19   2.04
+//ra#34524: Add [1..99] to i_HBO99_CFG_Line_ID comment  nlarabi  28-08-19   2.03
+//ra#31914: GENPLC ECSP:i_CFG_Clear_Double_Data = TRUE  inrjoi   15-07-19   2.02
+//ra#32916: ECS - Rules for adopting blocks SW/Testing  inrjoi   05-06-19   2.01
+//
+//Description:
+//
+//             ************
+//    TRS01    *   HBS03  *     TRS05
+// |--------| |*----------*| |--------|
+// |        | |*          *| |        |
+// |--------| |*----------*| |--------|
+//             *   HBO99  *
+//             ************
+//
+//TRS01, VI infeed conveyor
+//HBS03, Scan conveyor (scan/main conveyor of machine)
+//TRS05, VI outfeed conveyor
+//
+//The following functions are fulfilled:
+//- Test mode (insert 1 bag at the time during Image Quality Mode)
+//- Capacity/flow control
+//- Flow interfacing with the EDS
+//- (Advanced) die-back control
+//- Energy saving
+//- Cascade starting
+   VAR_INPUT 
+      i_CMD_Enable : Bool;   // CMD: Enable command
+      i_CMD_Start : Bool;   // CMD: Start command
+      i_CMD_Reset : Bool;   // CMD: Reset command
+      i_CMD_Controlled_Stop : Bool;   // CMD: Controlled stop command
+      i_Safety_OK : Bool;   // Safety is OK signal
+      i_Send_Statistics : Bool;   // Trigger send and clear statistics
+      i_CFG_IQT_Unattended_TO : Int := 200;   // CFG: [0.1 sec] Timeout for status 'unattended item' during IQT
+      i_Local_Destination : Int;   // CFG: Destination of the screening machine
+      i_DB_PLT_Lost_And_Found : DB_ANY := DB1;   // Data Structure: DB PLT lost & found buffer
+      i_DB_Send_FIFO_PNPN : DB_ANY := DB1;   // Data Structure: TCTC DB send message FIFO for PN/PN coupler
+      i_DB_RS_Upstr : DB_ANY := DB1;   // Data Structure: DB Route Segment upstream buffer
+      i_DB_RS_Dwnstr : DB_ANY := DB1;   // Data Structure: DB Route Segment downstream buffer
+      i_DB_RS_HBO99 : DB_ANY := DB1;   // Data Structure: DB Route Segment HBO99 buffer
+      i_TRS01_ID : DWord;   // ID Record HEX AAAAZZSS/OO
+      i_TRS01_Setting : "UDT_TRS_T1D1S1P_Sett";   // Data Structure: Setting
+      i_TRS01_CFG_Default_Rec : Int;   // CFG: Number of default record to be used to create link.
+      i_TRS01_CFG_LMS_In_Hardw_ID : HW_ANY;   // CFG: Hardware ID of the module from which the data is to be read
+      i_TRS01_CFG_LMS_Out_Hardw_ID : HW_ANY;   // CFG: Hardware ID of the module to which the data is to be written
+      i_TRS01_DB_PLT : DB_ANY := DB1;   // Data Structure: DB PLT
+      i_TRS01_LMS_NotPrsnt : Bool;   // LMS ASI slave not present
+      i_TRS01_LMS_Error : Bool;   // LMS ASI slave error
+      i_TRS01_IO_Available : Bool;   // IO is OK signal (no fieldbus or IO error)
+      i_TRS01_IO_LMS_Auto : Bool;   // HW: Automatic signal from LMS
+      i_TRS01_IO_LMS_Healthy : Bool;   // HW: Healthy signal from LMS
+      i_TRS01_IO_NOT_EOS_PEC : Bool;   // HW: End Of Section PEC (TRUE = No product detected)
+      i_TRS01_Ext_Req_Halt : Bool;   // Request signal from external to halt (no restart needed)
+      i_TRS01_Ext_Req_Dis_Send : Bool;   // Request signal from external to disable send
+      i_PBB01_CFG_Hardw_ID : HW_ANY;   // CFG: Hardware ID of the Fieldbus device from which the status is to be determined (0=Disabled)
+      i_PBB01_ASI_NotPrsnt : Bool;   // ASI slave is not present
+      i_PBB01_ASI_Error : Bool;   // ASI slave has an error
+      i_PBB01_IO_KS_Test_Mode : Bool;   // CMD: Test mode for IQT image quality test bag handling
+      i_PBB01_IO_PB_Dispatch : Bool;   // CMD: Dispatch a baggage item
+      i_HBO99_ID : DWord;   // ID Record HEX AAAAZZSS/OO
+      i_HBO99_Setting : "UDT_HBO_Sett";   // Data Structure
+      i_HBO99_CFG_Line_ID : Int;   // CFG: [1..99] Machine or Line indentification number
+      i_HBO99_CFG_Suc_Unex_Num : Int;   // CFG: Number of successive unexpected data
+      i_HBO99_CFG_Suc_NoDa_Num : Int;   // CFG: Number of successive no data
+      i_HBO99_CFG_In_Hardw_ID : HW_ANY;   // CFG: Hardware ID of the module where to read the data
+      i_HBO99_IO_Available : Bool;   // Signal for indication IO is OK (no Field bus or IO error)
+      i_HBS03_ID : DWord;   // ID Record AAAA - ZZSS (BCD).
+      i_HBS03_DB_PLT : DB_ANY := DB1;   // Data Structure: DB PLT
+      i_TRS05_ID : DWord;   // ID Record HEX AAAAZZSS/OO
+      i_TRS05_Setting : "UDT_TRS_T1D1S2P_Sett";   // Data Structure: Setting
+      i_TRS05_CFG_Default_Rec : Int;   // CFG: Number of default record to be used to create link.
+      i_TRS05_CFG_LMS_In_Hardw_ID : HW_ANY;   // CFG: Hardware ID of the module from which the data is to be read
+      i_TRS05_CFG_LMS_Out_Hardw_ID : HW_ANY;   // CFG: Hardware ID of the module to which the data is to be written
+      i_TRS05_TEP_Downstream : Int := 10;   // Total number of Empty Positions downstream of the HBZ
+      i_TRS05_DB_PLT : DB_ANY := DB1;   // Data structure: DB PLT
+      i_TRS05_DB_PLT_Downstr : DB_ANY := DB1;   // Data structure: DB PLT
+      i_TRS05_LMS_NotPrsnt : Bool;   // LMS ASI slave not present
+      i_TRS05_LMS_Error : Bool;   // LMS ASI slave error
+      i_TRS05_IO_Available : Bool;   // Signal for indication IO is OK (no Fieldbus or IO error)
+      i_TRS05_IO_LMS_Auto : Bool;   // HW: Automatic signal from LMS
+      i_TRS05_IO_LMS_Healthy : Bool;   // HW: Healthy signal from LMS
+      i_TRS05_IO_NOT_SOS_PEC : Bool;   // HW: Start Of Section PEC (TRUE = No product detected)
+      i_TRS05_IO_NOT_EOS_PEC : Bool;   // HW: End Of Section PEC (TRUE = No product detected)
+      i_PBB02_IO_PB_Confirm : Bool;   // HW: Pushbutton Bag removed from OPZ
+      i_PBB02_CFG_Hardw_ID : HW_ANY;   // CFG: Hardware ID of the Fieldbus device from which the status is to be determined (0=Disabled)
+      i_PBB02_ASI_NotPrsnt : Bool;   // ASI is Not Present
+      i_PBB02_ASI_Error : Bool;   // ASI has an Error
+      i_IO_ISD_Comms : Any;   // Input range in-line screening device: ISD_Comms (DATA)
+      i_IO_BHS_Comms : Any;   // Output range baggage handling system: BHS_Comms (DATA)
+      i_IO_ISD_ID_Tracking : Any;   // Input range in-line screening device: ISD_ID (BagIDArray+IATA+Pseudo)
+      i_IO_ISD_ID_Decision : Any;   // Input range in-line screening device: ISD_ID (BagIDArray+IATA+Pseudo)
+      i_IO_BHS_ID : Any;   // Output range baggage handling system: BHS_ID (BagIDArray+IATA+Pseudo)
+   END_VAR
+
+   VAR_OUTPUT 
+      o_Ready_To_Restart : Bool;   // Ready To Restart to system control
+      o_Action_Active : Bool;   // Action Active
+      o_Req_Dis_Send_Upstr : Bool;   // Request disable send upstream TRS
+      o_Req_Halt_Upstr : Bool;   // Request halt upstream TRS
+      o_TRS01_IO_MTR_Fwd : Bool;   // HW: Run forward signal to motor
+      o_TRS01_IO_MTR_Rev : Bool;   // HW: Run reverse signal to motor
+      o_TRS01_ST_Items : Bool;   // ST: Items present
+      o_TRS01_ST_Running : Bool;   // ST: Running
+      o_TRS01_ST_Started : Bool;   // ST: Started
+      o_TRS01_ST_Req_Halt : Bool;   // ST: Request Halt
+      o_TRS01_ST_Req_Stop : Bool;   // ST: Request Stop
+      o_TRS01_ST_Ext_Stop : Bool;   // ST: ST: External stop
+      o_TRS01_ST_LMS_Not_Prsnt : Bool;   // ST: LMS slave not present
+      o_TRS01_ST_LMS_Error : Bool;   // ST: LMS slave error
+      o_TRS01_ST_LMS_Not_Auto : Bool;   // ST: LMS is not automatic
+      o_TRS01_ST_LMS_Not_Hthy : Bool;   // ST: LMS is not healthy
+      o_TRS01_ST_EOS_PEC_Blk : Bool;   // ST: End Of Section PEC blockage
+      o_TRS01_ST_EOS_PEC_Miss : Bool;   // ST: End Of Section PEC successive missings
+      o_TRS01_ST_EOS_PEC_BadTr : Bool;   // ST: End Of Section PEC bad tracking
+      o_TRS01_ST_Test_Mode : Bool;   // ST: Test mode is activated
+      o_TRS01_ST_Item_Unattend : Bool;   // ST: Item is unattended on TRS01
+      o_TRS01_EXT_Outputs : "UDT_External_Outputs";   // Data structure: External outputs
+      o_PBB01_IO_SL_Create_Pos : Bool;   // HW: Indication for insertion of a new item
+      o_PBB01_ST_ASI_NotPrsnt : Bool;   // ST: ASI slave not present
+      o_PBB01_ST_ASI_Error : Bool;   // ST: ASI slave error
+      o_PBB01_ST_FieldB_Not_Prsnt : Bool;   // ST: Fieldbus slave is not present
+      o_PBB01_ST_FieldB_Error : Bool;   // ST: Fieldbus slave has an error
+      o_HBO99_ST_Slav_NotPrsnt : Bool;   // ST: Profibus slave not Present
+      o_HBO99_ST_Slave_Error : Bool;   // ST: Profibus slave error
+      o_HBO99_ST_Initializing : Bool;   // ST: Machine reports: Initialization sequence
+      o_HBO99_ST_Calibrating : Bool;   // ST: Machine reports: Calibrating
+      o_HBO99_ST_Scan : Bool;   // ST: Machine reports: Scanning
+      o_HBO99_ST_Standby : Bool;   // ST: Machine reports: Standby
+      o_HBO99_ST_Conveyor_Mode : Bool;   // ST: Machine reports: Transport mode
+      o_HBO99_ST_Disconnected : Bool;   // ST: Machine reports: Disconnected
+      o_HBO99_ST_Mach_Not_Rdy : Bool;   // ST: Machine reports: Screening machine not ready for screening bags
+      o_HBO99_ST_Mach_Error : Bool;   // ST: Machine reports: Screening machine has an internal error
+      o_HBO99_ST_Comm_Error : Bool;   // ST: Communication error with screening machine
+      o_HBO99_ST_E_Stop : Bool;   // ST: Machine reports: E-stop
+      o_HBO99_ST_Interlock : Bool;   // ST: Machine reports: Interlock
+      o_HBO99_ST_Syst_Fault : Bool;   // ST: Machine reports: System fault
+      o_HBO99_ST_Power_Supp_Err : Bool;   // ST: Machine reports: Power supply error
+      o_HBO99_ST_Im_Eval_Not_Rdy : Bool;   // ST: Machine reports: Image evaluation not ready
+      o_HBO99_ST_Im_Dist_Not_Rdy : Bool;   // ST: Machine reports: Image distribution not ready
+      o_HBO99_ST_Suc_Unex_Data : Bool;   // ST: Successive unexpected data at outfeed
+      o_HBO99_ST_Succ_No_Data : Bool;   // ST: Successive no data received at handover
+      o_HBO99_ST_WN_Restart : Bool;   // ST: Warning: restart is required
+      o_HBS03_ST_PEC_Blk : Bool;   // ST: Machine reports: PEC blockage
+      o_HBS03_ST_Conveyor_Flt : Bool;   // ST: Machine reports: Conveyor fault
+      o_HBS03_ST_Items : Bool;   // ST: Items Present
+      o_HBS03_ST_Running : Bool;   // ST: Running
+      o_HBS03_ST_Started : Bool;   // ST: Started
+      o_TRS05_IO_MTR_Fwd : Bool;   // HW: Run forward signal to motor
+      o_TRS05_IO_MTR_Rev : Bool;   // HW: Run reverse signal to motor
+      o_TRS05_ST_Items : Bool;   // Items Present
+      o_TRS05_ST_Running : Bool;   // ST: Running
+      o_TRS05_ST_Started : Bool;   // ST: Started
+      o_TRS05_ST_Req_Halt : Bool;   // ST: Request Halt
+      o_TRS05_ST_Req_Stop : Bool;   // ST: Request Stop
+      o_TRS05_ST_Ext_Stop : Bool;   // ST: Component is operationally off and not available for operational use
+      o_TRS05_ST_LMS_Not_Prsnt : Bool;   // ST: LMS slave not present
+      o_TRS05_ST_LMS_Error : Bool;   // ST: LMS slave error
+      o_TRS05_ST_LMS_Not_Auto : Bool;   // ST: LMS is not automatic
+      o_TRS05_ST_LMS_Not_Hthy : Bool;   // ST: LMS is not healthy
+      o_TRS05_ST_EOS_PEC_Blk : Bool;   // ST: End Of Section PEC blockage
+      o_TRS05_ST_EOS_PEC_Miss : Bool;   // ST: End Of Section PEC successive missings
+      o_TRS05_ST_EOS_PEC_BadTr : Bool;   // ST: End Of Section PEC bad tracking
+      o_TRS05_ST_SOS_PEC_Blk : Bool;   // ST: Start Of Section PEC blockage
+      o_TRS05_ST_Item_Unattend : Bool;   // ST: Unattended item during test mode
+      o_TRS05_EXT_Outputs : "UDT_External_Outputs";   // Data structure: External outputs
+      o_PBB02_IO_SL_Bag_Prsnt : Bool;   // HW: Signallight bag present
+      o_PBB02_ST_ASI_NotPrsnt : Bool;   // ST: ASI slave not present
+      o_PBB02_ST_ASI_Error : Bool;   // ST: ASI slave error
+      o_PBB02_ST_FieldB_Not_Prsnt : Bool;   // ST: Fieldbus slave is not present
+      o_PBB02_ST_FieldB_Error : Bool;   // ST: Fieldbus slave has an error
+   END_VAR
+
+   VAR 
+      s_FB_Rte_Seg_FIFO_T_1 : "FB_Rte_Seg_FIFO_T";   // Block call static FB_Rte_Seg_FIFO_T
+      s_FB_Rte_Seg_FIFO_T_2 : "FB_Rte_Seg_FIFO_T";   // Block call static FB_Rte_Seg_FIFO_T
+      s_FB_OPO_HBZ_Ins_Ctrl : "FB_OPO_HBZ_Ins_Ctrl";   // Block call static FB_OPO_HBZ_Ins_Ctrl
+      s_TRS01_FB_EQP_PEC_EOS : "FB_EQP_PEC";   // Block call static FB_EQP PEC
+      s_TRS01_FB_EQP_Basic : "FB_EQP_Basic";   // Block call static FB_EQP_Basic
+      s_TRS01_FB_TRK_Track_EOS : "FB_TRK_Track";   // Block call static FB_TRK_Track
+      s_TRS01_FB_HW_MltSpd_LMS : "FB_HW_MultiSpeed_LMS";   // Block call static FB_HW_MultiSpeed_LMS
+      s_TRS01_FB_HW_MTR_PN_LMS : "FB_HW_MTR_PN_LMS";   // Block call static FB_HW_MTR_PN_LMS
+      s_TRS01_FB_DAT_T : "FB_DAT_T";   // Block call static FB_DAT_T
+      s_TRS01_FB_DAT : "FB_DAT";   // Block call static FB_DAT
+      s_TRS05_FB_EQP_PEC_SOS : "FB_EQP_PEC";   // Block call static FB_EQP PEC
+      s_TRS05_FB_EQP_PEC_EOS : "FB_EQP_PEC";   // Block call static FB_EQP PEC
+      s_TRS05_FB_EQP_Basic : "FB_EQP_Basic";   // Block call static FB_EQP_Basic
+      s_TRS05_FB_TRK_Track_EOS : "FB_TRK_Track";   // Block call static FB_TRK_Track
+      s_TRS05_FB_HW_MTR_LMS : "FB_HW_MultiSpeed_LMS";   // Block call static FB_HW_MultiSpeed_LMS
+      s_TRS05_FB_HW_MTR_PN_LMS : "FB_HW_MTR_PN_LMS";   // Block call static FB_HW_MTR_PN_LMS
+      s_TRS05_FB_DAT_T : "FB_DAT_T";   // Block call static FB_DAT_T
+      s_TRS05_FB_DAT : "FB_DAT";   // Block call static FB_DAT
+      s_FB_OPO_HBZ_Rem_Ctrl : "FB_OPO_HBZ_Rem_Ctrl";   // Block call static FB_OPO_HBZ_Rem_Ctrl
+      s_HBO99_FB_HBO_MV3D_HW : "FB_HBO_MV3D_HW";   // Block call static FB_HBO_MV3D_HW
+      s_HBO99_FB_HBO_MV3D : "FB_HBO_MV3D";   // Block call static FB_HBO_MV3D
+      s_HBO99_FB_DAT_Object : "FB_DAT";   // Block call static FB_DAT
+      s_HBO99_FB_DAT_T_Section : "FB_DAT_T";   // Block call static FB_DAT_T
+      s_HBO99_FB_DAT_Section : "FB_DAT";   // Block call static FB_DAT
+      s_i_ISD_Comms_Data : "UDT_HBO_Comm_IN";   // ISD comms
+      s_o_BHS_Comms_Data : "UDT_HBO_Comm_OUT";   // BHS comms
+      s_Advanced_Dieback : Struct   // Advanced Dieback
+         TEP_Downstream : Int;   // Total Empty Positions downstream of the HBZ
+         TOP : Int;   // Total Occupied Positions (tunnel + outfeed)
+         Req_Disable_Send : Bool;   // Not enough empty positions downstream of screening machine
+      END_STRUCT;
+      s_TRS01 : Struct   // TRS01
+         Actual_Speed : Int;   // Actual speed
+         PEC_Position : Int;   // PEC position
+         LPOS : Int;   // LPOS
+         Req_Motor_Forward : Bool;   // Request Motor Forward
+         Ready_To_Restart : Bool;   // Ready to restart
+         Req_Stop : Bool;   // Request stop
+         Req_Halt : Bool;   // Request halt
+         Req_Disable_Send : Bool;   // Request disable send due to internal or EDS reasons
+         Disable_Send : Bool;   // Disable send request due to internal reasons
+         Req_Halt_Insert : Bool;   // TRS01 Halt Insert request
+         OPO_Req_Disb_Send_Ups : Bool;   // TRS01 request disable send to upstream conveyor
+         Item_At_Handover : Bool;   // Item at Handover position
+         PEC_Latch : Bool;   // PEC latch signal
+         IQT_Bag : Bool;   // IQT bag waiting to be dispatched
+      END_STRUCT;
+      s_TRS05 : Struct   // TRS5
+         Actual_Speed : Int;   // Actual speed
+         SOS_PEC_Position : Int;   // PEC position
+         EOS_PEC_Position : Int;   // PEC position
+         LPOS_EOS : Int;   // LPOS
+         Req_Motor_Forward : Bool;   // Request Motor Forward
+         Ready_To_Restart : Bool;   // Ready to restart
+         Req_Stop : Bool;   // Request stop
+         Req_Halt : Bool;   // Request halt
+         Req_Disable_Send : Bool;   // Request disable send
+         Req_Reset_Energysave : Bool;   // Request reset energysave
+         Die_Back : Bool;   // TRS in die back
+         Clear_PLT : Bool;   // Request to clear PLT when in IQT mode
+         Ready_To_Receive : Bool;   // Ready to receive a new item
+         SOS_PEC_Latch : Bool;   // PEC latch signal for the SOS PEC
+      END_STRUCT;
+      s_Flow_Delay : Int;   // Flow delay
+      s_Nr_Items_In_Process : Int;   // Number of items being processed by the EDS
+      s_Eqp_Operational_On : Bool;   // Screening machine is operational
+      s_FP_Flow_Stopped : Bool;   // FP: Flow was stopped
+      s_Test_Mode_Active : Bool;   // Test mode active - Used to run 1 bag through the EDS (activated on infeed)
+      s_HBO99_Dieback : Bool;   // Scan tunnel in die-back
+      s_HBO99_Flush_Required : Bool;   // HBO99 requires flush to clear buffers
+      s_HBO99_ST_Slav_NotPrsnt : Bool;   // ST: Profibus slave not Present
+      s_HBO99_ST_Slave_Error : Bool;   // ST: Profibus slave error
+      s_HBO99_ST_Calibrating : Bool;   // ST: Machine reports: Calibrating
+      s_HBO99_ST_Scan : Bool;   // ST: Machine reports: Scanning
+      s_HBO99_ST_Suc_Unex_Data : Bool;   // ST: Successive unexpected data at outfeed
+      s_HBO99_ST_Succ_No_Data : Bool;   // ST: Successive no data received at handover
+      s_HBO99_Comm_Error : Bool;   // Communication error
+      s_HBO99_ST_WN_Restart : Bool;   // ST: Warning: restart is required
+      s_HBO99_Req_Halt_TRS : Bool;   // HBO99 request to halt HBZ sections
+      s_TRS01_FN_Item_Handover : Bool;   // FN: Item at handover TRS01
+      s_TRS01_Flow_OK : Bool;   // Flow OK bit
+      s_TRS01_ST_Test_Mode : Bool;   // ST: Test mode is activated
+      s_TRS01_ST_Started : Bool;   // ST: Started
+      s_TRS01_ST_Items : Bool;   // ST: Items present
+      s_TRS01_ST_LMS_Not_Prsnt : Bool;   // ST: LMS slave not present
+      s_TRS01_ST_LMS_Error : Bool;   // ST: LMS slave error
+      s_TRS01_ST_LMS_Not_Auto : Bool;   // ST: LMS is not automatic
+      s_TRS01_ST_LMS_Not_Hthy : Bool;   // ST: LMS is not healthy
+      s_TRS01_ST_EOS_PEC_Blk : Bool;   // ST: End Of Section PEC blockage
+      s_TRS01_ST_EOS_PEC_Miss : Bool;   // ST: End Of Section PEC successive missings
+      s_TRS01_MTR_Fwd : Bool;   // Run forward signal to motor
+      s_TRS05_ST_Started : Bool;   // ST: Started
+      s_TRS05_ST_Items : Bool;   // ST: Items present
+      s_TRS05_ST_Req_Halt : Bool;   // ST: Request Halt
+      s_TRS05_ST_Req_Stop : Bool;   // ST: Request Stop
+      s_TRS05_ST_LMS_Not_Prsnt : Bool;   // ST: LMS slave not present
+      s_TRS05_ST_LMS_Error : Bool;   // ST: LMS slave error
+      s_TRS05_ST_LMS_Not_Auto : Bool;   // ST: LMS is not automatic
+      s_TRS05_ST_LMS_Not_Hthy : Bool;   // ST: LMS is not healthy
+      s_TRS05_ST_EOS_PEC_Miss : Bool;   // ST: End Of Section PEC successive missings
+      s_TRS05_ST_EOS_PEC_Blk : Bool;   // ST: End Of Section PEC blockage
+      s_TRS05_ST_SOS_PEC_Blk : Bool;   // ST: Start Of Section PEC blockage
+      s_TRS05_MTR_Fwd : Bool;   // Run forward signal to motor
+      s_HBS03_ST_Items : Bool;   // ST: Items Present
+   END_VAR
+
+   VAR_TEMP 
+      t_GEOADDR {InstructionName := 'GEOADDR'; LibVersion := '1.0'} : GEOADDR;   // Geographical address
+      t_Ret_Val : Int;   //  Return value of function
+      t_Int_Not_Used : Int;   // Not used
+      t_DB_Section_Event_Num : Int;   // DB Event number
+      t_AR2_Store_Restore : DWord;   // Backup addres register AR2
+      t_Base_Address : DWord;   // Relative address of instance-DB
+      t_ANY_ISD_Comms : Any;   // ANY pointer from IDS Comms Data
+      t_ANY_BHS_Comms : Any;   // ANY pointer from BHS Comms Data
+      t_ANY_ISD_ID_Tracking : Any;   // ANY pointer from ISD ID data
+      t_ANY_ISD_ID_Decision : Any;   // ANY pointer from ISD ID data
+      t_ANY_BHS_ID : Any;   // ANY pointer from BHS ID data
+      t_TRS01_Not_Auto : Bool;   // TRS motor is reporting not Automatic
+      t_BOOL_Not_Used : Bool;   // Not used
+      t_HBO99_IO_Available : Bool;   // Available IO
+      t_HBZ_Items : Bool;   // Items present in HBZ
+      t_TRS01_PEC_Preset : Bool;   // Preset signal for PEC
+      t_HBZ_Ready_For_Dispatch : Bool;   // Item can be dispatched
+      t_TRS01_IO_Available : Bool;   // PEC IO available TRS 1
+      t_TRS05_IO_Available : Bool;   // PEC IO available TRS 2
+      t_TRS05_Clear_PLT_OPO : Bool;   // OPO requests to clear PLT after bag removal in IQT mode
+      t_HBO99_ST_Conveyor_Mode : Bool;   // HBO99 is in transport mode (manually set on EDS)
+      t_HBZ_Faulted : Bool;   // BHS has a fault within the HBZ
+      t_Req_Confirm_Removal : Bool;   // A bag was dispatched and removal not confirmed yet
+      t_Send_Data_Infeed : Bool;   // Send bagID data to EDS machine on infeed
+      t_Allow_Unexpected_Data : Bool;   // Unexpected data is expected at the outfeed (bagjam, IQT, ...) block error
+      t_Manual_Run_Bagjam : Bool;   // Screening machine belt is running because of operator action
+      t_OS_Item_Handed_Over : Bool;   // One shot: Negative flank of 'item in handover'
+      t_OS_Flow_Stopped : Bool;   // One shot: Flow stopped/halted
+      t_TRS05_Req_Halt : Bool;   // OPO requests to halt outfeed section when item is at side guard cut-out
+   END_VAR
+
+
+BEGIN
+NETWORK
+TITLE = AA: Get offset from instance-DB and start address backbone
+//The 'base address' is used to get the absolute address of the intances-DB's 
+//
+//AR2:         10000ZZZ 00000yyy yyyyyyyy yyyyyxxx
+//Mask:        00000000 11111111 11111111 11111111
+//             ----------------------------------- +
+//t_AR2_Mask:  00000000 00000yyy yyyyyyyy yyyyyxxx
+// 
+//   Z=Operand area      y=Byte address    x=Bit address
+      NOP 0;
+
+      TAR2;// Load 'base address' of instance-DB
+      AD 16#00FF_FFFF;// Filter last 3 bytes
+      T #t_Base_Address;// 'relative address'
+
+NETWORK
+TITLE = BA: Copy "ISD_Comms" from input
+//Write to HBS03 machine BHS_Comms.Data to Static UDT
+      NOP 0;
+
+      TAR2 #t_AR2_Store_Restore;// AR2 Store
+
+      L P##i_IO_ISD_Comms;// 'area-crossing pointer'
+      L #t_Base_Address;// 'relative address'-mask
+      +D;
+      LAR1;// 'absolute address' Source
+      LAR2 P##t_ANY_ISD_Comms;// address Destination
+
+      L W[ AR1, P#0.0];// Copy ANY pointer
+      T LW[ AR2, P#0.0];// Byte0=$10 (for S7), Byte1=data type
+      L W[ AR1, P#2.0];
+      T LW[ AR2, P#2.0];// Byte2..3=Repetition factor
+      L W[ AR1, P#4.0];
+      T LW[ AR2, P#4.0];// Byte4..5=DB number
+      L D[ AR1, P#6.0];
+      T LD[ AR2, P#6.0];// Byte6=memory area, Byte7..9=Byte,Bit address
+
+      LAR2 #t_AR2_Store_Restore;// AR2 Restore
+
+      CALL BLKMOV
+      {blk_type := 'Variant'}
+      (  SRCBLK                      := #t_ANY_ISD_Comms , 
+         RET_VAL                     := #t_Ret_Val , 
+         DSTBLK                      := #s_i_ISD_Comms_Data
+      );
+
+NETWORK
+TITLE = CA: Copy ANY pointer(s) BAGIDARRAY
+      NOP 0;
+
+// Copy ISD ID ANY pointer
+      L P##i_IO_ISD_ID_Tracking;// 'area-crossing pointer'
+      L #t_Base_Address;// 'relative address'-mask
+      +D;
+      LAR1;// 'absolute address' Source
+      LAR2 P##t_ANY_ISD_ID_Tracking;// address Destination
+
+      L W[ AR1, P#0.0];// Copy ANY pointer
+      T LW[ AR2, P#0.0];// Byte0=$10 (for S7), Byte1=data type
+      L W[ AR1, P#2.0];
+      T LW[ AR2, P#2.0];// Byte2..3=Repetition factor
+      L W[ AR1, P#4.0];
+      T LW[ AR2, P#4.0];// Byte4..5=DB number
+      L D[ AR1, P#6.0];
+      T LD[ AR2, P#6.0];// Byte6=memory area, Byte7..9=Byte,Bit address
+
+// Copy ISD ID ANY pointer
+      L P##i_IO_ISD_ID_Decision;// 'area-crossing pointer'
+      L #t_Base_Address;// 'relative address'-mask
+      +D;
+      LAR1;// 'absolute address' Source
+      LAR2 P##t_ANY_ISD_ID_Decision;// address Destination
+
+      L W[ AR1, P#0.0];// Copy ANY pointer
+      T LW[ AR2, P#0.0];// Byte0=$10 (for S7), Byte1=data type
+      L W[ AR1, P#2.0];
+      T LW[ AR2, P#2.0];// Byte2..3=Repetition factor
+      L W[ AR1, P#4.0];
+      T LW[ AR2, P#4.0];// Byte4..5=DB number
+      L D[ AR1, P#6.0];
+      T LD[ AR2, P#6.0];// Byte6=memory area, Byte7..9=Byte,Bit address
+
+// Copy BHS ID ANY pointer
+      L P##i_IO_BHS_ID;// 'area-crossing pointer'
+      L #t_Base_Address;// 'relative address'-mask
+      +D;
+      LAR1;// 'absolute address' Source
+      LAR2 P##t_ANY_BHS_ID;// address Destination
+
+      L W[ AR1, P#0.0];// Copy ANY pointer
+      T LW[ AR2, P#0.0];// Byte0=$10 (for S7), Byte1=data type
+      L W[ AR1, P#2.0];
+      T LW[ AR2, P#2.0];// Byte2..3=Repetition factor
+      L W[ AR1, P#4.0];
+      T LW[ AR2, P#4.0];// Byte4..5=DB number
+      L D[ AR1, P#6.0];
+      T LD[ AR2, P#6.0];// Byte6=memory area, Byte7..9=Byte,Bit address
+
+      LAR2 #t_AR2_Store_Restore;// AR2 Restore
+
+NETWORK
+TITLE = DA: Fieldbus device status
+//"Fieldbus_Device_Status" function [Master code is in FB_FieldBus_Slave]
+      NOP 0;
+
+//Reset Errors
+      A #i_CMD_Reset;
+      ON #i_HBO99_IO_Available;
+      R #s_HBO99_ST_Slav_NotPrsnt;
+      R #s_HBO99_ST_Slave_Error;
+
+//Function is always used. A valid Hardware ID is mandatory for IO exchange
+
+//Retrieve the station number of the device using the LOG2GEO instruction
+      CALL LOG2GEO
+      (  LADDR                       := #i_HBO99_CFG_In_Hardw_ID , 
+         Ret_Val                     := #t_Ret_Val , 
+         GEOADDR                     := #t_GEOADDR
+      );
+
+//SET Error Device Not Present
+      A(;
+      L #t_Ret_Val;
+      L 0;
+      <>I;
+      );
+      O "DB_Diagnose_PN".PNIO_System_100.Device_Not_Present[#t_GEOADDR.STATION];
+      A #i_HBO99_IO_Available;
+      S #s_HBO99_ST_Slav_NotPrsnt;
+
+//SET Error Device error
+      A "DB_Diagnose_PN".PNIO_System_100.Device_Error[#t_GEOADDR.STATION];
+      A #i_HBO99_IO_Available;
+      S #s_HBO99_ST_Slave_Error;
+
+      A #i_HBO99_IO_Available;
+      AN #s_HBO99_ST_Slav_NotPrsnt;
+      AN #s_HBO99_ST_Slave_Error;
+      = #t_HBO99_IO_Available;
+
+NETWORK
+TITLE = EA: Advanced dieback
+//Single infeed mode is activated in case of advanced dieback and bags will be 
+//screened one by one.
+      NOP 0;
+
+      L #i_TRS05_TEP_Downstream;
+      T #s_Advanced_Dieback.TEP_Downstream;
+
+      L #s_Nr_Items_In_Process;
+      T #s_Advanced_Dieback.TOP;
+
+      A #s_TRS05_ST_Items;
+      JCN EA01;
+
+      L #s_Advanced_Dieback.TOP;
+      L 1;
+      +I;
+      T #s_Advanced_Dieback.TOP;
+
+EA01:      L #s_Advanced_Dieback.TEP_Downstream;
+      L #s_Advanced_Dieback.TOP;
+      <=I;
+      = #s_Advanced_Dieback.Req_Disable_Send;
+
+NETWORK
+TITLE = FA: Infeed flow control
+      NOP 0;
+
+      OPN "DB_Event_Section";
+      L DBNO;
+      T #t_DB_Section_Event_Num;
+
+      OPN #i_TRS01_DB_PLT;
+
+      A %DBX10.6;// Item_At_Handover
+      = #s_TRS01.Item_At_Handover;
+
+      A #s_TRS01.Item_At_Handover;
+      FN #s_TRS01_FN_Item_Handover;
+      = #t_OS_Item_Handed_Over;
+
+      A #s_TRS01.Item_At_Handover;
+      AN #s_TRS01_MTR_Fwd;
+      FP #s_FP_Flow_Stopped;
+      = #t_OS_Flow_Stopped;
+
+      L #i_TRS01_Setting.Hardware.Speed1;
+      L 0;
+      <=I;
+      JCN FA01;
+
+      SET;
+      = #s_TRS01_Flow_OK;
+
+      JU FA99;
+
+// Set 'minimum gap delay' when item finishes handing over
+FA01:      A(;
+      L #i_TRS01_Setting.Basic.Minimum_Gap;
+      L 0;
+      >I;
+      );
+      A #t_OS_Item_Handed_Over;
+      JCN FA02;
+
+      L #i_TRS01_Setting.Basic.Minimum_Gap;
+      L 1000;
+      *D;
+      L #i_TRS01_Setting.Hardware.Speed1;
+      /D;
+      L 10;
+      *I;
+      T #s_Flow_Delay;
+
+FA02:      A #t_OS_Flow_Stopped;
+      A(;
+      L #i_TRS01_Setting.Basic.Add_Gap_Stop;
+      L 0;
+      >I;
+      );
+      JCN FA03;
+
+      L #i_TRS01_Setting.Basic.Add_Gap_Stop;
+      L 1000;
+      *D;
+      L #i_TRS01_Setting.Hardware.Speed1;
+      /D;
+      L 10;
+      *I;
+      L #s_Flow_Delay;
+      +I;
+      T #s_Flow_Delay;
+
+FA03:      A #s_i_ISD_Comms_Data.Scan_Conv_Running;
+      AN #s_TRS01_Flow_OK;
+      JCN FA04;
+
+      L #s_Flow_Delay;
+      L "MW_Prev_Cycle_Time";
+      -I;
+      T #s_Flow_Delay;
+
+FA04:      L #s_Flow_Delay;
+      L 0;
+      <=I;
+      = #s_TRS01_Flow_OK;
+
+FA99:      NOP 0;
+
+NETWORK
+TITLE = GA: Transport section TRS01
+      NOP 0;
+
+// Get and set PLT information
+// PEC equipment layer
+      A #s_TRS01_ST_LMS_Not_Auto;
+      O #s_TRS01_ST_Test_Mode;// Don't latch when in test mode
+      = #t_TRS01_PEC_Preset;
+
+      A #i_TRS01_IO_Available;
+      AN #s_TRS01_ST_LMS_Not_Prsnt;
+      AN #s_TRS01_ST_LMS_Error;
+      = #t_TRS01_IO_Available;
+
+      CALL #s_TRS01_FB_EQP_PEC_EOS
+      (  i_Setting                   := #i_TRS01_Setting.PEC_1 , 
+         i_DB_PLT                    := #i_TRS01_DB_PLT , 
+         i_DB_Event                  := "DB_Event_Section" , 
+         i_Dwnstr_PLT_Pos            := 0 , 
+         i_CFG_Blockage_Length       := 300 , 
+         i_CFG_Delay_On_Filter       := 8 , // Match L3 settings
+         i_CFG_Delay_Off_Filter      := 13 , 
+         i_CFG_Flickering_Length     := 60 , 
+         i_CFG_Min_Product_Length    := 60 , 
+         i_CFG_Preset_PEC_Latch      := #t_TRS01_PEC_Preset , 
+         i_CFG_Track_Present         := TRUE , 
+         i_CFG_Reset_Block_PEC_Oc    := FALSE , 
+         i_IO_NOT_PEC                := #i_TRS01_IO_NOT_EOS_PEC , 
+         i_Eqp_Available_IO          := #t_TRS01_IO_Available , 
+         i_CMD_Reset                 := #i_CMD_Reset , 
+         o_LPOS                      := #s_TRS01.LPOS , 
+         o_PEC_Position              := #s_TRS01.PEC_Position , 
+         o_ST_PEC_Blk                := #s_TRS01_ST_EOS_PEC_Blk , 
+         o_PEC_Latch                 := #s_TRS01.PEC_Latch
+      );
+
+// Insert service bag
+      A #s_HBS03_ST_Items;
+      O #s_TRS05_ST_Items;
+      = #t_HBZ_Items;
+
+      A #s_TRS01_ST_Started;
+      A #s_TRS05.Ready_To_Receive;
+      A #s_i_ISD_Comms_Data.Scan_Conv_Running;
+      AN #s_TRS05_ST_Items;
+      = #t_HBZ_Ready_For_Dispatch;
+
+      CALL #s_FB_OPO_HBZ_Ins_Ctrl
+      (  i_DB_Event                  := "DB_Event_Section" , 
+         i_DB_PLT_1_OPZ_Infeed       := #i_TRS01_DB_PLT , 
+         i_CFG_Unattented_TimeOut    := #i_CFG_IQT_Unattended_TO , 
+         i_CFG_Default_Record        := #i_TRS01_CFG_Default_Rec , 
+         i_CFG_Hardw_ID              := #i_PBB01_CFG_Hardw_ID , 
+         i_CMD_Reset                 := #i_CMD_Reset , 
+         i_PBB_ASI_NotPrsnt          := #i_PBB01_ASI_NotPrsnt , 
+         i_PBB_ASI_Error             := #i_PBB01_ASI_Error , 
+         i_IO_KS_Test_Mode           := #i_PBB01_IO_KS_Test_Mode , 
+         i_IO_PB_Dispatch            := #i_PBB01_IO_PB_Dispatch , 
+         i_IO_PB_Confirm_Removal     := #i_PBB02_IO_PB_Confirm , 
+         i_Available_IO              := #i_TRS01_IO_Available , 
+         i_HBZ_Items_Present         := #t_HBZ_Items , 
+         i_HBZ_Ready                 := #t_HBZ_Ready_For_Dispatch , 
+         o_IO_SL_Create_Position     := #o_PBB01_IO_SL_Create_Pos , 
+         o_TRS1_Req_Halt             := #s_TRS01.Req_Halt_Insert , 
+         o_TRS1_IQT_Bag              := #s_TRS01.IQT_Bag , 
+         o_PBB_ST_ASI_NotPrsnt       := #o_PBB01_ST_ASI_NotPrsnt , 
+         o_PBB_ST_ASI_Error          := #o_PBB01_ST_ASI_Error , 
+         o_ST_FieldB_NotPrsnt        := #o_PBB01_ST_FieldB_Not_Prsnt , 
+         o_ST_FieldB_Error           := #o_PBB01_ST_FieldB_Error , 
+         o_ST_Test_Mode              := #s_TRS01_ST_Test_Mode , 
+         o_ST_Unattended             := #o_TRS01_ST_Item_Unattend , 
+         o_Req_Dis_Send_Upst         := #s_TRS01.OPO_Req_Disb_Send_Ups , 
+         o_IQT_Active                := #s_Test_Mode_Active , 
+         o_Req_Confirm_Removal       := #t_Req_Confirm_Removal
+      );
+
+// Conditions to request stop
+      A #s_TRS01_ST_EOS_PEC_Blk;
+      O #s_TRS01_ST_LMS_Not_Prsnt;
+      O #s_TRS01_ST_LMS_Error;
+      O #s_TRS01_ST_LMS_Not_Auto;
+      O #s_TRS01_ST_LMS_Not_Hthy;
+      O #s_TRS01_ST_EOS_PEC_Miss;
+      = #s_TRS01.Req_Stop;
+
+// Conditions to request disable send
+      A #i_TRS01_Ext_Req_Dis_Send;
+      O #s_Advanced_Dieback.Req_Disable_Send;
+      AN #s_Test_Mode_Active;
+      ON #s_TRS05.Ready_To_Receive;
+      ON #s_TRS01_ST_Started;
+      ON #t_HBO99_IO_Available;
+      O #i_CMD_Controlled_Stop;
+      = #s_TRS01.Disable_Send;
+
+      AN #s_i_ISD_Comms_Data.Scan_Ready_To_Receive;
+      ON #s_i_ISD_Comms_Data.Scan_Conv_Running;
+      ON #s_TRS01_Flow_OK;
+      A(;
+      AN #s_HBO99_ST_Calibrating;// Ignore machine states when calibrating
+      ON #s_Test_Mode_Active;
+      );
+      O #s_TRS01.Disable_Send;
+      = #s_TRS01.Req_Disable_Send;
+
+// Conditions to request halt
+      A #s_TRS01.Item_At_Handover;
+      A(;
+      AN #s_i_ISD_Comms_Data.Scan_Conv_Running;
+      O #s_HBO99_Req_Halt_TRS;
+      );
+      O #s_TRS01.Req_Halt_Insert;
+      O #i_TRS01_Ext_Req_Halt;
+      = #s_TRS01.Req_Halt;
+
+      A #s_TRS01_ST_LMS_Not_Auto;
+      = #t_TRS01_Not_Auto;
+
+      CALL #s_TRS01_FB_EQP_Basic
+      (  i_ID_Section                := #i_TRS01_ID , 
+         i_Basic_Offset              := #i_TRS01_Setting.Basic.Offset , 
+         i_DB_PLT                    := #i_TRS01_DB_PLT , 
+         i_DB_Event                  := "DB_Event_Section" , 
+         i_Conveyor_Speed            := #s_TRS01.Actual_Speed , 
+         i_Run_Out_Distance          := #i_TRS01_Setting.Hardware.Speed1_Run_Out_Dist , 
+         i_Start_Up_Distance         := #i_TRS01_Setting.Hardware.Speed1_Start_Up_Dist , 
+         i_Minimum_Gap               := 0 , // Gap, H2H settings have no use. No downstream PLT DB
+         i_Add_Gap_Stop              := 0 , 
+         i_Minimum_H2H               := 0 , 
+         i_Add_H2H_Stop              := 0 , 
+         i_CFG_Cascade_Delay_Time    := 0 , 
+         i_CFG_Strt_Up_T_E_Save      := "DB_Setting".common.Start_Up_Time_E_Save , 
+         i_CFG_Run_Out_E_Save        := "DB_Setting".common.Run_Out_Time_E_Save , 
+         i_CFG_Stop_T_E_Save         := "DB_Setting".common.Stop_Time_E_Save , 
+         i_PPI_Displacement          := 0 , 
+         i_Dwnstr_PLT_Pos            := #s_TRS01.PEC_Position , 
+         i_CFG_Disbl_E_Save          := "DB_Setting".common.Disable_Energy_Saving , 
+         i_CFG_Slave_Mode            := FALSE , 
+         i_CFG_Del_Window_Codes      := FALSE , 
+         i_Available_IO              := #i_TRS01_IO_Available , 
+         i_Safety_OK                 := #i_Safety_OK , 
+         i_CMD_Enable                := #i_CMD_Enable , 
+         i_CMD_Start                 := #i_CMD_Start , 
+         i_Ext_Req_Stop              := #s_TRS01.Req_Stop , 
+         i_Ext_Req_Halt              := #s_TRS01.Req_Halt , 
+         i_Ext_Req_Dis_Send          := #s_TRS01.Req_Disable_Send , 
+         i_Ext_Req_Rst_ESave         := FALSE , 
+         i_OS_Direction_Change       := FALSE , 
+         i_Clr_PLT_Data              := #t_TRS01_Not_Auto , 
+         o_External                  := #o_TRS01_EXT_Outputs , 
+         o_Motor_Run                 := #s_TRS01.Req_Motor_Forward , 
+         o_ST_Items                  := #s_TRS01_ST_Items , 
+         o_ST_Running                := #o_TRS01_ST_Running , 
+         o_ST_Started                := #s_TRS01_ST_Started , 
+         o_ST_Request_Halt           := #o_TRS01_ST_Req_Halt , 
+         o_ST_Request_Stop           := #o_TRS01_ST_Req_Stop , 
+         o_ST_External_Stop          := #o_TRS01_ST_Ext_Stop , 
+         o_Ready_To_Restart          := #s_TRS01.Ready_To_Restart
+      );
+
+// Tracking layer
+      CALL #s_TRS01_FB_TRK_Track_EOS
+      (  i_Setting                   := #i_TRS01_Setting.Tracking , 
+         i_DB_PLT                    := #i_TRS01_DB_PLT , 
+         i_Event_DB                  := "DB_Event_Section" , 
+         i_Position_PEC_Update       := #s_TRS01.PEC_Position , 
+         i_LPOS                      := #s_TRS01.LPOS , 
+         i_Length_Dif_Accepted       := 0 , 
+         i_CFG_Num_Missing_Error     := 3 , 
+         i_CFG_Upd_Perf_WN_Level     := 80 , 
+         i_CFG_Weighing_Factor       := 10 , 
+         i_CFG_Default_Record        := #i_TRS01_CFG_Default_Rec , 
+         i_Trigger_Send_Stat         := #i_Send_Statistics , 
+         i_CMD_Reset                 := #i_CMD_Reset , 
+         i_CFG_Clear_Double_Data     := TRUE , 
+         i_OS_Direction_Change       := FALSE , 
+         i_HW_MTR_Not_Auto           := #t_TRS01_Not_Auto , 
+         o_ST_PEC_Miss               := #s_TRS01_ST_EOS_PEC_Miss , 
+         o_ST_PEC_BadTrack           := #o_TRS01_ST_EOS_PEC_BadTr , 
+         o_Update_Performance        := #t_Int_Not_Used , 
+         o_Average_Slip              := #t_Int_Not_Used , 
+         o_Number_Of_Items           := #t_Int_Not_Used , 
+         o_OS_Data_Updated           := #t_BOOL_Not_Used , 
+         o_Data_Last_Update          := #t_Int_Not_Used , 
+         o_Position_Last_Update      := #t_Int_Not_Used , 
+         o_Deviation_Last_Update     := #t_Int_Not_Used
+      );
+
+// Hardware layer
+      AN "M_Hardware_PN";
+      JCN GA01;
+
+      CALL #s_TRS01_FB_HW_MltSpd_LMS
+      (  i_CMD_Send_Stat             := #i_Send_Statistics , 
+         i_DB_PLT                    := #i_TRS01_DB_PLT , 
+         i_Event_DB                  := "DB_Event_Section" , 
+         i_Speed1                    := #i_TRS01_Setting.Hardware.Speed1 , 
+         i_Speed1_Run_Out_Dist       := #i_TRS01_Setting.Hardware.Speed1_Run_Out_Dist , 
+         i_Speed1_Start_Up_Dist      := #i_TRS01_Setting.Hardware.Speed1_Start_Up_Dist , 
+         i_CFG_Motor_Switch_Time     := 0 , 
+         i_CMD_Select_Speed          := 1 , 
+         i_Available_IO              := #i_TRS01_IO_Available , 
+         i_LMS_NotPrsnt              := #i_TRS01_LMS_NotPrsnt , 
+         i_LMS_Error                 := #i_TRS01_LMS_Error , 
+         i_IO_LMS_Auto               := #i_TRS01_IO_LMS_Auto , 
+         i_IO_LMS_Healthy            := #i_TRS01_IO_LMS_Healthy , 
+         i_CMD_Reset                 := #i_CMD_Reset , 
+         i_CMD_Req_Motor_Run         := #s_TRS01.Req_Motor_Forward , 
+         i_CMD_Req_Motor_Reverse     := FALSE , 
+         o_IO_MTR_Fwd                := #s_TRS01_MTR_Fwd , 
+         o_IO_MTR_Rev                := #o_TRS01_IO_MTR_Rev , 
+         o_ST_ASI_NotPrsnt           := #s_TRS01_ST_LMS_Not_Prsnt , 
+         o_ST_ASI_Err                := #s_TRS01_ST_LMS_Error , 
+         o_ST_LMS_Not_Auto           := #s_TRS01_ST_LMS_Not_Auto , 
+         o_ST_LMS_Not_Hthy           := #s_TRS01_ST_LMS_Not_Hthy , 
+         o_Select_Conveyor_Speed     := #s_TRS01.Actual_Speed , 
+         o_Req_Halt                  := #t_BOOL_Not_Used
+      );
+
+      JU GA02;
+
+GA01:      CALL #s_TRS01_FB_HW_MTR_PN_LMS
+      (  i_CMD_Send_Stat             := #i_Send_Statistics , 
+         i_DB_PLT                    := #i_TRS01_DB_PLT , 
+         i_Event_DB                  := "DB_Event_Section" , 
+         i_Speed                     := #i_TRS01_Setting.Hardware.Speed1 , 
+         i_Run_Out_Dist              := #i_TRS01_Setting.Hardware.Speed1_Run_Out_Dist , 
+         i_Start_Up_Dist             := #i_TRS01_Setting.Hardware.Speed1_Start_Up_Dist , 
+         i_CFG_Motor_Switch_Time     := 0 , 
+         i_CFG_In_Hardw_ID           := #i_TRS01_CFG_LMS_In_Hardw_ID , 
+         i_CFG_Out_Hardw_ID          := #i_TRS01_CFG_LMS_Out_Hardw_ID , 
+         i_Available_IO              := #i_TRS01_IO_Available , 
+         i_CMD_Reset                 := #i_CMD_Reset , 
+         i_CMD_Req_Motor_Run         := #s_TRS01.Req_Motor_Forward , 
+         o_ST_FieldB_NotPrsnt        := #s_TRS01_ST_LMS_Not_Prsnt , 
+         o_ST_FieldB_Error           := #s_TRS01_ST_LMS_Error , 
+         o_ST_LMS_Not_Auto           := #s_TRS01_ST_LMS_Not_Auto , 
+         o_ST_LMS_Not_Hthy           := #s_TRS01_ST_LMS_Not_Hthy , 
+         o_Select_Conveyor_Speed     := #s_TRS01.Actual_Speed , 
+         o_Req_Halt                  := #t_BOOL_Not_Used
+      );
+
+GA02:      NOP 0;
+
+// Data layer
+      CALL #s_TRS01_FB_DAT_T
+      (  i_ID                        := #i_TRS01_ID , 
+         i_DB_Event                  := "DB_Event_Section" , 
+         i_DB_PLT_Lost_And_Found     := #i_DB_PLT_Lost_And_Found , 
+         i_DB_Send_FIFO_PNPN         := #i_DB_Send_FIFO_PNPN
+      );
+
+      CALL #s_TRS01_FB_DAT
+      (  i_ID_Section                := #i_TRS01_ID , 
+         i_DB_Event                  := "DB_Event_Section" , 
+         i_PLC_Log_FIFO_DB           := "DB_LOG_Event_FIFO" , 
+         i_CFG_BPI_Log_Level         := "DB_Setting".common.External_Log_Level , 
+         i_CFG_PLC_Log_Level         := "DB_Setting".common.Internal_Log_Level , 
+         i_CFG_PLC_Log_Route_Msgs    := FALSE , 
+         i_CFG_PLC_No_Msg_To_Rout    := #s_Test_Mode_Active   // When service bags are introduced, HL should not be informed
+      );
+
+NETWORK
+TITLE = HA: Move carrier to the correct buffer
+      NOP 0;
+
+// Move carrier from Upstream to HBO99 route segment
+      CALL #s_FB_Rte_Seg_FIFO_T_1
+      (  i_CFG_Position_Node         := 20 , 
+         i_CFG_Straight_Rte_Seg      := TRUE , 
+         i_DB_PLT_Node               := #i_TRS01_DB_PLT , 
+         i_DB_RS_Upstr               := #i_DB_RS_Upstr , 
+         i_DB_RS_Dwnstr              := #i_DB_RS_HBO99 , 
+         i_DB_Event                  := "DB_Event_Section"
+      );
+
+// Move carrier from HBO99 to Downstream route segment
+      CALL #s_FB_Rte_Seg_FIFO_T_2
+      (  i_CFG_Position_Node         := 20 , 
+         i_DB_PLT_Node               := #i_TRS05_DB_PLT , 
+         i_DB_RS_Upstr               := #i_DB_RS_HBO99 , 
+         i_DB_RS_Dwnstr              := #i_DB_RS_Dwnstr , 
+         i_DB_Event                  := "DB_Event_Section"
+      );
+
+NETWORK
+TITLE = HB: Screening object HBO99
+      NOP 0;
+
+      A #s_TRS05.Ready_To_Receive;
+      AN #s_o_BHS_Comms_Data.Exit_Ready_To_Receive;
+      JCN HB01;
+
+      A #i_TRS05_IO_NOT_SOS_PEC;// Tunnel die-back: delay start-up
+      O #s_i_ISD_Comms_Data.Scan_Conv_Running;
+      = #s_o_BHS_Comms_Data.Exit_Ready_To_Receive;
+
+      JU HB02;
+
+HB01:      A #s_TRS05.Ready_To_Receive;
+      = #s_o_BHS_Comms_Data.Exit_Ready_To_Receive;
+
+HB02:      A #s_TRS01_ST_Started;
+      A #s_TRS01_ST_Items;
+      AN #s_TRS01.Disable_Send;
+      O #s_TRS01.IQT_Bag;
+      AN #s_HBO99_Comm_Error;
+      = #s_o_BHS_Comms_Data.Infeed_Ready_To_Send;
+
+      AN #i_Safety_OK;
+      O #s_HBO99_ST_Suc_Unex_Data;
+      O #s_HBO99_ST_Succ_No_Data;
+      = #t_HBZ_Faulted;
+
+      AN #i_TRS01_IO_NOT_EOS_PEC;
+      = #s_o_BHS_Comms_Data.Infeed_Conv_PEC;
+
+      AN #i_TRS05_IO_NOT_SOS_PEC;
+      = #s_o_BHS_Comms_Data.Exit_Conv_PEC;
+
+      A #s_TRS01_MTR_Fwd;
+      = #s_o_BHS_Comms_Data.Infeed_Conveyor_Run;
+
+      A #s_TRS05_MTR_Fwd;
+      = #s_o_BHS_Comms_Data.Exit_Conveyor_Run;
+
+      CALL #s_HBO99_FB_HBO_MV3D_HW
+      (  i_Event_DB_Zone             := "DB_Event_Zone" , // Use for reports on object level
+         i_Event_DB_Section          := "DB_Event_Section" , // Use for reports on section level
+         i_CFG_Avail_Rep_Time        := 30 , 
+         i_IO_HBO_Heartbeat          := #s_i_ISD_Comms_Data.Time_Sync_Sec , 
+         i_IO_Mode                   := #s_i_ISD_Comms_Data.EDS_State , 
+         i_CMD_Reset                 := #i_CMD_Reset , 
+         i_Safety_OK                 := #i_Safety_OK , 
+         i_Available_IO              := #t_HBO99_IO_Available , 
+         i_CMD_Send_Stat             := #i_Send_Statistics , 
+         i_BHS_Error                 := #t_HBZ_Faulted , 
+         i_IO_Emergency_Stop         := #s_i_ISD_Comms_Data.Emergency_Stop_EDS , 
+         i_IO_HBO_E_Stop_Fault       := #s_i_ISD_Comms_Data.EDS_Faults.E_Stop , 
+         i_IO_HBO_Interlock          := #s_i_ISD_Comms_Data.EDS_Faults.Interlock_Error , 
+         i_IO_HBO_Bag_Jam_Xray       := #s_i_ISD_Comms_Data.EDS_Faults.Bag_Jam_Xray , 
+         i_IO_HBO_Bag_Jam_Arr1       := #s_i_ISD_Comms_Data.EDS_Faults.Bag_Jam_Arr1 , 
+         i_IO_HBO_Bag_Jam_Arr2       := #s_i_ISD_Comms_Data.EDS_Faults.Bag_Jam_Arr2 , 
+         i_IO_HBO_IAC_Fault          := #s_i_ISD_Comms_Data.EDS_Faults.IAC_Fault , 
+         i_IO_HBO_Data_Array_Fault   := #s_i_ISD_Comms_Data.EDS_Faults.Data_Array_Fault , 
+         i_IO_HBO_HVPS_Fault         := #s_i_ISD_Comms_Data.EDS_Faults.HVPS_Fault , 
+         i_IO_HBO_Conveyor_Fault     := #s_i_ISD_Comms_Data.EDS_Faults.Conveyor_Fault , 
+         i_IO_HBO_No_Operators_Lv2   := #s_i_ISD_Comms_Data.EDS_Faults.No_Operators_Lv2 , 
+         i_IO_HBO_Network_Fault      := #s_i_ISD_Comms_Data.EDS_Faults.Network_Fault , 
+         i_IO_HBO_Subsystem_Fault    := #s_i_ISD_Comms_Data.EDS_Faults.Subsystem_Fault , 
+         i_IO_HBO_Temp_Warning       := #s_i_ISD_Comms_Data.EDS_Faults.Temp_Warning , 
+         i_IO_HBO_UPS_Fault          := #s_i_ISD_Comms_Data.EDS_Faults.UPS_Fault , 
+         i_IO_HBO_Watermark_Exceed   := #s_i_ISD_Comms_Data.EDS_Faults.Watermark_Exceed , 
+         i_IO_HBO_No_Operators_Lv3   := #s_i_ISD_Comms_Data.EDS_Faults.No_Operators_Lv3 , 
+         i_IO_HBO_Conveyor_Run       := #s_i_ISD_Comms_Data.Scan_Conv_Running , 
+         o_IO_Fault_Status_BHS       := #s_o_BHS_Comms_Data.Fault_Status_BHS , 
+         o_Eqp_Operational_On        := #s_Eqp_Operational_On , 
+         o_ST_HBO_Scan               := #s_HBO99_ST_Scan , 
+         o_ST_HBO_IQ_Test            := #s_HBO99_ST_Calibrating , 
+         o_ST_HBO_Conv_Mode          := #t_HBO99_ST_Conveyor_Mode , 
+         o_ST_HBO_Standby            := #o_HBO99_ST_Standby , 
+         o_ST_HBO_Initialize         := #o_HBO99_ST_Initializing , 
+         o_ST_HBO_Fault              := #o_HBO99_ST_Mach_Error , 
+         o_ST_HBO_Disconnected       := #o_HBO99_ST_Disconnected , 
+         o_ST_HBO_Dieback            := #s_HBO99_Dieback , 
+         o_ST_HBO_Flush_Required     := #s_HBO99_Flush_Required , 
+         o_ST_HBO_Comm_Error         := #s_HBO99_Comm_Error , 
+         o_ST_HBO_E_Stop_Fault       := #o_HBO99_ST_E_Stop , 
+         o_ST_HBO_Interlock          := #o_HBO99_ST_Interlock , 
+         o_ST_HBO_System_Fault       := #o_HBO99_ST_Syst_Fault , 
+         o_ST_HBO_Power_Supp_Err     := #o_HBO99_ST_Power_Supp_Err , 
+         o_ST_HBO_Im_Eval_Not_Rdy    := #o_HBO99_ST_Im_Eval_Not_Rdy , 
+         o_ST_HBO_Im_Dist_Not_Rdy    := #o_HBO99_ST_Im_Dist_Not_Rdy , 
+         o_ST_HBS_ST_PEC_Blk         := #o_HBS03_ST_PEC_Blk , 
+         o_ST_HBS_Conveyor_Fault     := #o_HBS03_ST_Conveyor_Flt
+      );
+
+      A #t_HBO99_ST_Conveyor_Mode;
+      = #o_HBO99_ST_Conveyor_Mode;
+
+      A #s_TRS01.PEC_Latch;
+      AN #s_Test_Mode_Active;
+      = #t_Send_Data_Infeed;
+
+      A #s_Test_Mode_Active;
+      O #s_i_ISD_Comms_Data.EDS_Faults.Bag_Jam_Xray;
+      O #s_i_ISD_Comms_Data.EDS_Faults.Bag_Jam_Arr1;
+      O #s_i_ISD_Comms_Data.EDS_Faults.Bag_Jam_Arr2;
+      ON #t_HBO99_IO_Available;
+      O #s_HBO99_Comm_Error;
+      O #s_HBO99_Flush_Required;
+      = #t_Allow_Unexpected_Data;
+
+      CALL #s_HBO99_FB_HBO_MV3D
+      (  i_HBO_ID                    := #i_HBO99_ID , 
+         i_HBS_ID                    := #i_HBS03_ID , 
+         i_Available_IO              := #t_HBO99_IO_Available , 
+         i_CMD_Enable                := #i_CMD_Enable , 
+         i_CMD_Start                 := #i_CMD_Start , 
+         i_CMD_Reset                 := #i_CMD_Reset , 
+         i_CMD_Send_Stat             := #i_Send_Statistics , 
+         i_Test_Mode_Active          := #s_Test_Mode_Active , 
+         i_Comm_Error                := #s_HBO99_Comm_Error , 
+         i_Eqp_Operational_On        := #s_Eqp_Operational_On , 
+         i_Allow_Unexpected_Data     := #t_Allow_Unexpected_Data , 
+         i_Default_Record_Inf        := #i_TRS01_CFG_Default_Rec , 
+         i_Default_Record_Outf       := #i_TRS05_CFG_Default_Rec , 
+         i_Local_Destination         := #i_Local_Destination , 
+         i_HBO_Settings              := #i_HBO99_Setting , 
+         i_DB_PLT_Infeed             := #i_TRS01_DB_PLT , 
+         i_DB_PLT_Non_Trk            := #i_HBS03_DB_PLT , 
+         i_DB_PLT_Outfeed            := #i_TRS05_DB_PLT , 
+         i_DB_Event_Section          := "DB_Event_Section" , 
+         i_DB_Event_Object           := "DB_Event_Zone" , // Use for reports on object level
+         i_CFG_Line_ID               := #i_HBO99_CFG_Line_ID , 
+         i_CFG_Num_Unex_Data_Er      := #i_HBO99_CFG_Suc_Unex_Num , 
+         i_CFG_Num_No_Data_Er        := #i_HBO99_CFG_Suc_NoDa_Num , 
+         i_IO_BHS_ID                 := #t_ANY_BHS_ID , 
+         i_IO_Send_Data_Inf          := #t_Send_Data_Infeed , 
+         i_IO_ACKN_Data_Inf          := #s_i_ISD_Comms_Data.Bag_ID_Received , 
+         i_IO_EDS_Bag_In_Process     := #s_i_ISD_Comms_Data.Bag_In_Process , 
+         i_IO_Receive_Data_Outf      := #s_i_ISD_Comms_Data.Exit_Decision_Posted , 
+         i_IO_Decision_Available     := #s_i_ISD_Comms_Data.Bag_Decision_Posted , 
+         i_IO_Forced_Reject_Ack      := #s_i_ISD_Comms_Data.Forced_Reject_Ack , 
+         i_IO_Transport_Mode         := #t_HBO99_ST_Conveyor_Mode , 
+         i_IO_Time_Sync_Sec          := #s_i_ISD_Comms_Data.Time_Sync_Sec , 
+         i_IO_Time_Sync_Min          := #s_i_ISD_Comms_Data.Time_Sync_Min , 
+         i_IO_Time_Sync_Hour         := #s_i_ISD_Comms_Data.Time_Sync_Hour , 
+         i_IO_Time_Sync_Day          := #s_i_ISD_Comms_Data.Time_Sync_Day , 
+         i_IO_Time_Sync_Month        := #s_i_ISD_Comms_Data.Time_Sync_Month , 
+         i_IO_Time_Sync_Year         := #s_i_ISD_Comms_Data.Time_Sync_Year , 
+         i_IO_ISD_ID_Tracking        := #t_ANY_ISD_ID_Tracking , 
+         i_IO_ISD_ID_Decision        := #t_ANY_ISD_ID_Decision , 
+         o_Req_Halt_TRS              := #s_HBO99_Req_Halt_TRS , 
+         o_ST_WN_Restart             := #s_HBO99_ST_WN_Restart , 
+         o_ST_Succ_Unexp_Data        := #s_HBO99_ST_Suc_Unex_Data , 
+         o_ST_Succ_No_Data           := #s_HBO99_ST_Succ_No_Data , 
+         o_ST_Items                  := #s_HBS03_ST_Items , 
+         o_ST_Started                := #o_HBS03_ST_Started , 
+         o_IO_MasterClkDesignator    := #s_o_BHS_Comms_Data.Master_Clk_Designator , 
+         o_IO_Inf_Bag_Data_Ready     := #s_o_BHS_Comms_Data.Bag_ID_Data_Ready , 
+         o_IO_Ack_Sec_Bag_Data       := #s_o_BHS_Comms_Data.Sec_Bag_Data_Received , 
+         o_IO_Ack_Exit_Bag_Data      := #s_o_BHS_Comms_Data.Exit_Bag_Data_Received , 
+         o_IO_Force_Reject           := #s_o_BHS_Comms_Data.Force_Reject , 
+         o_IO_Pseud_Code_ForceRej    := #s_o_BHS_Comms_Data.Pseudo_Code_ForceRej , 
+         o_IO_Time_Sync_Sec          := #s_o_BHS_Comms_Data.Time_Sync_Sec , 
+         o_IO_Time_Sync_Min          := #s_o_BHS_Comms_Data.Time_Sync_Min , 
+         o_IO_Time_Sync_Hour         := #s_o_BHS_Comms_Data.Time_Sync_Hour , 
+         o_IO_Time_Sync_Day          := #s_o_BHS_Comms_Data.Time_Sync_Day , 
+         o_IO_Time_Sync_Month        := #s_o_BHS_Comms_Data.Time_Sync_Month , 
+         o_IO_Time_Sync_Year         := #s_o_BHS_Comms_Data.Time_Sync_Year , 
+         o_Nr_Items                  := #s_Nr_Items_In_Process
+      );
+
+      CALL #s_HBO99_FB_DAT_T_Section
+      (  i_ID                        := #i_HBS03_ID , 
+         i_DB_Event                  := "DB_Event_Section" , 
+         i_DB_PLT_Lost_And_Found     := #i_DB_PLT_Lost_And_Found , 
+         i_DB_Send_FIFO_PNPN         := #i_DB_Send_FIFO_PNPN
+      );
+
+      CALL #s_HBO99_FB_DAT_Section
+      (  i_ID_Section                := #i_HBS03_ID , 
+         i_DB_Event                  := "DB_Event_Section" , 
+         i_PLC_Log_FIFO_DB           := "DB_LOG_Event_FIFO" , 
+         i_CFG_BPI_Log_Level         := "DB_Setting".common.External_Log_Level , 
+         i_CFG_PLC_Log_Level         := "DB_Setting".common.Internal_Log_Level , 
+         i_CFG_PLC_Log_Route_Msgs    := FALSE , 
+         i_CFG_PLC_No_Msg_To_Rout    := #s_Test_Mode_Active
+      );
+
+      CALL #s_HBO99_FB_DAT_Object
+      (  i_ID_Section                := #i_HBO99_ID , 
+         i_DB_Event                  := "DB_Event_Zone" , 
+         i_PLC_Log_FIFO_DB           := "DB_LOG_Event_FIFO" , 
+         i_CFG_BPI_Log_Level         := "DB_Setting".common.External_Log_Level , 
+         i_CFG_PLC_Log_Level         := "DB_Setting".common.Internal_Log_Level , 
+         i_CFG_PLC_Log_Route_Msgs    := FALSE
+      );
+
+NETWORK
+TITLE = IA: Transport section TRS05
+      NOP 0;
+
+// Operator position controls
+      CALL #s_FB_OPO_HBZ_Rem_Ctrl
+      (  i_DB_PLT_TRS                := #i_TRS05_DB_PLT , 
+         i_DB_Event                  := "DB_Event_Section" , 
+         i_CFG_Unattended_TO         := #i_CFG_IQT_Unattended_TO , 
+         i_CFG_Hardw_ID              := #i_PBB02_CFG_Hardw_ID , 
+         i_CMD_Reset                 := #i_CMD_Reset , 
+         i_Available_IO              := #i_TRS05_IO_Available , 
+         i_IQT_Active                := #s_Test_Mode_Active , 
+         i_Req_Confirm_Removal       := #t_Req_Confirm_Removal , 
+         i_IO_NOT_PEC                := #i_TRS05_IO_NOT_EOS_PEC , 
+         i_IO_PB_Confirm_Removal     := #i_PBB02_IO_PB_Confirm , 
+         i_PBB_ASI_Not_Present       := #i_PBB02_ASI_NotPrsnt , 
+         i_PBB_ASI_Error             := #i_PBB02_ASI_Error , 
+         o_PBB_ST_ASI_NotPrsnt       := #o_PBB02_ST_ASI_NotPrsnt , 
+         o_PBB_ST_ASI_Error          := #o_PBB02_ST_ASI_Error , 
+         o_ST_FieldB_NotPrsnt        := #o_PBB02_ST_FieldB_Not_Prsnt , 
+         o_ST_FieldB_Error           := #o_PBB02_ST_FieldB_Error , 
+         o_ST_Unattended             := #o_TRS05_ST_Item_Unattend , 
+         o_IO_SL_Bag_Present         := #o_PBB02_IO_SL_Bag_Prsnt , 
+         o_Req_Halt                  := #t_TRS05_Req_Halt , 
+         o_Req_Disable_Send          := #s_TRS05.Req_Disable_Send , 
+         o_Clear_PLT                 := #t_TRS05_Clear_PLT_OPO
+      );
+
+      A #s_TRS05_ST_LMS_Not_Auto;
+      O #t_TRS05_Clear_PLT_OPO;
+      = #s_TRS05.Clear_PLT;
+
+      A #i_TRS05_IO_Available;
+      AN #s_TRS05_ST_LMS_Not_Prsnt;
+      AN #s_TRS05_ST_LMS_Error;
+      = #t_TRS05_IO_Available;
+
+// PEC equipment layer
+      CALL #s_TRS05_FB_EQP_PEC_SOS
+      (  i_Setting                   := #i_TRS05_Setting.PEC_2 , 
+         i_DB_PLT                    := #i_TRS05_DB_PLT , 
+         i_DB_Event                  := "DB_Event_Section" , 
+         i_Dwnstr_PLT_Pos            := #s_TRS05.EOS_PEC_Position , 
+         i_CFG_Blockage_Length       := 300 , 
+         i_CFG_Delay_On_Filter       := 5 , 
+         i_CFG_Delay_Off_Filter      := 13 , 
+         i_CFG_Flickering_Length     := 60 , 
+         i_CFG_Min_Product_Length    := 60 , 
+         i_CFG_Preset_PEC_Latch      := #s_TRS05.Clear_PLT , 
+         i_CFG_Track_Present         := FALSE , 
+         i_CFG_Reset_Block_PEC_Oc    := FALSE , 
+         i_IO_NOT_PEC                := #i_TRS05_IO_NOT_SOS_PEC , 
+         i_Eqp_Available_IO          := #t_TRS05_IO_Available , 
+         i_CMD_Reset                 := #i_CMD_Reset , 
+         o_LPOS                      := #t_Int_Not_Used , 
+         o_PEC_Position              := #s_TRS05.SOS_PEC_Position , 
+         o_ST_PEC_Blk                := #s_TRS05_ST_SOS_PEC_Blk , 
+         o_PEC_Latch                 := #s_TRS05.SOS_PEC_Latch
+      );
+
+      CALL #s_TRS05_FB_EQP_PEC_EOS
+      (  i_Setting                   := #i_TRS05_Setting.PEC_1 , 
+         i_DB_PLT                    := #i_TRS05_DB_PLT , 
+         i_DB_Event                  := "DB_Event_Section" , 
+         i_Dwnstr_PLT_Pos            := 0 , 
+         i_CFG_Blockage_Length       := 300 , 
+         i_CFG_Delay_On_Filter       := 8 , 
+         i_CFG_Delay_Off_Filter      := 13 , 
+         i_CFG_Flickering_Length     := 60 , 
+         i_CFG_Min_Product_Length    := 60 , 
+         i_CFG_Preset_PEC_Latch      := #s_TRS05.Clear_PLT , 
+         i_CFG_Track_Present         := TRUE , 
+         i_CFG_Reset_Block_PEC_Oc    := FALSE , 
+         i_IO_NOT_PEC                := #i_TRS05_IO_NOT_EOS_PEC , 
+         i_Eqp_Available_IO          := #t_TRS05_IO_Available , 
+         i_CMD_Reset                 := #i_CMD_Reset , 
+         o_LPOS                      := #s_TRS05.LPOS_EOS , 
+         o_PEC_Position              := #s_TRS05.EOS_PEC_Position , 
+         o_ST_PEC_Blk                := #s_TRS05_ST_EOS_PEC_Blk
+      );
+
+// Conditions to request stop
+      A #s_TRS05_ST_EOS_PEC_Blk;
+      O #s_TRS05_ST_SOS_PEC_Blk;
+      O #s_TRS05_ST_LMS_Not_Prsnt;
+      O #s_TRS05_ST_LMS_Error;
+      O #s_TRS05_ST_LMS_Not_Auto;
+      O #s_TRS05_ST_LMS_Not_Hthy;
+      O #s_TRS05_ST_EOS_PEC_Miss;
+      = #s_TRS05.Req_Stop;
+
+      A #s_i_ISD_Comms_Data.EDS_Faults.Bag_Jam_Xray;
+      O #s_i_ISD_Comms_Data.EDS_Faults.Bag_Jam_Arr1;
+      O #s_i_ISD_Comms_Data.EDS_Faults.Bag_Jam_Arr2;
+      A #s_i_ISD_Comms_Data.Scan_Conv_Running;
+      = #t_Manual_Run_Bagjam;
+
+// Conditions to request halt
+      A #s_HBO99_Req_Halt_TRS;
+      AN #t_Manual_Run_Bagjam;
+      O #t_TRS05_Req_Halt;
+      = #s_TRS05.Req_Halt;
+
+// Conditions to request reset energy save
+      A #s_i_ISD_Comms_Data.Exit_Ready_To_Send;
+      O #s_HBO99_Flush_Required;
+      O #t_Manual_Run_Bagjam;
+      = #s_TRS05.Req_Reset_Energysave;
+
+      CALL #s_TRS05_FB_EQP_Basic
+      (  i_ID_Section                := #i_TRS05_ID , 
+         i_Basic_Offset              := #i_TRS05_Setting.Basic.Offset , 
+         i_DB_PLT                    := #i_TRS05_DB_PLT , 
+         i_DB_PLT_DwnStr             := #i_TRS05_DB_PLT_Downstr , 
+         i_DB_Event                  := "DB_Event_Section" , 
+         i_Conveyor_Speed            := #s_TRS05.Actual_Speed , 
+         i_Run_Out_Distance          := #i_TRS05_Setting.Hardware.Speed1_Run_Out_Dist , 
+         i_Start_Up_Distance         := #i_TRS05_Setting.Hardware.Speed1_Start_Up_Dist , 
+         i_Minimum_Gap               := #i_TRS05_Setting.Basic.Minimum_Gap , 
+         i_Add_Gap_Stop              := #i_TRS05_Setting.Basic.Add_Gap_Stop , 
+         i_Minimum_H2H               := #i_TRS05_Setting.Basic.Minimum_H2H , 
+         i_Add_H2H_Stop              := #i_TRS05_Setting.Basic.Add_H2H_Stop , 
+         i_CFG_Cascade_Delay_Time    := 0 , 
+         i_CFG_Strt_Up_T_E_Save      := "DB_Setting".common.Start_Up_Time_E_Save , 
+         i_CFG_Run_Out_E_Save        := "DB_Setting".common.Run_Out_Time_E_Save , 
+         i_CFG_Stop_T_E_Save         := "DB_Setting".common.Stop_Time_E_Save , 
+         i_PPI_Displacement          := 0 , 
+         i_Dwnstr_PLT_Pos            := #s_TRS05.SOS_PEC_Position , 
+         i_CFG_Disbl_E_Save          := "DB_Setting".common.Disable_Energy_Saving , 
+         i_CFG_Slave_Mode            := FALSE , 
+         i_CFG_Del_Window_Codes      := FALSE , 
+         i_Available_IO              := #i_TRS05_IO_Available , 
+         i_Safety_OK                 := #i_Safety_OK , 
+         i_CMD_Enable                := #i_CMD_Enable , 
+         i_CMD_Start                 := #i_CMD_Start , 
+         i_Ext_Req_Stop              := #s_TRS05.Req_Stop , 
+         i_Ext_Req_Halt              := #s_TRS05.Req_Halt , 
+         i_Ext_Req_Dis_Send          := #s_TRS05.Req_Disable_Send , 
+         i_Ext_Req_Rst_ESave         := #s_TRS05.Req_Reset_Energysave , 
+         i_OS_Direction_Change       := FALSE , 
+         i_Clr_PLT_Data              := #s_TRS05.Clear_PLT , 
+         o_External                  := #o_TRS05_EXT_Outputs , 
+         o_Motor_Run                 := #s_TRS05.Req_Motor_Forward , 
+         o_ST_Items                  := #s_TRS05_ST_Items , 
+         o_ST_Running                := #o_TRS05_ST_Running , 
+         o_ST_Started                := #s_TRS05_ST_Started , 
+         o_ST_Request_Halt           := #s_TRS05_ST_Req_Halt , 
+         o_ST_Request_Stop           := #s_TRS05_ST_Req_Stop , 
+         o_ST_External_Stop          := #o_TRS05_ST_Ext_Stop , 
+         o_Ready_To_Restart          := #s_TRS05.Ready_To_Restart
+      );
+
+// Determine Die back.
+      A #s_TRS05_ST_Started;
+      A #s_TRS05_ST_Items;
+      AN #s_TRS05_MTR_Fwd;
+      AN #s_TRS05_ST_Req_Stop;
+      AN #s_TRS05_ST_Req_Halt;
+      = #s_TRS05.Die_Back;
+
+      A #s_TRS05_ST_Started;
+      AN #s_TRS05_ST_Req_Halt;
+      AN #s_TRS05_ST_Req_Stop;
+      AN #s_TRS05.Die_Back;
+      AN #s_HBO99_Req_Halt_TRS;
+      = #s_TRS05.Ready_To_Receive;
+
+// Tracking layer
+      CALL #s_TRS05_FB_TRK_Track_EOS
+      (  i_Setting                   := #i_TRS05_Setting.Tracking_PEC_1 , 
+         i_DB_PLT                    := #i_TRS05_DB_PLT , 
+         i_Event_DB                  := "DB_Event_Section" , 
+         i_Position_PEC_Update       := #s_TRS05.EOS_PEC_Position , 
+         i_LPOS                      := #s_TRS05.LPOS_EOS , 
+         i_Length_Dif_Accepted       := 0 , 
+         i_CFG_Num_Missing_Error     := 3 , 
+         i_CFG_Upd_Perf_WN_Level     := 80 , 
+         i_CFG_Weighing_Factor       := 10 , 
+         i_CFG_Default_Record        := #i_TRS05_CFG_Default_Rec , 
+         i_Trigger_Send_Stat         := #i_Send_Statistics , 
+         i_CMD_Reset                 := #i_CMD_Reset , 
+         i_CFG_Clear_Double_Data     := TRUE , 
+         i_OS_Direction_Change       := FALSE , 
+         i_HW_MTR_Not_Auto           := #s_TRS05.Clear_PLT , 
+         o_ST_PEC_Miss               := #s_TRS05_ST_EOS_PEC_Miss , 
+         o_ST_PEC_BadTrack           := #o_TRS05_ST_EOS_PEC_BadTr , 
+         o_Update_Performance        := #t_Int_Not_Used , 
+         o_Average_Slip              := #t_Int_Not_Used , 
+         o_Number_Of_Items           := #t_Int_Not_Used , 
+         o_OS_Data_Updated           := #t_BOOL_Not_Used , 
+         o_Data_Last_Update          := #t_Int_Not_Used , 
+         o_Position_Last_Update      := #t_Int_Not_Used , 
+         o_Deviation_Last_Update     := #t_Int_Not_Used
+      );
+
+// Hardware layer
+      AN "M_Hardware_PN";
+      JCN IA01;
+
+      CALL #s_TRS05_FB_HW_MTR_LMS
+      (  i_CMD_Send_Stat             := #i_Send_Statistics , 
+         i_DB_PLT                    := #i_TRS05_DB_PLT , 
+         i_Event_DB                  := "DB_Event_Section" , 
+         i_Speed1                    := #i_TRS05_Setting.Hardware.Speed1 , 
+         i_Speed1_Run_Out_Dist       := #i_TRS05_Setting.Hardware.Speed1_Run_Out_Dist , 
+         i_Speed1_Start_Up_Dist      := #i_TRS05_Setting.Hardware.Speed1_Start_Up_Dist , 
+         i_CFG_Motor_Switch_Time     := 0 , 
+         i_CMD_Select_Speed          := 1 , 
+         i_Available_IO              := #i_TRS05_IO_Available , 
+         i_LMS_NotPrsnt              := #i_TRS05_LMS_NotPrsnt , 
+         i_LMS_Error                 := #i_TRS05_LMS_Error , 
+         i_IO_LMS_Auto               := #i_TRS05_IO_LMS_Auto , 
+         i_IO_LMS_Healthy            := #i_TRS05_IO_LMS_Healthy , 
+         i_CMD_Reset                 := #i_CMD_Reset , 
+         i_CMD_Req_Motor_Run         := #s_TRS05.Req_Motor_Forward , 
+         i_CMD_Req_Motor_Reverse     := FALSE , 
+         o_IO_MTR_Fwd                := #s_TRS05_MTR_Fwd , 
+         o_IO_MTR_Rev                := #o_TRS05_IO_MTR_Rev , 
+         o_ST_ASI_NotPrsnt           := #s_TRS05_ST_LMS_Not_Prsnt , 
+         o_ST_ASI_Err                := #s_TRS05_ST_LMS_Error , 
+         o_ST_LMS_Not_Auto           := #s_TRS05_ST_LMS_Not_Auto , 
+         o_ST_LMS_Not_Hthy           := #s_TRS05_ST_LMS_Not_Hthy , 
+         o_Select_Conveyor_Speed     := #s_TRS05.Actual_Speed , 
+         o_Req_Halt                  := #t_BOOL_Not_Used
+      );
+
+      JU IA02;
+
+IA01:      CALL #s_TRS05_FB_HW_MTR_PN_LMS
+      (  i_CMD_Send_Stat             := #i_Send_Statistics , 
+         i_DB_PLT                    := #i_TRS05_DB_PLT , 
+         i_Event_DB                  := "DB_Event_Section" , 
+         i_Speed                     := #i_TRS05_Setting.Hardware.Speed1 , 
+         i_Run_Out_Dist              := #i_TRS05_Setting.Hardware.Speed1_Run_Out_Dist , 
+         i_Start_Up_Dist             := #i_TRS05_Setting.Hardware.Speed1_Start_Up_Dist , 
+         i_CFG_Motor_Switch_Time     := 0 , 
+         i_CFG_In_Hardw_ID           := #i_TRS05_CFG_LMS_In_Hardw_ID , 
+         i_CFG_Out_Hardw_ID          := #i_TRS05_CFG_LMS_Out_Hardw_ID , 
+         i_Available_IO              := #i_TRS05_IO_Available , 
+         i_CMD_Reset                 := #i_CMD_Reset , 
+         i_CMD_Req_Motor_Run         := #s_TRS05.Req_Motor_Forward , 
+         o_ST_FieldB_NotPrsnt        := #s_TRS05_ST_LMS_Not_Prsnt , 
+         o_ST_FieldB_Error           := #s_TRS05_ST_LMS_Error , 
+         o_ST_LMS_Not_Auto           := #s_TRS05_ST_LMS_Not_Auto , 
+         o_ST_LMS_Not_Hthy           := #s_TRS05_ST_LMS_Not_Hthy , 
+         o_Select_Conveyor_Speed     := #s_TRS05.Actual_Speed , 
+         o_Req_Halt                  := #t_BOOL_Not_Used
+      );
+
+IA02:      NOP 0;
+
+// Data layer
+      CALL #s_TRS05_FB_DAT_T
+      (  i_ID                        := #i_TRS05_ID , 
+         i_DB_Event                  := "DB_Event_Section" , 
+         i_DB_PLT_Lost_And_Found     := #i_DB_PLT_Lost_And_Found , 
+         i_DB_Send_FIFO_PNPN         := #i_DB_Send_FIFO_PNPN
+      );
+
+      CALL #s_TRS05_FB_DAT
+      (  i_ID_Section                := #i_TRS05_ID , 
+         i_DB_Event                  := "DB_Event_Section" , 
+         i_PLC_Log_FIFO_DB           := "DB_LOG_Event_FIFO" , 
+         i_CFG_BPI_Log_Level         := "DB_Setting".common.External_Log_Level , 
+         i_CFG_PLC_Log_Level         := "DB_Setting".common.Internal_Log_Level , 
+         i_CFG_PLC_Log_Route_Msgs    := FALSE , 
+         i_CFG_PLC_No_Msg_To_Rout    := #s_Test_Mode_Active
+      );
+
+NETWORK
+TITLE = JA: Zone Signals
+//LAD!
+      NOP 0;
+
+// Ready to re-start
+      A #s_TRS01.Ready_To_Restart;
+      O #s_TRS05.Ready_To_Restart;
+      O #s_HBO99_ST_WN_Restart;
+      = #o_Ready_To_Restart;
+
+// Actions active
+      A #s_TRS05.SOS_PEC_Latch;
+      O #s_HBS03_ST_Items;
+      A #s_TRS05_ST_Started;
+      A #s_Eqp_Operational_On;
+      AN #s_HBO99_Comm_Error;
+      = #o_Action_Active;
+
+NETWORK
+TITLE = KA: Write outputs HBO99
+      NOP 0;
+
+      AN #s_i_ISD_Comms_Data.Scan_Ready_To_Receive;
+      AN #s_HBO99_Comm_Error;
+      A #s_Eqp_Operational_On;
+      A #s_TRS01_ST_Items;
+      A #s_TRS05.Ready_To_Receive;
+      A(;
+      A #s_HBO99_ST_Scan;
+      O #t_HBO99_ST_Conveyor_Mode;
+      );
+      A #t_HBO99_IO_Available;
+      = #o_HBO99_ST_Mach_Not_Rdy;
+
+      A #s_i_ISD_Comms_Data.Scan_Conv_Running;
+      = #o_HBS03_ST_Running;
+      A #s_HBS03_ST_Items;
+      = #o_HBS03_ST_Items;
+
+// Inhibit receive of TRS01
+      A #s_TRS01.OPO_Req_Disb_Send_Ups;
+      O #s_HBO99_Req_Halt_TRS;
+      O #i_CMD_Controlled_Stop;
+      = #o_Req_Dis_Send_Upstr;
+      A #s_TRS01.Req_Disable_Send;
+      A #s_o_BHS_Comms_Data.Infeed_Ready_To_Send;
+      = #o_Req_Halt_Upstr;
+      A #s_HBO99_Comm_Error;
+      = #o_HBO99_ST_Comm_Error;
+      A #s_HBO99_ST_WN_Restart;
+      = #o_HBO99_ST_WN_Restart;
+      A #s_HBO99_ST_Slav_NotPrsnt;
+      = #o_HBO99_ST_Slav_NotPrsnt;
+      A #s_HBO99_ST_Slave_Error;
+      = #o_HBO99_ST_Slave_Error;
+      A #s_HBO99_ST_Calibrating;
+      = #o_HBO99_ST_Calibrating;
+      A #s_HBO99_ST_Scan;
+      = #o_HBO99_ST_Scan;
+      A #s_HBO99_ST_Suc_Unex_Data;
+      = #o_HBO99_ST_Suc_Unex_Data;
+      A #s_HBO99_ST_Succ_No_Data;
+      = #o_HBO99_ST_Succ_No_Data;
+
+NETWORK
+TITLE = KB: Write outputs TRS01
+      NOP 0;
+
+      A #s_TRS01_ST_Test_Mode;
+      = #o_TRS01_ST_Test_Mode;
+      A #s_TRS01_ST_Started;
+      = #o_TRS01_ST_Started;
+      A #s_TRS01_ST_Items;
+      = #o_TRS01_ST_Items;
+      A #s_TRS01_ST_LMS_Not_Prsnt;
+      = #o_TRS01_ST_LMS_Not_Prsnt;
+      A #s_TRS01_ST_LMS_Error;
+      = #o_TRS01_ST_LMS_Error;
+      A #s_TRS01_ST_LMS_Not_Auto;
+      = #o_TRS01_ST_LMS_Not_Auto;
+      A #s_TRS01_ST_LMS_Not_Hthy;
+      = #o_TRS01_ST_LMS_Not_Hthy;
+      A #s_TRS01_ST_EOS_PEC_Blk;
+      = #o_TRS01_ST_EOS_PEC_Blk;
+      A #s_TRS01_ST_EOS_PEC_Miss;
+      = #o_TRS01_ST_EOS_PEC_Miss;
+      A #s_TRS01_MTR_Fwd;
+      = #o_TRS01_IO_MTR_Fwd;
+
+NETWORK
+TITLE = KC: Write outputs TRS05
+      NOP 0;
+
+      A #s_TRS05_ST_Items;
+      = #o_TRS05_ST_Items;
+      A #s_TRS05_ST_Started;
+      = #o_TRS05_ST_Started;
+      A #s_TRS05_ST_Req_Halt;
+      = #o_TRS05_ST_Req_Halt;
+      A #s_TRS05_ST_Req_Stop;
+      = #o_TRS05_ST_Req_Stop;
+      A #s_TRS05_ST_LMS_Not_Prsnt;
+      = #o_TRS05_ST_LMS_Not_Prsnt;
+      A #s_TRS05_ST_LMS_Error;
+      = #o_TRS05_ST_LMS_Error;
+      A #s_TRS05_ST_LMS_Not_Auto;
+      = #o_TRS05_ST_LMS_Not_Auto;
+      A #s_TRS05_ST_LMS_Not_Hthy;
+      = #o_TRS05_ST_LMS_Not_Hthy;
+      A #s_TRS05_ST_EOS_PEC_Blk;
+      = #o_TRS05_ST_EOS_PEC_Blk;
+      A #s_TRS05_ST_EOS_PEC_Miss;
+      = #o_TRS05_ST_EOS_PEC_Miss;
+      A #s_TRS05_ST_SOS_PEC_Blk;
+      = #o_TRS05_ST_SOS_PEC_Blk;
+      A #s_TRS05_MTR_Fwd;
+      = #o_TRS05_IO_MTR_Fwd;
+
+NETWORK
+TITLE = LA: Copy "BHS_Comms.Data" to output
+      NOP 0;
+
+// Write to HBS03 machine BHS_Comms.Data
+      L P##i_IO_BHS_Comms;// 'area-crossing pointer'
+      L #t_Base_Address;// 'relative address'-mask
+      +D;
+      LAR1;// 'absolute address' Source
+      LAR2 P##t_ANY_BHS_Comms;// address Destination
+
+      L W[ AR1, P#0.0];// Copy ANY pointer
+      T LW[ AR2, P#0.0];// Byte0=$10 (for S7), Byte1=data type
+      L W[ AR1, P#2.0];
+      T LW[ AR2, P#2.0];// Byte2..3=Repetition factor
+      L W[ AR1, P#4.0];
+      T LW[ AR2, P#4.0];// Byte4..5=DB number
+      L D[ AR1, P#6.0];
+      T LD[ AR2, P#6.0];// Byte6=memory area, Byte7..9=Byte,Bit address
+
+      LAR2 #t_AR2_Store_Restore;// AR2 Store
+
+      CALL BLKMOV
+      {blk_type := 'Variant'}
+      (  SRCBLK                      := #s_o_BHS_Comms_Data , 
+         RET_VAL                     := #t_Ret_Val , 
+         DSTBLK                      := #t_ANY_BHS_Comms
+      );
+
+END_FUNCTION_BLOCK
+
+

@@ -75,6 +75,33 @@ GetGlobalVar(arg: ArrayExpression):  GlobalVariable|NIL { return GetGlobalVar(ar
 GetGlobalVar(arg: Expression):       GlobalVariable|NIL { return NIL }
 GetGlobalVar(arg: InstrExpression):  GlobalVariable|NIL { return NIL }
 
+IsDatabaseAction(expr : MemoryAccess): Bool
+{ return IsDatabaseMemoryAction(expr.id) }
+
+IsDatabaseAction(expr : FieldExpression): Bool
+{ return IsDatabaseAction(expr.expr) }
+
+IsDatabaseAction(expr : InstrExpression): Bool
+{ return FALSE }
+
+IsDatabaseMemoryAction(expr : Reference): Bool
+{  
+   name : String = GetName(expr)
+
+   return #name >= 2 & name@0 == 'D' & name@1 == 'B'
+}
+
+IsDatabaseMemoryAction(expr : AtomicExpression): Bool
+{ return FALSE }
+
+IsLoadInstruction(
+  instr : (LInstr | LogicAndInstr | LogicAndNotInstr | LogicOrInstr | LogicOrNotInstr)
+): Bool
+{ return TRUE }
+
+IsLoadInstruction(instr : InstructionName): Bool
+{ return FALSE } 
+
 IsUsed(ref: String, networks: List(Network)): Bool
 { return Any(IsUsed $ ref, networks) } 
 

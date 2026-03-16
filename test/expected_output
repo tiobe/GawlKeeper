@@ -407,6 +407,15 @@
     Rule ID: C042
     Array 'Entry' must start at 0 instead of 1. Adjust the upper bound accordingly.
 
+ ----- Rule C048 ------------------------------------
+
+../GawlKeeper.linux64 --C048 ./C048/C048.awl
+
+./C048/C048.awl(534):
+    Reading of global data from global DB's must be done in the first network (AA).
+    Rule ID: C048
+    Global data read instruction is outside the first network.
+
  ----- Rule C066 ------------------------------------
 
 ../GawlKeeper.linux64 --C066 ./C066/C066.4.awl

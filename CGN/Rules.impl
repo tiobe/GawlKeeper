@@ -9,7 +9,7 @@ impl unit Rules
 use
 
 FunctionPrelude. $
-Properties. GetName, GetReferences, GetTitle, GetLocLine, GetComments, GetLabel,
+Properties. GetName, GetRawName, GetReferences, GetTitle, GetLocLine, GetComments, GetLabel,
             GetNetwPrefix, GetGlobalVar, IsDatabaseAction, IsLoadInstruction, IsUsed
 RuleConfig. IsRuleEnabled
 RuleViolation. ', AddViolation
@@ -460,6 +460,16 @@ conditions rule == "G021"
   fi
 }
 
+Check(rule : String, loc : Int, me : (Field, type : StrLitAsType))
+conditions rule == "G022"
+{
+  type : String = GetRawName(me.type.type)
+  varname : String = GetRawName(me.name)
+  
+  if #type > 2 & SubString(type, 0, 2) == "FB_" & ~ContainsSubString(varname, type)
+    AddViolation(rule, loc, [varname, type])
+  fi
+}
 
 
 //// Catch-all ////

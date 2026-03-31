@@ -6,7 +6,7 @@ Comments. GetComments
 FunctionPrelude. $
 ScanIO. FindLocation
 StringTokenizer. IndexOf, Trim
-Syntactics. IndexOf
+Syntactics. IndexOf, TrimQuotes
 
 functions
 
@@ -54,6 +54,9 @@ GetName(ref : LocalVariable): String
 GetName(ref : GlobalVariable): String 
 { return ref.vbl.str }
 	
+GetRawName(ref : Reference): String
+{ return TrimQuotes(GetName(ref)) }
+
 GetLocLine(loc: Int): Int
 {
     line : Int := 0; pos : Int := 0; file : Ident := file

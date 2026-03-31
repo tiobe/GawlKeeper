@@ -298,6 +298,7 @@ Check_Field(me : Field)
   Check_String(";")
   Check_Comment(me.src_info)
   Rules.Check("G021", LOC, me)
+  Rules.Check("G022", LOC, me)
   // TODO get the comment from the closure of the declarations block
   // (i.e. END_STRUCT or END_VAR)
   set_margin(margin)

@@ -16,6 +16,9 @@ GetReferences(fb: FunctionBody): List(Reference)
 GetName(ref: Reference): String
 GetName(fld: Field): String
 
+// Remove quotes if present
+GetRawName(ref: Reference): String
+
 // Returns the file line "encoded" into the LOC value.
 GetLocLine(loc: Int): Int
 

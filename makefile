@@ -12,7 +12,6 @@ TARGET = GawlKeeper
 ADDITIONALTARGETS = 
 AGDLS = $(TARGET) $(ADDITIONALTARGETS)
 FRONTFILES = $(addprefix Grammar/,$(addsuffix .front,$(ADDITIONALTARGETS)))
-SVNVERSION := $(shell svn info .. | sed -n "s/Last Changed Rev: //p" || echo "0.1")
 SEMVER := $(shell git tag | sort -V -r | head -1 | grep -oP "^v\K.*" || echo "0.1")
 
 ## If not main branch, add suffix

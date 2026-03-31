@@ -130,6 +130,10 @@ GetRules() : [([String])]
       "Comments for declarations.",
       "Declaration needs a documentation comment starting with a space followed by an upper-case letter."
     ],
+    [ "G022",
+      "Multi instance block calls",
+      "The variable name '\027' should contain '\027'."
+    ],
     [ "G028",
       "Comment line.",
       "Comment doesn't start with a space followed by a capital letter."

@@ -105,6 +105,12 @@ IsLoadInstruction(
 IsLoadInstruction(instr : InstructionName): Bool
 { return FALSE } 
 
+IsOutputInstruction(instr : (AssignInstr | RInstr | SInstr | TransfInstr)) : Bool
+{ return TRUE }
+
+IsOutputInstruction(instr : InstructionName): Bool
+{ return FALSE } 
+
 IsUsed(ref: String, networks: List(Network)): Bool
 { return Any(IsUsed $ ref, networks) } 
 

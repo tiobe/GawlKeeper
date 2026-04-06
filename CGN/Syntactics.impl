@@ -3,6 +3,7 @@ impl unit Syntactics
 use
 Comments. Comment
 KMPMatch. Match
+ScanIO. FindLocation
 StringTokenizer. IndexOf, Trim
 Properties. GetTitle
 
@@ -60,6 +61,13 @@ TrimQuotes(s : String) : String
     return SubString(s, start, end)
 }
 
+GetLineNumber(loc : Int): Int
+{
+   line : Int := 0; pos : Int := 0; file : Ident := file
+
+   FindLocation(loc, line, pos, file)
+   return line
+}
 
 IsNetwTitleWellFormed(title: String): Bool
 {

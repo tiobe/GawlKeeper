@@ -118,6 +118,10 @@ GetRules() : [([String])]
       "Reading of global data from global DB's must be done in the first network (AA).",
       "Global data read instruction is outside the first network."
     ],
+    [ "C052",
+      "Outputs only written once and preferred in the last network of a block, exception can be made if the condition is that simple.",
+      "Argument '\027' occurs already at line \027 in this file."
+    ],
     [ "C066",
       "Temporary modifications to a standard block due to an approved Problem Report or Change Request, in advance of the next release, need to be indicated as a Q-Version.",
       "The version number in the block title '\027' starts with the letter 'q'."

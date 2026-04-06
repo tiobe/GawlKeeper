@@ -34,5 +34,6 @@ GetGlobalVar(arg: InstrExpression): GlobalVariable|NIL
 IsDatabaseAction(expr: InstrExpression): Bool
 
 IsLoadInstruction(instr: InstructionName): Bool
+IsOutputInstruction(instr: InstructionName): Bool
 
 IsUsed(ref : String, networks: List(Network)): Bool

@@ -9,8 +9,9 @@ impl unit Rules
 use
 
 FunctionPrelude. $
-Properties. GetName, GetRawName, GetReferences, GetTitle, GetLocLine, GetComments, GetLabel,
-            GetNetwPrefix, GetGlobalVar, IsDatabaseAction, IsLoadInstruction, IsUsed
+Properties. GetName, GetRawName, GetReferences, GetTitle, GetLocLine, GetComments, 
+            GetLabel, GetNetwPrefix, GetGlobalVar, IsDatabaseAction, IsLoadInstruction, 
+            IsOutputInstruction, IsUsed
 RuleConfig. IsRuleEnabled
 RuleViolation. ', AddViolation
 ScanIO. FindFileName, FindLocation
@@ -18,7 +19,8 @@ StringTokenizer. Split, Trim
 Syntactics. IsCommentWellFormatted, IsLabelWellFormed, IsNetwTitleWellFormed,
             IsExceptionNetwork, IsNewline, IsOperandChanging, FilterComments,
             TrimQuotes, GetAwlBaseFileName, GetLabelNumber, StartsWithCap,
-            StripSpaces, ToLower, ContainsSubString
+            StripSpaces, ToLower, ContainsSubString, GetLineNumber
+TextFile. Pair
 
 functions
 
@@ -214,6 +216,53 @@ conditions IsLoadInstruction(me.instruction) & IsDatabaseAction(me.arg)
 
 CheckC48(rule : String, me : Instruction)
 {}
+
+Check(rule : String, loc : Int, me : FunctionBody)
+conditions rule == "C052"
+{ CheckC52(me.networks, NIL) }
+
+CheckC52(NIL : List(Network), vars : List(LocalVariable))
+{}
+
+CheckC52(me : (List(Network)), vars : List(LocalVariable))
+{ CheckC52(me.tail, CheckC52(me.head.instructions, vars)) }
+
+CheckC52(NIL : List(Instruction), vars : List(LocalVariable)) : List(LocalVariable)
+{ return vars }
+
+CheckC52(me : (List(Instruction)), vars : List(LocalVariable)) : List(LocalVariable)
+{ return CheckC52(me.tail, CheckC52(me.head, vars)) }
+
+CheckC52(me : (Instruction, arg : (ConstExpression, expr : LocalVariable)), vars : List(LocalVariable)
+        ) : List(LocalVariable)
+conditions IsOutputInstruction(me.instruction) 
+{ 
+  name : String = me.arg.expr.vbl.id
+  refs : List(LocalVariable) := vars
+
+  if #name > 1 & SubString(name, 0, 1) == "o_"
+    lvar : LocalVariable|NIL = CheckC52(name, vars)
+    if lvar # NIL
+      AddViolation("C052", me.arg.src_info.loc, ["#" + name, GetLineNumber(lvar.src_info.loc)])
+    else
+      refs := refs + me.arg.expr
+    fi
+  fi
+  return refs
+}
+
+CheckC52(me : Instruction, vars : List(LocalVariable)) : List(LocalVariable)
+{ return vars }
+
+CheckC52(name : String, NIL : List(LocalVariable)) : LocalVariable|NIL
+{ return NIL }
+
+CheckC52(name : String, refs : (List(LocalVariable))) : LocalVariable|NIL
+conditions name == refs.head.vbl.id
+{ return refs.head }
+
+CheckC52(name : String, refs : (List(LocalVariable))) : LocalVariable|NIL
+{ return CheckC52(name, refs.tail) }
 
 Check(rule : String, loc : Int, me : HeaderBlock)
 conditions rule == "C066" & ContainsSubString(ToLower(StripSpaces(me.title)), "%version:q")

@@ -117,6 +117,7 @@ Check_FunctionBody(me : FunctionBody)
   margin := fix_margin()
   Check_HeaderBlock(me.header)
   Rules.Check("C007", LOC, me)
+  Rules.Check("C052", LOC, me)
   Rules.Check("G040", LOC, me)
   // TODO Can we shift the comments for each Field declaration
   // (and "END_VAR") to the previous element?

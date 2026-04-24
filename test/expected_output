@@ -130,32 +130,6 @@
     Rule ID: C014
     Name of local variable 's_FB_dat_T' does not match the required pattern.
 
-../GawlKeeper.linux64 --C014 ./C014/C014_type.awl
-
-./C014/C014_type.awl(28):
-    All Symbolic Operand Names are a concatenation of nouns, which each start with a Capital, connected by underscores.
-    Rule ID: C014
-    Name of local variable 'OBT_onto_HSZ' does not match the required pattern.
-
-./C014/C014_type.awl(1):
-    All Symbolic Operand Names are a concatenation of nouns, which each start with a Capital, connected by underscores.
-    Rule ID: C014
-    Name of block '"UDT_HSZ5x_Int_Prog_T_this_is_a_pretty_long_title"' does not match the required pattern.
-
-../GawlKeeper.linux64 --C014 ./C014/C014_fb.awl
-
-./C014/C014_fb.awl(1):
-    All Symbolic Operand Names are a concatenation of nouns, which each start with a Capital, connected by underscores.
-    Rule ID: C014
-    Name of block '"FB_Dispatch_Point_T_this_is_a_pretty_long_title"' does not match the required pattern.
-
-../GawlKeeper.linux64 --C014 ./C014/C014_fun.awl
-
-./C014/C014_fun.awl(1):
-    All Symbolic Operand Names are a concatenation of nouns, which each start with a Capital, connected by underscores.
-    Rule ID: C014
-    Name of block '"FC_Local_Class_Dir_T_this_is_a_pretty_long_title"' does not match the required pattern.
-
 ../GawlKeeper.linux64 --C014 ./C014/C014_db.awl
 
 ./C014/C014_db.awl(34):
@@ -183,6 +157,32 @@
     Rule ID: C014
     Name of block '"DB_PLT_Non_Trk_Tmp_T_this_is_a_pretty_long_title"' does not match the required pattern.
 
+../GawlKeeper.linux64 --C014 ./C014/C014_fb.awl
+
+./C014/C014_fb.awl(1):
+    All Symbolic Operand Names are a concatenation of nouns, which each start with a Capital, connected by underscores.
+    Rule ID: C014
+    Name of block '"FB_Dispatch_Point_T_this_is_a_pretty_long_title"' does not match the required pattern.
+
+../GawlKeeper.linux64 --C014 ./C014/C014_fun.awl
+
+./C014/C014_fun.awl(1):
+    All Symbolic Operand Names are a concatenation of nouns, which each start with a Capital, connected by underscores.
+    Rule ID: C014
+    Name of block '"FC_Local_Class_Dir_T_this_is_a_pretty_long_title"' does not match the required pattern.
+
+../GawlKeeper.linux64 --C014 ./C014/C014_type.awl
+
+./C014/C014_type.awl(28):
+    All Symbolic Operand Names are a concatenation of nouns, which each start with a Capital, connected by underscores.
+    Rule ID: C014
+    Name of local variable 'OBT_onto_HSZ' does not match the required pattern.
+
+./C014/C014_type.awl(1):
+    All Symbolic Operand Names are a concatenation of nouns, which each start with a Capital, connected by underscores.
+    Rule ID: C014
+    Name of block '"UDT_HSZ5x_Int_Prog_T_this_is_a_pretty_long_title"' does not match the required pattern.
+
  ----- Rule C015 ------------------------------------
 
 ../GawlKeeper.linux64 --C015 ./C015/C015_db.awl
@@ -192,6 +192,13 @@
     Rule ID: C015
     Block title 'DB_PLT_Non_Trk_Tmp_T_this_is_a_pretty_long_title' is too long.
 
+../GawlKeeper.linux64 --C015 ./C015/C015_fb.awl
+
+./C015/C015_fb.awl(1):
+    The length of a block title has a maximum of 20 characters.
+    Rule ID: C015
+    Block title 'FB_Dispatch_Point_T_this_is_a_pretty_long_title' is too long.
+
 ../GawlKeeper.linux64 --C015 ./C015/C015_fun.awl
 
 ./C015/C015_fun.awl(1):
@@ -199,12 +206,7 @@
     Rule ID: C015
     Block title 'FC_Local_Class_Dir_T_this_is_a_pretty_long_title' is too long.
 
-../GawlKeeper.linux64 --C015 ./C015/C015_fb.awl
-
-./C015/C015_fb.awl(1):
-    The length of a block title has a maximum of 20 characters.
-    Rule ID: C015
-    Block title 'FB_Dispatch_Point_T_this_is_a_pretty_long_title' is too long.
+../GawlKeeper.linux64 --C015 ./C015/C015_ok.awl
 
 ../GawlKeeper.linux64 --C015 ./C015/C015_type.awl
 
@@ -213,33 +215,7 @@
     Rule ID: C015
     Block title 'UDT_HSZ5x_Int_Prog_T_this_is_a_pretty_long_title' is too long.
 
-../GawlKeeper.linux64 --C015 ./C015/C015_ok.awl
-
  ----- Rule C020 ------------------------------------
-
-../GawlKeeper.linux64 --C020 ./C020/C020_ob.awl
-
-../GawlKeeper.linux64 --C020 ./C020/C020_fun.awl
-
-./C020/C020_fun.awl(40):
-    The names of local variables (other than the preset local variables of OB's) shall start with a lower-case prefix character according to its type.
-    Rule ID: C020
-    Variable 'Class_OBT' must start with 'i'.
-
-./C020/C020_fun.awl(42):
-    The names of local variables (other than the preset local variables of OB's) shall start with a lower-case prefix character according to its type.
-    Rule ID: C020
-    Variable 'CFG_Local_SBT_Dir' must start with 'i'.
-
-./C020/C020_fun.awl(49):
-    The names of local variables (other than the preset local variables of OB's) shall start with a lower-case prefix character according to its type.
-    Rule ID: C020
-    Variable 'Preference_A' must start with 't'.
-
-./C020/C020_fun.awl(52):
-    The names of local variables (other than the preset local variables of OB's) shall start with a lower-case prefix character according to its type.
-    Rule ID: C020
-    Variable 'FailedReason_A' must start with 't'.
 
 ../GawlKeeper.linux64 --C020 ./C020/C020_fb.awl
 
@@ -287,6 +263,30 @@
     The names of local variables (other than the preset local variables of OB's) shall start with a lower-case prefix character according to its type.
     Rule ID: C020
     Variable 'LNK' must start with 't'.
+
+../GawlKeeper.linux64 --C020 ./C020/C020_fun.awl
+
+./C020/C020_fun.awl(40):
+    The names of local variables (other than the preset local variables of OB's) shall start with a lower-case prefix character according to its type.
+    Rule ID: C020
+    Variable 'Class_OBT' must start with 'i'.
+
+./C020/C020_fun.awl(42):
+    The names of local variables (other than the preset local variables of OB's) shall start with a lower-case prefix character according to its type.
+    Rule ID: C020
+    Variable 'CFG_Local_SBT_Dir' must start with 'i'.
+
+./C020/C020_fun.awl(49):
+    The names of local variables (other than the preset local variables of OB's) shall start with a lower-case prefix character according to its type.
+    Rule ID: C020
+    Variable 'Preference_A' must start with 't'.
+
+./C020/C020_fun.awl(52):
+    The names of local variables (other than the preset local variables of OB's) shall start with a lower-case prefix character according to its type.
+    Rule ID: C020
+    Variable 'FailedReason_A' must start with 't'.
+
+../GawlKeeper.linux64 --C020 ./C020/C020_ob.awl
 
  ----- Rule C023 ------------------------------------
 
@@ -416,14 +416,50 @@
     Rule ID: C048
     Global data read instruction is outside the first network.
 
+ ----- Rule C049 ------------------------------------
+
+../GawlKeeper.linux64 --C049 ./C049/C049.awl
+
+./C049/C049.awl(468):
+    Writing of global data into global DB's must be done in the last network (ZA).
+    Rule ID: C049
+    Global data write instruction is outside the last network.
+
+./C049/C049.awl(469):
+    Writing of global data into global DB's must be done in the last network (ZA).
+    Rule ID: C049
+    Global data write instruction is outside the last network.
+
+./C049/C049.awl(553):
+    Writing of global data into global DB's must be done in the last network (ZA).
+    Rule ID: C049
+    Global data write instruction is outside the last network.
+
+./C049/C049.awl(745):
+    Writing of global data into global DB's must be done in the last network (ZA).
+    Rule ID: C049
+    Global data write instruction is outside the last network.
+
+ ----- Rule C052 ------------------------------------
+
+../GawlKeeper.linux64 --C052 ./C052/C052.awl
+
+./C052/C052.awl(141):
+    Outputs only written once and preferred in the last network of a block, exception can be made if the condition is that simple.
+    Rule ID: C052
+    Argument '#o_Filling_Rate' occurs already at line 122 in this file.
+
+./C052/C052.awl(198):
+    Outputs only written once and preferred in the last network of a block, exception can be made if the condition is that simple.
+    Rule ID: C052
+    Argument '#o_Filling_Rate' occurs already at line 122 in this file.
+
+./C052/C052.awl(375):
+    Outputs only written once and preferred in the last network of a block, exception can be made if the condition is that simple.
+    Rule ID: C052
+    Argument '#o_Filling_Rate' occurs already at line 122 in this file.
+
  ----- Rule C066 ------------------------------------
-
-../GawlKeeper.linux64 --C066 ./C066/C066.4.awl
-
-./C066/C066.4.awl(2):
-    Temporary modifications to a standard block due to an approved Problem Report or Change Request, in advance of the next release, need to be indicated as a Q-Version.
-    Rule ID: C066
-    The version number in the block title 'TITLE = "% VERSION:      Q       1.4 %" // Violation ' starts with the letter 'q'.
 
 ../GawlKeeper.linux64 --C066 ./C066/C066.1.awl
 
@@ -432,8 +468,6 @@
     Rule ID: C066
     The version number in the block title 'TITLE = "%Version: Q 1.4 %" // Violation ' starts with the letter 'q'.
 
-../GawlKeeper.linux64 --C066 ./C066/C066.3.awl
-
 ../GawlKeeper.linux64 --C066 ./C066/C066.2.awl
 
 ./C066/C066.2.awl(2):
@@ -441,7 +475,18 @@
     Rule ID: C066
     The version number in the block title 'TITLE = "%version: q5.13" // Violation ' starts with the letter 'q'.
 
+../GawlKeeper.linux64 --C066 ./C066/C066.3.awl
+
+../GawlKeeper.linux64 --C066 ./C066/C066.4.awl
+
+./C066/C066.4.awl(2):
+    Temporary modifications to a standard block due to an approved Problem Report or Change Request, in advance of the next release, need to be indicated as a Q-Version.
+    Rule ID: C066
+    The version number in the block title 'TITLE = "% VERSION:      Q       1.4 %" // Violation ' starts with the letter 'q'.
+
  ----- Rule G003 ------------------------------------
+
+../GawlKeeper.linux64 --G003 ./G003/db/G003.awl
 
 ../GawlKeeper.linux64 --G003 ./G003/fb/G003.awl
 
@@ -450,16 +495,14 @@
     Rule ID: G003
     File 'G003' should be named 'FB_Dispatch_Point_T', like the block it contains.
 
-../GawlKeeper.linux64 --G003 ./G003/type/G003_type.awl
-
-../GawlKeeper.linux64 --G003 ./G003/db/G003.awl
-
 ../GawlKeeper.linux64 --G003 ./G003/fun/G003_fun.awl
 
 ./G003/fun/G003_fun.awl(1):
     Block name is filename.
     Rule ID: G003
     File 'G003_fun' should be named 'g003_Fun', like the block it contains.
+
+../GawlKeeper.linux64 --G003 ./G003/type/G003_type.awl
 
  ----- Rule G021 ------------------------------------
 
@@ -489,6 +532,20 @@
     Comments for declarations.
     Rule ID: G021
     Declaration needs a documentation comment starting with a space followed by an upper-case letter.
+
+ ----- Rule G022 ------------------------------------
+
+../GawlKeeper.linux64 --G022 ./G022/G022.awl
+
+./G022/G022.awl(104):
+    Multi instance block calls
+    Rule ID: G022
+    The variable name 'B_Rte_Seg_FIFO_T' should contain 'FB_Rte_Seg_FIFO_T'.
+
+./G022/G022.awl(105):
+    Multi instance block calls
+    Rule ID: G022
+    The variable name 's_FB_Rte_Seg_FIFO' should contain 'FB_Rte_Seg_FIFO_T'.
 
  ----- Rule G028 ------------------------------------
 

@@ -204,7 +204,7 @@ CheckC040(loc : Int, me : (List(CalleeExpression), head : HashedCallee), argumen
 
 Check(rule : String, loc : Int, me : (List(Network)))
 conditions rule == "C048"
-// global data should not be written outside the first network
+// global data should not be read outside the first network
 { me.tail * CheckC48 $ rule }
 
 CheckC48(rule : String, me : Network)
@@ -215,6 +215,21 @@ conditions IsLoadInstruction(me.instruction) & IsDatabaseAction(me.arg)
 { AddViolation(rule, me.src_info.loc, []) }
 
 CheckC48(rule : String, me : Instruction)
+{}
+
+Check(rule : String, loc : Int, me : (List(Network)))
+conditions rule == "C049"
+// global data should not be written outside the last network
+{ Init(me) * CheckC49 $ rule }
+
+CheckC49(rule : String, me : Network)
+{ me.instructions * CheckC49 $ rule }
+
+CheckC49(rule : String, me : (Instruction, arg # NIL))
+conditions IsOutputInstruction(me.instruction) & IsDatabaseAction(me.arg)
+{ AddViolation(rule, me.src_info.loc, []) }
+
+CheckC49(rule : String, me : Instruction)
 {}
 
 Check(rule : String, loc : Int, me : FunctionBody)

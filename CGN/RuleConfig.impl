@@ -118,6 +118,10 @@ GetRules() : [([String])]
       "Reading of global data from global DB's must be done in the first network (AA).",
       "Global data read instruction is outside the first network."
     ],
+    [ "C049",
+      "Writing of global data into global DB's must be done in the last network (ZA).",
+      "Global data write instruction is outside the last network."
+    ],
     [ "C052",
       "Outputs only written once and preferred in the last network of a block, exception can be made if the condition is that simple.",
       "Argument '\027' occurs already at line \027 in this file."

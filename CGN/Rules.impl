@@ -8,10 +8,10 @@ impl unit Rules
 
 use
 
-FunctionPrelude. $
+FunctionPrelude. $ 
 Properties. GetName, GetRawName, GetReferences, GetTitle, GetLocLine, GetComments, 
             GetLabel, GetNetwPrefix, GetGlobalVar, IsDatabaseAction, IsLoadInstruction, 
-            IsOutputInstruction, IsUsed
+            IsOutputInstruction, IsUsed, IsAccessingAR2, IsModifyingAR2, IsRestoringAR2
 RuleConfig. IsRuleEnabled
 RuleViolation. ', AddViolation
 ScanIO. FindFileName, FindLocation
@@ -40,6 +40,9 @@ Check(rule : String, loc : Int, me : List(Network))
 conditions ~IsRuleEnabled(rule) { }
 
 Check(rule : String, loc : Int, me : Instruction)  
+conditions ~IsRuleEnabled(rule) { }
+
+Check(rule : String, loc : Int, me : TimeLiteral)  
 conditions ~IsRuleEnabled(rule) { }
 
 Check(rule : String, loc : Int, me : FunctionBody)
@@ -139,6 +142,42 @@ CheckC30(globVar: Ident, netwPrefix: String, loc: Int, netw: Network)
     AddViolation("C030", loc, [globVar, GetTitle(netw)])
   fi
 }
+
+Check(rule : String, loc : Int, me : FunctionBody)
+conditions rule == "C035"
+{ me.networks * CheckC035 $ (me.locals * GetName) }
+
+CheckC035(vars : List(String), me : Network)
+{ CheckC035(vars, me.instructions, FALSE, []) }
+
+CheckC035(vars : List(String), NIL : List(Instruction), in_mod : Bool, loc_candidates : List(Int))
+{ 
+  [ { AddViolation("C035", loc, ["Local variables have been accessed without restoring the contents."]) } 
+  | loc : Int <- loc_candidates 
+  ]
+}
+
+CheckC035(vars : List(String), instrs : (List(Instruction)), in_mod : Bool, loc_candidates : List(Int))
+conditions ~in_mod & IsModifyingAR2(instrs.head.instruction)
+{ 
+  CheckC035(vars, instrs.tail, TRUE, []) 
+}
+
+CheckC035(vars : List(String), instrs : (List(Instruction)), in_mod : Bool, loc_candidates : List(Int))
+conditions in_mod & IsRestoringAR2(instrs.head.instruction)
+{
+  [ { AddViolation("C035", loc, ["Symbolic access happened between save and restore."]) } 
+  | loc : Int <- loc_candidates 
+  ]
+  CheckC035(vars, instrs.tail, FALSE, [])
+}
+
+CheckC035(vars : List(String), instrs : (List(Instruction)), in_mod : Bool, loc_candidates : List(Int))
+conditions in_mod & IsAccessingAR2(vars, instrs.head)
+{ CheckC035(vars, instrs.tail, in_mod, loc_candidates + instrs.head.src_info.loc) } 
+
+CheckC035(vars : List(String), instrs : (List(Instruction)), in_mod : Bool, loc_candidates : List(Int))
+{ CheckC035(vars, instrs.tail, in_mod, loc_candidates) } 
 
 Check(rule : String, loc : Int, me : TimeLiteral)
 conditions rule == "C039"

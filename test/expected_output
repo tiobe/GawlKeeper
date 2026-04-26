@@ -330,6 +330,65 @@
     Rule ID: C030
     Global variable '"DB_Outgoing_Msgs"' was already modified in network 'DA: Check the non tracking DB PLT buffer for data'.
 
+ ----- Rule C035 ------------------------------------
+
+../GawlKeeper.linux64 --C035 ./C035/C035.awl
+
+./C035/C035.awl(21):
+    When using AR2 in a FB; first save the contents and then restore them after use. In the meantime no symbolic access to the instance is allowed
+    Rule ID: C035
+    Symbolic access happened between save and restore.
+
+./C035/C035.awl(29):
+    When using AR2 in a FB; first save the contents and then restore them after use. In the meantime no symbolic access to the instance is allowed
+    Rule ID: C035
+    Local variables have been accessed without restoring the contents.
+
+./C035/C035.awl(32):
+    When using AR2 in a FB; first save the contents and then restore them after use. In the meantime no symbolic access to the instance is allowed
+    Rule ID: C035
+    Local variables have been accessed without restoring the contents.
+
+./C035/C035.awl(38):
+    When using AR2 in a FB; first save the contents and then restore them after use. In the meantime no symbolic access to the instance is allowed
+    Rule ID: C035
+    Symbolic access happened between save and restore.
+
+./C035/C035.awl(44):
+    When using AR2 in a FB; first save the contents and then restore them after use. In the meantime no symbolic access to the instance is allowed
+    Rule ID: C035
+    Symbolic access happened between save and restore.
+
+./C035/C035.awl(49):
+    When using AR2 in a FB; first save the contents and then restore them after use. In the meantime no symbolic access to the instance is allowed
+    Rule ID: C035
+    Symbolic access happened between save and restore.
+
+./C035/C035.awl(50):
+    When using AR2 in a FB; first save the contents and then restore them after use. In the meantime no symbolic access to the instance is allowed
+    Rule ID: C035
+    Symbolic access happened between save and restore.
+
+./C035/C035.awl(55):
+    When using AR2 in a FB; first save the contents and then restore them after use. In the meantime no symbolic access to the instance is allowed
+    Rule ID: C035
+    Symbolic access happened between save and restore.
+
+./C035/C035.awl(60):
+    When using AR2 in a FB; first save the contents and then restore them after use. In the meantime no symbolic access to the instance is allowed
+    Rule ID: C035
+    Local variables have been accessed without restoring the contents.
+
+./C035/C035.awl(76):
+    When using AR2 in a FB; first save the contents and then restore them after use. In the meantime no symbolic access to the instance is allowed
+    Rule ID: C035
+    Symbolic access happened between save and restore.
+
+./C035/C035.awl(81):
+    When using AR2 in a FB; first save the contents and then restore them after use. In the meantime no symbolic access to the instance is allowed
+    Rule ID: C035
+    Local variables have been accessed without restoring the contents.
+
  ----- Rule C039 ------------------------------------
 
 ../GawlKeeper.linux64 --C039 ./C039/C039.awl

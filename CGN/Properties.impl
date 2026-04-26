@@ -97,6 +97,27 @@ IsDatabaseMemoryAction(expr : Reference): Bool
 IsDatabaseMemoryAction(expr : AtomicExpression): Bool
 { return FALSE }
 
+IsAccessingAR2(locals : List(String), instr : Instruction): Bool
+conditions 
+  (IsOutputInstruction(instr.instruction) | IsLoadInstruction(instr.instruction)) & 
+  GetArgumentName(instr.arg) <- locals
+{ return TRUE }
+
+IsAccessingAR2(locals : List(String), instr : Instruction): Bool
+{ return FALSE }
+
+IsModifyingAR2(instr : (AccuToAR2 | Lar2Instr)): Bool
+{ return TRUE }
+
+IsModifyingAR2(instr : InstructionName): Bool
+{ return FALSE }
+
+IsRestoringAR2(instr : Lar2Instr): Bool
+{ return TRUE }
+
+IsRestoringAR2(instr : InstructionName): Bool
+{ return FALSE }
+
 IsLoadInstruction(
   instr : (LInstr | LogicAndInstr | LogicAndNotInstr | LogicOrInstr | LogicOrNotInstr)
 ): Bool
@@ -173,3 +194,26 @@ IsUsed(ref: String, expr: PointerAccessHash): Bool
 
 IsUsed(ref: String, expr: PointerReference): Bool
 { return FALSE }
+
+GetArgumentName(expr: Reference): String
+{ return GetName(expr)}
+
+GetArgumentName(expr: FieldExpression): String
+{ return GetArgumentName(expr.expr) }
+
+GetArgumentName(expr: ConstExpression): String
+{ return GetArgumentName(expr.expr) }
+
+GetArgumentName(expr: MemoryAccess): String
+{ return GetArgumentName(expr.id) }
+
+GetArgumentName(expr: AnonymousArray): String
+{ return GetArgumentName(expr.head) }
+
+GetArgumentName(expr: ArrayExpression): String
+{ return GetArgumentName(expr.arg1) }
+
+GetArgumentName(expr: InstrExpression|NIL): String
+{ return "" }
+
+

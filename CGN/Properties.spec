@@ -5,8 +5,11 @@ Comments. Comment
 
 functions
 
+GetBlockType(block : Block): String
+GetName(block : Block): String
+HasComment(block : Block, comment : String): Bool
+
 GetTitle(network : Network): (String)
-GetTitle(block : Block): String
 
 GetNetwPrefix(network: Network): String
 

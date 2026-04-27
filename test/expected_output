@@ -563,6 +563,26 @@
 
 ../GawlKeeper.linux64 --G003 ./G003/type/G003_type.awl
 
+ ----- Rule G012 ------------------------------------
+
+../GawlKeeper.linux64 --G012 ./G012/G012_DB.awl
+
+../GawlKeeper.linux64 --G012 ./G012/G012_FB.awl
+
+../GawlKeeper.linux64 --G012 ./G012/G012_FC.awl
+
+./G012/G012_FC.awl(1):
+    An explanation of the variables and/or parameters must be given in the comment area of the Variable Declaration list.
+    Rule ID: G012
+    FUNCTION 'FC_Zone_Template_T' should have a '//Description:' comment.
+
+../GawlKeeper.linux64 --G012 ./G012/G012_UDT.awl
+
+./G012/G012_UDT.awl(1):
+    An explanation of the variables and/or parameters must be given in the comment area of the Variable Declaration list.
+    Rule ID: G012
+    TYPE 'UDT_ACZ51_Sett_T' shouldn't have a '//Function:' comment.
+
  ----- Rule G021 ------------------------------------
 
 ../GawlKeeper.linux64 --G021 ./G021/G021.awl

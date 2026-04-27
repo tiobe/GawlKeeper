@@ -36,7 +36,7 @@ FunctionBlock < Block ::=
   "END_FUNCTION_BLOCK"
 ;
 OrgBlock < Block ::=
-  ORGANIZATION_BLOCK org_name: StringLiteral
+  "ORGANIZATION_BLOCK" org_name: StringLiteral
   body: FunctionBody    %% only VAR_TEMP blocks and declarations start with "OB" or with "t_"
   "END_ORGANIZATION_BLOCK"
 ;

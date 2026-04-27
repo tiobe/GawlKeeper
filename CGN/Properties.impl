@@ -3,12 +3,111 @@ impl unit Properties
 use
 
 Comments. GetComments
-FunctionPrelude. $
+FunctionPrelude. $, $$
 ScanIO. FindLocation
 StringTokenizer. IndexOf, Trim
-Syntactics. IndexOf, TrimQuotes
+Syntactics. ContainsSubString, IndexOf, TrimQuotes, FilterComments
 
 functions
+
+GetBlockType(block : DataBlock): String 
+{ return "DATA_BLOCK" }
+
+GetBlockType(block : Function): String 
+{ return "FUNCTION" } 
+
+GetBlockType(block : FunctionBlock): String 
+{ return "FUNCTION_BLOCK" }
+
+GetBlockType(block : OrgBlock): String 
+{ return "ORGANIZATION_BLOCK" }
+
+GetBlockType(block : TypeBlock): String 
+{ return "TYPE" }
+
+GetName(block : DataBlock): String 
+{ return TrimQuotes(block.block_name.str) }
+
+GetName(block : Function): String 
+{ return TrimQuotes(block.function_name.str) }
+
+GetName(block : FunctionBlock): String 
+{ return TrimQuotes(block.function_name.str) }
+
+GetName(block : OrgBlock): String 
+{ return TrimQuotes(block.org_name.str) }
+
+GetName(block : TypeBlock): String 
+{ return TrimQuotes(block.type_name.str) }
+
+HasComment(block : Block, comment : String): Bool
+{ return Any(ContainsSubString $$ comment, GetComments(block)) }
+
+GetComments(block : DataBlock): List(String)
+{ 
+  offset: Int := 0
+  return FilterComments(GetComments(block.data.src_info.pre_comment), offset)
+}
+
+GetComments(block : TypeBlock): List(String)
+{ 
+  offset: Int := 0
+  return FilterComments(GetComments(block.type.src_info.pre_comment), offset)
+}
+
+GetComments(block : Block): List(String)
+{ return GetComments(GetFunctionBody(block)) }
+
+GetComments(body : (FunctionBody, inputs : (List(LocalVarInputs)))): List(String)
+{ 
+  offset: Int := 0
+  return FilterComments(GetComments(body.inputs.head.src_info.pre_comment), offset)
+}
+
+GetComments(body : (FunctionBody, outputs : (List(Field)))): List(String)
+{ 
+  offset: Int := 0
+  return FilterComments(GetComments(body.outputs.head.src_info.pre_comment), offset)
+}
+
+GetComments(body : (FunctionBody, in_outs : (List(Field)))): List(String)
+{ 
+  offset: Int := 0
+  return FilterComments(GetComments(body.in_outs.head.src_info.pre_comment), offset)
+}
+
+GetComments(body : (FunctionBody, locals : (List(Field)))): List(String)
+{ 
+  offset: Int := 0
+  return FilterComments(GetComments(body.locals.head.src_info.pre_comment), offset)
+}
+
+GetComments(body : (FunctionBody, temps : (List(Field)))): List(String)
+{ 
+  offset: Int := 0
+  return FilterComments(GetComments(body.temps.head.src_info.pre_comment), offset)
+}
+
+GetComments(body : (FunctionBody, networks : (List(Network)))): List(String)
+{ 
+  offset: Int := 0
+  return FilterComments(GetComments(body.networks.head.src_info.pre_comment), offset)
+}
+
+GetComments(block : FunctionBody|NIL): List(String)
+{ return [] }
+
+GetFunctionBody(block : Function): FunctionBody|NIL
+{ return block.body }
+
+GetFunctionBody(block : FunctionBlock): FunctionBody|NIL
+{ return block.body }
+
+GetFunctionBody(block : OrgBlock): FunctionBody|NIL
+{ return block.body }
+
+GetFunctionBody(block : Block): FunctionBody|NIL
+{ return NIL }
 
 GetTitle(network : Network): (String)
 {
@@ -22,12 +121,6 @@ GetNetwPrefix(network: Network): String
     return if #title < 2 then NIL else SubString(title, 0, 1) fi
 }
 
-
-GetTitle(block : DataBlock)     : String { return block.block_name.str }
-GetTitle(block : Function)      : String { return block.function_name.str }
-GetTitle(block : FunctionBlock) : String { return block.function_name.str }
-GetTitle(block : OrgBlock)      : String { return block.org_name.str }
-GetTitle(block : TypeBlock)     : String { return block.type_name.str }
 
 GetReferences(fb: FunctionBody): List(Reference)
 {

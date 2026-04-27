@@ -1,0 +1,386 @@
+FUNCTION_BLOCK "FB_Count_Fill_Rate_T"
+TITLE = %version: 5.14 % %Commit:  c3808b61 % CN: 32
+{ S7_Optimized_Access := 'FALSE' }
+FAMILY : Tubtrax
+VERSION : 0.0
+//Function:
+//Determine the filling rate over configured start and end sections.
+//
+//
+//SOURCE
+//%Project:      allcttt %
+//%Repo:         a_ttt %
+//%Commit:       c3808b61 %
+//%DateTimeUTC:  2023-12-11T14:59:55 %
+//
+//%HISTORY%
+//Issue:        Commit:  Date:      Version: Author:              Description:
+//------------- -------- ---------- -------- -------------------- ------------------------------------------------------------------------------
+//ALLCTTT-4059  c3808b61 2023-12-11 5.14     Pascal van Kempen    Added history table
+//ALLCTTT-4042  a864e0dd 2023-12-06 5.13     Harm Hopmans         Renamed folders that contained space character
+//ALLCTTT-4042  55fd833f 2023-12-05 5.12     Henri de Leijer      First step to remove the library files
+//ALLCTTT-1540  41ea0e90 2021-11-18 5.11     Arda Karaca          Change of compile number from 31 to 32.
+//ALLCTTT-1304  108089a3 2021-08-23 5.10     Ramesh Jois          Filling rate calculation updated to include upstream windows
+//ALLCTTT-414   436cf5f0 2021-04-09 5.09     Ramesh Jois          Add carrier count from upstream to the current count
+//ALLCTTT-414   379d3673 2021-04-09 5.08     Ramesh Jois          PF5 loop filling rate not available in mixed flow
+//ALLCTTT-414   2723099a 2021-04-08 5.07     Ramesh Jois          PF5 loop fill rate not available for mixed flow
+//ALLCTTT-272   544e4e84 2020-12-10 5.06     Pascal van Kempen    removed keywords
+//ALLCTTT-272   9d531fbf 2020-12-10 5.05     Pascal van Kempen    Revert corrected checkin sequence for determining version information properly
+//ALLCTTT-272   ae3fa862 2020-12-10 5.04     Pascal van Kempen    corrected checkin sequence for determining version information properly
+//ALLCTTT-272   5a1edb78 2020-12-10 5.03     Pascal van Kempen    Revert keywords updates
+//ALLCTTT-272   8d62c219 2020-12-10 5.02     Pascal van Kempen    keywords updates
+//ALLCTTT-272   31a64871 2020-12-10 5.01     Pascal van Kempen    initial import
+//
+//Modification History:                                 By:      Date:     Rev:
+//----------------------------------------------------  -------  --------  -----
+//ra#31964: Based on 2.15.0.0 version 1.02              nlhhop   14-01-19   2.01
+//
+//Description:
+//This function block calculates the filling rate over a predefined length of 
+//transport sections. The start and end points of this length are defined by 2 
+//PLT DB's set at the input of this block.
+//
+//The PLT DB can also be of the non-tracking sections where-in the start and
+//end PLT DBs shall be the same.
+//
+//The number of sections, that have to be checked per scan, is configurable. A 
+//lower number will save PLC cycle time, while a higher number of sections per 
+//scan will make the calculation cycle more frequent (i.e. the result will be 
+//updated more frequently).
+//
+//The leading edges are found in the PLT DBs starting from the start DB PLT to
+//the end DB PLT and for each '1' edge found, data will be checked and if data
+//exists then the carrier type would then determine the count. For every SBT
+//carrier found a count of 1 will be counted. If an OBT or unknown is found a 
+//count of 2 will be considered.
+   VAR_INPUT 
+      i_CFG_Avail_Windows : Int;   // CFG: [x] Number of available windows
+      i_CFG_Sections_Per_Scan : Int := 10;   // CFG: [x] Number of sections to handle per PLC scan
+      i_Carrier_Count : Int;   // [x] Carrier count from upstream
+      i_DB_PLT_Start_Cnt : DB_ANY := DB1;   // Data structure: Position Datablock Start
+      i_DB_PLT_End_Cnt : DB_ANY := DB1;   // Data Structure: Position Datablock End
+      i_DB_Event : DB_ANY := DB1;   // Data Structure: DB event
+   END_VAR
+
+   VAR_OUTPUT 
+      o_Filling_Rate : Int;   // [%] Total filling rate (incl. upstream)
+      o_Carrier_Count : Int;   // [x] Total carrier count (incl. upstream)
+   END_VAR
+
+   VAR 
+      s_Start_DB_PLT_Num : Int;   // Number of DB PLT Start
+      s_End_DB_PLT_Num : Int;   // Number of DB PLT End
+      s_Active_DB_PLT_Num : Int;   // Number of DB PLT Active
+      s_Dwnst_DB_PLT_Num : Int;   // Number of DB PLT Downstream of active DB PLT
+      s_Carrier_Count : Int;   // Total number of carriers counted
+      s_Calc_Fill_Rate : Int;   // Calculated filling rate
+      s_Numb_Sec_Checked : Int;   // Number of sections checked this scan
+      s_Sections_Per_Scan : Int;   // Number of sections to handle per PLC scan
+      s_Calc_Active : Bool;   // Calculation is active
+   END_VAR
+
+   VAR_TEMP 
+      t_DB_Event_Num : Int;   // Number of DB event
+      t_Active_DB_PLT_Num : Int;   // Copy of active PLT DB to be checked
+      t_Fnd_Active_TIC : Int;   // TIC record found from the active section's DB PLT
+      t_Not_Used_Int : Int;   // Not used integer
+      t_Cnt_Entry : Int;   // Counter for number of entries searched
+      t_Fnd_Active_LNK : Int;   // LNK record found from the active section's DB PLT
+      t_Active_Carrier_SBT : Bool;   // Carrier status SBT
+      t_Fill_Rate : Real;   // Filling rate in REAL format
+      t_Avail_Windows : Real;   // Available windows in REAL format
+   END_VAR
+
+
+BEGIN
+NETWORK
+TITLE = AA: Check connected PLT DB's
+      NOP 0;
+
+// Copy event DB number
+      OPN #i_DB_Event;
+
+      L DBNO;
+      T #t_DB_Event_Num;
+
+// Retrieve start PLT number
+      OPN #i_DB_PLT_Start_Cnt;
+      L DBNO;
+      T #s_Start_DB_PLT_Num;
+
+// Check if start PLT is valid
+      L #s_Start_DB_PLT_Num;
+      L 1;
+      <=I;
+      JCN AA01;
+
+      SET;
+      R #s_Calc_Active;
+
+// Set filling rate to 100% is wrong PLT DB is connected
+      L 100;
+      T #o_Filling_Rate;
+      BEU;
+
+// Check if end PLT is valid
+AA01:      OPN #i_DB_PLT_End_Cnt;
+      L DBNO;
+      T #s_End_DB_PLT_Num;
+
+// Check if end PLT is valid
+      L #s_End_DB_PLT_Num;
+      L 1;
+      <=I;
+      JCN AA99;
+
+      SET;
+      R #s_Calc_Active;
+
+// Set filling rate to 100% is wrong PLT DB is connected
+      L 100;
+      T #o_Filling_Rate;
+      BEU;
+
+AA99:      NOP 0;
+
+NETWORK
+TITLE = AB: Initialize variables on check start
+      NOP 0;
+
+      AN #s_Calc_Active;
+      JCN AB99;
+
+// Preset active PLT DB
+      L #s_Start_DB_PLT_Num;
+      T #s_Active_DB_PLT_Num;
+
+// Set calculation active
+      SET;
+      S #s_Calc_Active;
+
+// Reset the counter values
+      L 0;
+      T #s_Calc_Fill_Rate;
+      T #s_Carrier_Count;
+      T #s_Numb_Sec_Checked;
+
+// Preset the number of sections to be handled per PLC scan
+      L #i_CFG_Sections_Per_Scan;
+      T #s_Sections_Per_Scan;
+
+AB99:      NOP 0;
+
+NETWORK
+TITLE = BA: Calculate number of carriers
+//Calculate the number of carriers based on start and end sections and the
+//number of sections to be handled in one PLC scan cycle.
+      NOP 0;
+
+// Set active PLT
+BA01:      L #s_Active_DB_PLT_Num;
+      T #t_Active_DB_PLT_Num;
+
+      OPN DB[ #t_Active_DB_PLT_Num];
+
+// Save downstream PLT DB number
+      L %DBW8;
+      T #s_Dwnst_DB_PLT_Num;
+
+// PLT Done check
+      AN %DBX10.0;
+      JCN BA02;
+
+// If PLT is not initialized abort calculation
+      SET;
+      R #s_Calc_Active;
+
+      L 100;
+      T #o_Filling_Rate;
+      BEU;
+
+// Increment the number of sections checked this scan
+BA02:      L #s_Numb_Sec_Checked;
+      L 1;
+      +I;
+      T #s_Numb_Sec_Checked;
+
+// Number of entry,s used in PLT DB
+      L %DBW0;
+      L 0;
+      >I;
+      JCN BA07;
+
+// Initialize the loop counter and point to the 1st entry in the DB PLT
+      L 1;
+      T #t_Cnt_Entry;
+
+      L 14;
+      SLW 3;
+      LAR1;
+
+// Find the info and the data in it
+BA03:      L DBW[ AR1, P#4.0];
+      L 1;
+      ==I;
+      JCN BA06;
+
+// Fetch the LNK
+      L DBW[ AR1, P#6.0];
+      T #t_Fnd_Active_LNK;
+
+// Find the TIC record and look for carrier type
+      L #t_Fnd_Active_LNK;
+      L 0;
+      >I;
+      JCN BA06;
+
+// Read TIC record
+      CALL "FC_Read_Int_Record"
+      (  i_Record_Number             := #t_Fnd_Active_LNK , 
+         i_P_INT_Record              := "DB_UDT_LNK_Record".TIC , 
+         i_DB                        := "DB_LNK_List" , 
+         i_DB_Event_Num              := #t_DB_Event_Num , 
+         o_INT                       := #t_Fnd_Active_TIC
+      );
+
+// Check if the TIC is valid
+      L #t_Fnd_Active_TIC;
+      L 0;
+      >I;
+      JCN BA04;
+
+// Read if the existing carrier type is SBT
+      CALL "FC_Read_Bool_Record"
+      (  i_Record_Number             := #t_Fnd_Active_TIC , 
+         i_P_BOOL_Record             := "DB_UDT_TIC_Record".TIR.Class_SBT , 
+         i_DB                        := "DB_TIC_List" , 
+         i_DB_Event_Num              := #t_DB_Event_Num , 
+         o_BOOL                      := #t_Active_Carrier_SBT
+      );
+
+// Add 1 if SBT carrier found to total carrier count
+      A #t_Active_Carrier_SBT;
+      JCN BA05;
+
+BA04:      L #s_Carrier_Count;
+      L 1;
+      +I;
+      T #s_Carrier_Count;
+      JU BA06;
+
+// Add 2 if OBT/unknown carrier found to total carrier count
+BA05:      L #s_Carrier_Count;
+      L 2;
+      +I;
+      T #s_Carrier_Count;
+
+BA06:      L #t_Cnt_Entry;
+      L 1;
+      +I;
+      T #t_Cnt_Entry;
+
+// Check loop counter
+      L #t_Cnt_Entry;
+      L %DBW0;
+      >I;
+      JC BA07;
+      TAR1;// Read Entry pointer of address-register
+
+      L P#8.0;// 8 bytes for each record increase pointer with 1 entry.
+      +D;// Entry pointer = Entry pointer - P#8.0
+
+      LAR1;// Store Entry pointer in address-register
+      JU BA03;
+
+// Check if the active DB PLT's downstream is valid and is not the end DB PLT
+BA07:      A(;
+      L #t_Active_DB_PLT_Num;
+      L #s_End_DB_PLT_Num;
+      ==I;
+      );
+      O(;
+      L #s_Dwnst_DB_PLT_Num;
+      L 1;
+      <=I;
+      );
+      JCN BA08;
+
+      SET;
+      R #s_Calc_Active;
+      JU BA99;
+
+// Load the next DB PLT to calculate the carrier count
+BA08:      L #s_Dwnst_DB_PLT_Num;
+      T #s_Active_DB_PLT_Num;
+
+// Check if all section to be handled this scan are checked
+      L #s_Numb_Sec_Checked;
+      L #s_Sections_Per_Scan;
+      >=I;
+      JCN BA01;
+
+BA99:      NOP 0;
+
+NETWORK
+TITLE = CA: Calculate filling rate
+//The filling rate is calculated by dividing the total number of occupied windows 
+//by the total number of available windows. This value is multiplied by 100 to 
+//get a percentage value.
+      NOP 0;
+
+// Convert integers to real format
+      L #i_CFG_Avail_Windows;
+      ITD;
+      DTR;
+      T #t_Avail_Windows;
+
+      L #s_Carrier_Count;
+      L #i_Carrier_Count;
+      +I;
+      ITD;
+      DTR;
+      T #t_Fill_Rate;
+
+// Calculate filling rate
+      L #t_Fill_Rate;
+      L #t_Avail_Windows;
+      /R;
+      L 100.0;
+      *R;
+      RND;
+      T #s_Calc_Fill_Rate;
+
+      L #s_Calc_Fill_Rate;
+      L 100;
+      >I;
+      JCN CA99;
+
+// Preset if calculation exceeds 100%
+      L 100;
+      T #s_Calc_Fill_Rate;
+
+CA99:      NOP 0;
+
+NETWORK
+TITLE = DA: Write outputs
+//When the calculation cycle is not active the calculation values are final and 
+//can be written to the blocks outputs.
+      NOP 0;
+
+// Write outputs if calculation is not active
+      AN #s_Calc_Active;
+      JCN DA99;
+
+      L #s_Calc_Fill_Rate;
+      T #o_Filling_Rate;
+
+      L #s_Carrier_Count;
+      L #i_Carrier_Count;
+      +I;
+      T #o_Carrier_Count;
+
+DA99:      NOP 0;
+
+END_FUNCTION_BLOCK
+
+

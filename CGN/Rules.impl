@@ -11,7 +11,8 @@ use
 FunctionPrelude. $ 
 Properties. GetName, GetRawName, GetReferences, GetTitle, GetLocLine, GetComments, 
             GetLabel, GetNetwPrefix, GetGlobalVar, IsDatabaseAction, IsLoadInstruction, 
-            IsOutputInstruction, IsUsed, IsAccessingAR2, IsModifyingAR2, IsRestoringAR2
+            IsOutputInstruction, IsUsed, IsAccessingAR2, IsModifyingAR2, IsRestoringAR2,
+            GetBlockType, HasComment
 RuleConfig. IsRuleEnabled
 RuleViolation. ', AddViolation
 ScanIO. FindFileName, FindLocation
@@ -108,7 +109,7 @@ conditions rule == "C014"
 Check(rule : String, loc : Int, me : GawlKeeper)
 conditions rule == "C015"
 {
-  title : String = TrimQuotes(GetTitle(me.block_type))
+  title : String = TrimQuotes(GetName(me.block_type))
   if #title > 20 then AddViolation(rule, loc, [title]) fi
 }
 
@@ -322,17 +323,6 @@ Check(rule : String, loc : Int, me : HeaderBlock)
 conditions rule == "C066" & ContainsSubString(ToLower(StripSpaces(me.title)), "%version:q")
 { AddViolation(rule, loc, [me.title]) }
 
-Check(rule : String, loc : Int, me : GawlKeeper)
-conditions rule == "G003"
-{
-  title : String = TrimQuotes(GetTitle(me.block_type))
-  filename : String = GetAwlBaseFileName(FindFileName(loc))
-
-  if ~(title == filename) then
-    AddViolation(rule, loc, [filename, title])
-  fi
-}
-
 Check(rule : String, loc : Int, me : Instruction)
 conditions rule == "G028"
 {
@@ -389,6 +379,22 @@ conditions rule == "G043"
   if #comments = 0 then
     AddViolation(rule, loc, [GetTitle(me)], offset)
   fi
+}
+
+Check(rule: String, loc: Int, me: FunctionBody)
+conditions rule == "C007"
+{
+  previous: String := "00"
+  [ {
+      prefix: String = SubString(title, 0, 1)
+      if previous >= prefix then
+        AddViolation(rule, netw.title.src_info.loc, [title])
+      fi
+      previous := prefix
+    }
+    | netw: Network <- me.networks, title: String = GetTitle(netw),
+    (#GetTitle(netw) > 1)
+  ]
 }
 
 Check(rule : String, loc : Int, me : (Network, instructions # NIL))
@@ -493,23 +499,6 @@ CheckSpecialIndexes(instList: ([Instruction]), label: String)
 }
 
 
-Check(rule: String, loc: Int, me: FunctionBody)
-conditions rule == "C007"
-{
-  previous: String := "00"
-  [ {
-      prefix: String = SubString(title, 0, 1)
-      if previous >= prefix then
-        AddViolation(rule, netw.title.src_info.loc, [title])
-      fi
-      previous := prefix
-    }
-    | netw: Network <- me.networks, title: String = GetTitle(netw),
-    (#GetTitle(netw) > 1)
-  ]
-}
-
-
 Check(rule : String, loc : Int, me : Function)
 conditions rule == "C020"
 { CheckC20(me.body) }
@@ -549,6 +538,35 @@ conditions rule == "C042"
   lower_bound: Int = Int(me.type.array.range.start)
   if lower_bound # 0 then AddViolation(rule, loc, [GetName(me), lower_bound]) fi
 }
+
+Check(rule : String, loc : Int, me : GawlKeeper)
+conditions rule == "G003"
+{
+  title : String = TrimQuotes(GetName(me.block_type))
+  filename : String = GetAwlBaseFileName(FindFileName(loc))
+
+  if ~(title == filename) then
+    AddViolation(rule, loc, [filename, title])
+  fi
+}
+
+Check(rule : String, loc : Int, me : Block)
+conditions rule == "G012"
+{ 
+   CheckG12(rule, loc, me, "//Description:")
+   CheckG12(rule, loc, me, "//Function:")
+}
+
+CheckG12(rule : String, loc : Int, me : (Function | FunctionBlock | OrgBlock), comment: String) 
+conditions ~HasComment(me, comment)
+{ AddViolation(rule, loc, [GetBlockType(me), GetName(me), "", comment]) }
+
+CheckG12(rule : String, loc : Int, me : (DataBlock | TypeBlock), comment: String) 
+conditions HasComment(me, comment)
+{ AddViolation(rule, loc, [GetBlockType(me), GetName(me), "n't", comment]) }
+
+CheckG12(rule : String, loc : Int, me : Block, has_comment: String) 
+{ }
 
 Check(rule : String, loc : Int, me : Field)
 conditions rule == "G021"

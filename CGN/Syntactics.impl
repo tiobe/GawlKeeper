@@ -52,7 +52,6 @@ FilterComments(lines: ([Comment]), var offset: Int): [String]
     return FilterComments([comm.string | comm: Comment <- lines])
 }
 
-
 TrimQuotes(s : String) : String
 {
     last: Int = #s - 1

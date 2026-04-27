@@ -138,6 +138,10 @@ GetRules() : [([String])]
       "Block name is filename.",
       "File '\027' should be named '\027', like the block it contains."
     ],
+    [ "G012",
+      "An explanation of the variables and/or parameters must be given in the comment area of the Variable Declaration list.",
+      "\027 '\027' should\027 have a '\027' comment."
+    ],
     [ "G021",
       "Comments for declarations.",
       "Declaration needs a documentation comment starting with a space followed by an upper-case letter."

@@ -1,0 +1,205 @@
+FUNCTION_BLOCK "FB_TMZ_HMI_ID_IF_T"
+TITLE = %version: 5.08 % %Commit:  c3808b61 % CN: 40
+{ S7_Optimized_Access := 'FALSE' }
+FAMILY : Tubtrax
+VERSION : 0.0
+//Function:
+//Convert DW ID to sting and interface with HMI interface DB.
+//
+//
+//SOURCE
+//%Project:      allcttt %
+//%Repo:         a_ttt %
+//%Commit:       c3808b61 %
+//%DateTimeUTC:  2023-12-11T14:59:55 %
+//
+//%HISTORY%
+//Issue:        Commit:  Date:      Version: Author:              Description:
+//------------- -------- ---------- -------- -------------------- ------------------------------------------------------------------------------
+//ALLCTTT-4059  c3808b61 2023-12-11 5.08     Pascal van Kempen    Added history table
+//ALLCTTT-4042  55fd833f 2023-12-05 5.07     Henri de Leijer      First step to remove the library files
+//ALLCTTT-272   544e4e84 2020-12-10 5.06     Pascal van Kempen    removed keywords
+//ALLCTTT-272   9d531fbf 2020-12-10 5.05     Pascal van Kempen    Revert corrected checkin sequence for determining version information properly
+//ALLCTTT-272   ae3fa862 2020-12-10 5.04     Pascal van Kempen    corrected checkin sequence for determining version information properly
+//ALLCTTT-272   5a1edb78 2020-12-10 5.03     Pascal van Kempen    Revert keywords updates
+//ALLCTTT-272   8d62c219 2020-12-10 5.02     Pascal van Kempen    keywords updates
+//ALLCTTT-272   31a64871 2020-12-10 5.01     Pascal van Kempen    initial import
+//
+//Modification History:                                 By:      Date:     Rev:
+//----------------------------------------------------  -------  --------  -----
+//veg#3748: TMZ HMI doesn't show markcode-ID            nlHdL    05-03-19   2.02
+//ra#31964: Based on 2.15.0.0 version 1.03              nlhhop   14-01-19   2.01
+//
+//Description:
+//Convert TMZ zone ID format AAAAZZSS where AAAAZZSS = HEX format into  
+//ASCII sting and write this to the HMI interfacing DB.  The ID will be shown on 
+//the HMI as AAAA.ZZ.SS
+   VAR_INPUT 
+      i_ID : DWord;   // ID Record HEX AAAAZZSS/OO
+      i_DB_HMI_Interface : DB_ANY := DB1;   // Data Structure: HMI Interface
+   END_VAR
+
+   VAR 
+      s_ID_to_HMI : String[10];   // Zone identification which is to be shown on HMI
+   END_VAR
+
+   VAR_TEMP 
+      t_ID : DWord;   // ID Record HEX AAAAZZSS/OO
+      t_AR2_Mask : DWord;   // 'relative address'-mask
+      t_Ret_Val : Int;   // Temp Return Value
+      t_DB_HMI_Interface_Num : Int;   // Number of DB HMI Interface
+      t_ANY_P_To_ID_On_HMI : Any;   // Any pointer for copying ID to HMI
+   END_VAR
+
+
+BEGIN
+NETWORK
+TITLE = AA: Get relative address out of AR2
+//Address register:10000ZZZ 00000yyy yyyyyyyy yyyyyxxx
+//Z=Operand area y=Byte address   x=Bit address
+//Mask Byte and Bit address only
+      NOP 0;
+
+      TAR2;// Load 'base address register'
+      AD 16#00FF_FFFF;// Mask 'address only' out of area-internal-pointer
+      T #t_AR2_Mask;// 'relative address'-mask
+
+NETWORK
+TITLE = BA: Current zone ID conversion to ASCII
+//The input ID in format AAAAZZSS where AAAAZZSS = HEX format is converted to 
+//ASCII and shown on the HMI as AAAA.ZZ.SS
+      NOP 0;
+
+// Convert the SS ID to ASCII
+      L #i_ID;
+      T #t_ID;
+
+      L #t_ID;//Zone ID
+      L 16#0000_000F;//select last
+      AW;
+      L 16#0000_0030;//add hex30 to char (convert to ASCII)
+      OW;
+      T #s_ID_to_HMI[10];
+
+      L #t_ID;//Zone ID
+      SRD 4;
+      T #t_ID;
+      L 16#0000_000F;//select last
+      AW;
+      L 16#0000_0030;//add hex30 to char (convert to ASCII)
+      OW;
+      T #s_ID_to_HMI[9];
+
+      L '.';// Add '.' Add dot
+      T #s_ID_to_HMI[8];
+
+// Convert the ZZ ID to ASCII
+      L #t_ID;//Zone ID
+      SRD 4;
+      T #t_ID;//Zone ID
+      L 16#0000_000F;//select last
+      AW;
+      L 16#0000_0030;//add hex30 to char (convert to ASCII)
+      OW;
+      T #s_ID_to_HMI[7];
+
+      L #t_ID;//Zone ID
+      SRD 4;
+      T #t_ID;
+      L 16#0000_000F;//select last
+      AW;
+      L 16#0000_0030;//add hex30 to char (convert to ASCII)
+      OW;
+      T #s_ID_to_HMI[6];
+
+      L '.';//Add '.'  (dot)
+      T #s_ID_to_HMI[5];
+
+// Convert the AAAA ID to ASCII
+      L #t_ID;//Zone ID
+      SRD 4;
+      T #t_ID;//Zone ID
+      L 16#0000_000F;//select last
+      AW;
+      L 16#0000_0030;//add hex30 to char (convert to ASCII)
+      OW;
+      T #s_ID_to_HMI[4];
+
+      L #t_ID;//Zone ID
+      SRD 4;
+      T #t_ID;//Zone ID
+      L 16#0000_000F;//select last
+      AW;
+      L 16#0000_0030;//add hex30 to char (convert to ASCII)
+      OW;
+      T #s_ID_to_HMI[3];
+
+      L #t_ID;//Zone ID
+      SRD 4;
+      T #t_ID;//Zone ID
+      L 16#0000_000F;//select last
+      AW;
+      L 16#0000_0030;//add hex30 to char (convert to ASCII)
+      OW;
+      T #s_ID_to_HMI[2];
+
+      L #t_ID;//Zone ID
+      SRD 4;
+      T #t_ID;//Zone ID
+      L 16#0000_000F;//select last
+      AW;
+      L 16#0000_0030;//add hex30 to char (convert to ASCII)
+      OW;
+      T #s_ID_to_HMI[1];
+
+NETWORK
+TITLE = CA: Copy Current Zone ID to HMI
+      NOP 0;
+
+      OPN #i_DB_HMI_Interface;
+      L DBNO;//Get DB number of interface DB
+      T #t_DB_HMI_Interface_Num;
+
+      L P##t_ANY_P_To_ID_On_HMI;//Load pointer to temp of type ANY
+      LAR1;
+
+      L 16#10;//Store 10 (hex) for S7
+      T LB[ AR1, P#0.0];
+
+      L 16#02;//Store datatype BYTE in ANY
+      T LB[ AR1, P#1.0];
+
+      L 30;//Store data length in ANY
+      T LW[ AR1, P#2.0];
+
+      L #t_DB_HMI_Interface_Num;//Store DB number in ANY
+      T LW[ AR1, P#4.0];
+
+      L 2;// Offset of the ID
+      SLD 3;// Shift from bit adres to byte adres
+      T LD[ AR1, P#6.0];//and store in ANY
+
+      L 16#84;//Store 84H: DB Global data area in ANY
+      T LB[ AR1, P#6.0];
+
+//  Write Actual length in the ID pointer
+      L P##s_ID_to_HMI;//Set pointer to ID variable
+      L #t_AR2_Mask;
+      +D;
+      LAR1;
+
+// Move the current Zone ID to the HMI display location
+      CALL BLKMOV// Write ID to HMI interface DB
+      {blk_type := 'Variant'}
+      (  SRCBLK                      := #s_ID_to_HMI , 
+         RET_VAL                     := #t_Ret_Val , 
+         DSTBLK                      := #t_ANY_P_To_ID_On_HMI
+      );
+
+      LAR1 P#0.0;
+      L 10;// Copy only 10 CHAR
+      T DBB[ AR1, P#1.0]      ;// Write string 'actual' length
+
+END_FUNCTION_BLOCK
+
+

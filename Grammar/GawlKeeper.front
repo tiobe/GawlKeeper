@@ -141,7 +141,9 @@ Network ::=
    "NETWORK" title: NetworkTitle
    instructions: { Instruction ";" }
 ;
+
 NetworkTitle ::= title: TITLE ; %% This is only needed to get the source line where the title is.
+
 Instruction ::=
   label : [ Identifier ":" ]
   instruction: InstructionName

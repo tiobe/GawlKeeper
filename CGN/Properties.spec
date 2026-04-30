@@ -36,6 +36,10 @@ GetGlobalVar(arg: InstrExpression): GlobalVariable|NIL
 
 IsDatabaseAction(expr: InstrExpression): Bool
 
+IsLoadingAR1(instr : InstructionName): Bool
+IsSymbolicReference(instr : Instruction): Bool
+IsUsingAR1(instr : InstrExpression|NIL): Bool
+
 IsAccessingAR2(locals : List(String), instr : Instruction): Bool
 IsModifyingAR2(instr : InstructionName): Bool
 IsRestoringAR2(instr : InstructionName): Bool

@@ -12,7 +12,7 @@ FunctionPrelude. $
 Properties. GetName, GetRawName, GetReferences, GetTitle, GetLocLine, GetComments, 
             GetLabel, GetNetwPrefix, GetGlobalVar, IsDatabaseAction, IsLoadInstruction, 
             IsOutputInstruction, IsUsed, IsAccessingAR2, IsModifyingAR2, IsRestoringAR2,
-            GetBlockType, HasComment
+            GetBlockType, HasComment, IsLoadingAR1, IsUsingAR1, IsSymbolicReference
 RuleConfig. IsRuleEnabled
 RuleViolation. ', AddViolation
 ScanIO. FindFileName, FindLocation
@@ -143,6 +143,42 @@ CheckC30(globVar: Ident, netwPrefix: String, loc: Int, netw: Network)
     AddViolation("C030", loc, [globVar, GetTitle(netw)])
   fi
 }
+
+Check(rule : String, loc : Int, me : FunctionBody)
+conditions rule == "C034"
+{ me.networks * CheckC034 }
+
+CheckC034(me : Network)
+{ CheckC034(me.instructions, FALSE, []) }
+
+CheckC034(NIL : List(Instruction), loaded : Bool, loc_candidates : List(Int))
+{ 
+  [ { AddViolation("C034", loc, []) } 
+  | loc : Int <- loc_candidates 
+  ]
+}
+
+CheckC034(instrs : (List(Instruction)), loaded : Bool, loc_candidates : List(Int))
+conditions ~loaded & IsLoadingAR1(instrs.head.instruction)
+{ 
+  CheckC034(instrs.tail, TRUE, []) 
+}
+
+CheckC034(instrs : (List(Instruction)), loaded : Bool, loc_candidates : List(Int))
+conditions loaded & IsUsingAR1(instrs.head.arg)
+{
+  [ { AddViolation("C034", loc, []) } 
+  | loc : Int <- loc_candidates 
+  ]
+  CheckC034(instrs.tail, FALSE, [])
+}
+
+CheckC034(instrs : (List(Instruction)), loaded : Bool, loc_candidates : List(Int))
+conditions loaded & IsSymbolicReference(instrs.head)
+{ CheckC034(instrs.tail, loaded, loc_candidates + instrs.head.src_info.loc) } 
+
+CheckC034(instrs : (List(Instruction)), loaded : Bool, loc_candidates : List(Int))
+{ CheckC034(instrs.tail, loaded, loc_candidates) } 
 
 Check(rule : String, loc : Int, me : FunctionBody)
 conditions rule == "C035"

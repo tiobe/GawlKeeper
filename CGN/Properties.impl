@@ -190,6 +190,65 @@ IsDatabaseMemoryAction(expr : Reference): Bool
 IsDatabaseMemoryAction(expr : AtomicExpression): Bool
 { return FALSE }
 
+IsLoadingAR1(instr : Lar1Instr): Bool
+{ return TRUE }
+
+IsLoadingAR1(instr : InstructionName): Bool
+{ return FALSE }
+
+IsSymbolicReference(instr : Instruction): Bool
+{ return IsSymbolicReference(instr.instruction) | IsSymbolicReference(instr.arg) }
+
+IsSymbolicReference(instr : CallInstr): Bool
+{ return TRUE }
+
+IsSymbolicReference(instr : InstructionName): Bool
+{ return FALSE }
+
+IsSymbolicReference(expr : AnonymousArray): Bool
+{ return IsSymbolicReference(expr.head) | Any(IsSymbolicReference, expr.tail) }
+
+IsSymbolicReference(expr : GlobalVariable): Bool
+{
+  lit : String = expr.vbl.str
+  return #lit > 0 & lit@0 = '"' 
+}
+
+IsSymbolicReference(expr : ArrayExpression): Bool
+{ 
+  return IsSymbolicReference(expr.array) 
+    | IsSymbolicReference(expr.arg1) 
+    | Any(IsSymbolicReference, expr.args) 
+}
+
+IsSymbolicReference(expr : FieldExpression): Bool
+{ return IsSymbolicReference(expr.expr) | IsSymbolicReference(expr.field) }
+
+IsSymbolicReference(expr : ConstExpression): Bool
+{ return IsSymbolicReference(expr.expr) }
+
+IsSymbolicReference(expr : MemoryAccess): Bool
+{ return IsSymbolicReference(expr.id) }
+
+IsSymbolicReference(expr : (PointerAccess, expr : PointerAccessHash)): Bool
+{ return IsSymbolicReference(expr.expr.hash) }
+
+IsSymbolicReference(expr : InstrExpression|NIL): Bool
+{ return FALSE }
+
+IsUsingAR1(inst : ArrayExpression): Bool
+{ return IsUsingAR1Id(inst.arg1) | Any(IsUsingAR1Id, inst.args) }
+
+IsUsingAR1Id(inst : LocalVariable): Bool
+conditions inst.vbl.id == "AR1"
+{ return TRUE }
+
+IsUsingAR1Id(inst : Expression): Bool
+{ return FALSE }
+
+IsUsingAR1(inst : InstrExpression|NIL): Bool
+{ return FALSE }
+
 IsAccessingAR2(locals : List(String), instr : Instruction): Bool
 conditions 
   (IsOutputInstruction(instr.instruction) | IsLoadInstruction(instr.instruction)) & 

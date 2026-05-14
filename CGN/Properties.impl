@@ -258,16 +258,17 @@ conditions
 IsAccessingAR2(locals : List(String), instr : Instruction): Bool
 { return FALSE }
 
-IsModifyingAR2(instr : (AccuToAR2 | Lar2Instr)): Bool
+IsModifyingAR2(instr : Lar2Instr): Bool
 { return TRUE }
 
 IsModifyingAR2(instr : InstructionName): Bool
 { return FALSE }
 
-IsRestoringAR2(instr : Lar2Instr): Bool
+IsRestoringAR2(instr : (Instruction, arg : (ArrayExpression, arg1: LocalVariable))): Bool
+conditions instr.arg.arg1.vbl.id == "AR2"
 { return TRUE }
 
-IsRestoringAR2(instr : InstructionName): Bool
+IsRestoringAR2(instr : Instruction): Bool
 { return FALSE }
 
 IsLoadInstruction(

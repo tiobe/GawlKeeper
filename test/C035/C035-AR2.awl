@@ -1,0 +1,3455 @@
+FUNCTION_BLOCK "FB_HBO_MV3D"
+TITLE = %version: 5.18 % %Commit:  % CN: 41
+{ S7_Optimized_Access := 'FALSE' }
+FAMILY : General
+VERSION : 0.0
+//Function:
+//Handle all data handovers with the MV3D screening machine and detect/log errors
+//in the process.
+//
+//
+//SOURCE
+//%Project:      %
+//%Repo:         %
+//%Commit:       %
+//%DateTimeUTC:  %
+//
+//%HISTORY%
+//Issue:        Commit:  Date:      Version: Author:              Description:
+//------------- -------- ---------- -------- -------------------- -------------------------------------------------------------------------------
+//ALLCGEN-2969           2025-02-28 5.18     Henri de Leijer      hbo not updated hbs record with bag_status
+//ALLCGEN-2970           2025-02-27 5.17     Henri de Leijer      hbz bagstatus alarmed not reset
+//ALLCGEN-2571           2024-04-05 5.16     Henri de Leijer      HBO Incorrect AR2 to Clear BagStatus
+//ALLCGEN-2390           2024-01-24 5.15     Michiel Blesgraaf    PGDS v7 - Add "ScreenEvent" message
+//ALLCGEN-2349           2024-01-11 5.14     Michiel Blesgraaf    PGDS v7 - Update BIR with UDT BagStatus
+//ALLCGEN-2405           2023-12-07 5.13     Pascal van Kempen    Added history table
+//ALLCGEN-2403           2023-12-05 5.12     Henri de Leijer      First step to remove the library files
+//ALLCGEN-1489           2023-06-14 5.11     Kartik Tambe         BIP signal extended to 1s
+//ALLCGEN-1727           2023-03-13 5.10     Henri de Leijer      Screen-pending-update-FAT
+//ALLCGEN-95             2023-01-16 5.09     Kartik Tambe         Statistical data send type changed from cumulative to incremental and continuos
+//ALLCGEN-1471           2022-11-09 5.08     Henri de Leijer      ALLCGEN-1471 Pending list validation for the loop concept not implemented
+//ALLCGEN-1334           2022-08-05 5.07     Andries van den ElzenLog the screening raw data messages to the ApplicationLogData
+//ALLCGEN-974            2022-02-04 5.06     Andries van den ElzenUpdate software to align with MV3D integration manual version A3
+//ALLCGEN-829            2021-11-04 5.05     Andries van den ElzenDisable reporting PLT cleared for standard functionality
+//ALLCGEN-316            2020-11-12 5.04     Pascal van Kempen    updated xml and awl files to prepare for insertion of metadata from git
+//ALLCGEN-253            2020-10-16 5.03     Pascal van Kempen    removed GIT from keywords
+//ALLCGEN-1              2020-08-06 5.02     Pascal van Kempen    added keywords to awl files
+//ALLCGEN-1              2020-08-05 5.01     Pascal van Kempen    initial import + adding gradle build
+//
+//Modification History:                                   By:      Date:    Rev:
+//----------------------------------------------------  -------  --------  -----
+//ina#12466: Update decission for log ID3213            nladia   04-12-19   4.06
+//ra#34968: Support for L1 decisions and pseudo check   nldy     02-10-19   4.05
+//bhs_plf#6142:Update interlock to clear pending status inpmah   22-08-19   4.04
+//bhs_plf#6142:Update interlock to clear pending status inpmah   21-08-19   4.03
+//ra#34205: Resolved parallel version in Synergy        nlhhop   24-07-19   4.02
+//ra#31766: Update sources TIA with export function     nlHdL    11-12-18   4.01
+//ra#29092: Update VI_GEN TIA to VI_GEN 1.9             nlHdL    14-09-18   2.15
+//ra#24842: Correction of variable name                 inajos   01-08-18  
+//ra#30089: Updates on log messages                     nldy     17-07-18  
+//ra#28052: log message for data with unkown item       nldy     25-05-18  
+//ra#23880: Avoid cycle time peak during pseudo lookup  nldy     31-01-18  
+//ra#29092: Update the UDT sources for VI_GEN TIA       nlHdL    06-09-18   2.11
+//veg#1599: HBO No successive no data in transport mode nlHdL    05-01-18   0.11
+//ra#24941: Screening pending updates                    nldy     25-10-17  0.10
+//ra#25265: PLC in stop due to uninitialized variable    nldy     02-10-17  0.09
+//ra#21133: Remove unused INT                            nldy     19-09-17  0.08
+//ra#21133: Screening pending updates                    nldy     18-09-17  0.07
+//ra#22943: Update HBZ01 to coding standard             nlHdL     16-06-17  0.06
+//ra#22943: Update to work with latest standards         nldy     22-05-17  0.05
+//ra#21878: Fix HL reporting ID's                        nldy     05-04-17  0.04
+//ra#21158: Add tracking statistical                     nldy     23-03-17  0.03
+//ra#21036: Correct typo                                 nldy     13-03-17  0.02
+//Initial version based on v0.02 in RA_ECSP_BHS_ESO      nldy     06-03-17  0.01
+//
+//Description:
+//3 general action are covered:
+//
+//1) Send bag data to EDS when a bag/carrier is about to enter the EDS
+//2) Receive tracking information about a bag when it leaves the EDS
+//3) Receive bag/carrier decision and update records (incl. screening pending)
+   VAR_INPUT 
+      i_HBO_ID : DWord;   // ID Record AAAA - ZZSS  (BCD).
+      i_HBS_ID : DWord;   // ID Record AAAA - ZZSS (BCD).
+      i_Available_IO : Bool := TRUE;   // Signal for indication IO is OK (no Fieldbus or IO error)
+      i_CMD_Enable : Bool;   // CMD: Enable command
+      i_CMD_Start : Bool;   // CMD: Start command
+      i_CMD_Reset : Bool;   // CMD: Reset command
+      i_CMD_Send_Stat : Bool;   // CMD: Trigger Send and clear statisticals
+      i_Test_Mode_Active : Bool;   // Test mode is active
+      i_Comm_Error : Bool;   // Communication error occurred
+      i_Eqp_Operational_On : Bool;   // Screening machine is operational
+      i_Allow_Unexpected_Data : Bool;   // Unexpected data is expected at the outfeed (bagjam, IQT, ...) block error
+      i_Default_Record_Inf : Int;   // Number of default record to be used to create link on the infeed.
+      i_Default_Record_Outf : Int;   // Number of default record to be used to create link on the outfeed.
+      i_Local_Destination : Int;   // CFG: Destination of the screening machine
+      i_HBO_Settings : "UDT_HBO_Sett";   // Data structure: Setting Record
+      i_DB_PLT_Infeed : DB_ANY := DB1;   // PLT DB number
+      i_DB_PLT_Non_Trk : DB_ANY := DB1;   // PLT DB number for items being tracked by the EDS
+      i_DB_PLT_Outfeed : DB_ANY := DB1;   // PLT DB number
+      i_DB_Event_Section : DB_ANY := DB1;   // Data Block: for writing events on section level
+      i_DB_Event_Object : DB_ANY := DB1;   // Data Block: for writing events on object level
+      i_CFG_Line_ID : Int;   // CFG: Line_ID/Area_ID for alternative Bag_ID
+      i_CFG_Num_Unex_Data_Er : Int;   // CFG: [Num] Value of consecutive tracking lost reports before an error is set
+      i_CFG_Num_No_Data_Er : Int;   // CFG: [Num] Value of consecutive no-data before a no-data error is set
+      i_IO_BHS_ID : Any;   // Output range BHS_ID (BAGIDARRAY+BAGIDUPDATE)
+      i_IO_Send_Data_Inf : Bool;   // Trigger to send bag ID data to the EDS (EOS PEC latch infeed)
+      i_IO_ACKN_Data_Inf : Bool;   // Data[0].4 Bag ID received (IRTR) => ACKN from EDS
+      i_IO_EDS_Bag_In_Process : Bool;   // Data[0].5 Bag in process
+      i_IO_Receive_Data_Outf : Bool;   // Data[0].7 Exit decision posted (XBDP)
+      i_IO_Decision_Available : Bool;   // Data[0].8 Bag decision posted (SBDP)
+      i_IO_Forced_Reject_Ack : Bool;   // Data[0].9 Forced Reject Acknowledge
+      i_IO_Transport_Mode : Bool;   // Screening mode of EDS - Passthrough
+      i_IO_Time_Sync_Sec : Int;   // Data[1].L ISD time sync sec
+      i_IO_Time_Sync_Min : Int;   // Data[1].H ISD time sync min
+      i_IO_Time_Sync_Hour : Int;   // Data[2].L ISD time sync hour
+      i_IO_Time_Sync_Day : Int;   // Data[2].H ISD time sync day
+      i_IO_Time_Sync_Month : Int;   // Data[3].L ISD time sync month
+      i_IO_Time_Sync_Year : Int;   // Data[3].H ISD time sync year
+      i_IO_ISD_ID_Tracking : Any;   // Input range ISD_ID (BAGIDARRAY)
+      i_IO_ISD_ID_Decision : Any;   // Input range ISD_ID (BAGIDARRAY)
+   END_VAR
+
+   VAR_OUTPUT 
+      o_Req_Halt_TRS : Bool;   // Request halt section
+      o_ST_WN_Restart : Bool;   // ST: Warning: restart is required
+      o_ST_Succ_Unexp_Data : Bool;   // ST: Successive unexpected data (lost in tracking or unable to restore tracking)
+      o_ST_Succ_No_Data : Bool;   // ST: Successive no data received at handover
+      o_ST_Items : Bool;   // ST: Items present on section
+      o_ST_Started : Bool;   // ST: TRS Started
+      o_IO_MasterClkDesignator : Bool;   // Data[0].0 Master clock designator (1=BHS is master)
+      o_IO_Inf_Bag_Data_Ready : Bool;   // Data[0].4 Bag ID data ready (IBDP)
+      o_IO_Ack_Sec_Bag_Data : Bool;   // Data[0].6 Security bag data received (SBDR) => ACKN to EDS
+      o_IO_Ack_Exit_Bag_Data : Bool;   // Data[0].7 Exit bag data received (XBDR) => ACKN to EDS
+      o_IO_Force_Reject : Bool;   // Data[9].1 Clear bag data in case of force reject
+      o_IO_Pseud_Code_ForceRej : DInt;   // Pseudo code passed in case of force reject
+      o_IO_Time_Sync_Sec : Int;   // Data[1].L BHS time sync sec
+      o_IO_Time_Sync_Min : Int;   // Data[1].H BHS time sync min
+      o_IO_Time_Sync_Hour : Int;   // Data[2].L BHS time sync hour
+      o_IO_Time_Sync_Day : Int;   // Data[2].H BHS time sync day
+      o_IO_Time_Sync_Month : Int;   // Data[3].L BHS time sync month
+      o_IO_Time_Sync_Year : Int;   // Data[3].H BHS time sync year
+      o_Nr_Items : Int;   // Number of items in screening tunnel
+   END_VAR
+
+   VAR 
+      s_Statisticals : Struct   // Statisticals
+         Bags_Handed_Over : Int;   // Number of bags for which data was handed over to the EDS
+         Force_Rejected : Int;   // Number of bags which were force rejected
+         R1 : Struct   // Result 1
+            Count_Cleared : Int;   // Total count of acccepted message received
+            Count_Rejected : Int;   // Total count of Reject message received
+            Count_NotAnalyzed : Int;   // Total count of Machine error messages received
+            No_Decision_Required : Int;   // Decision not required (e.g. required level reached/empty tub,...)
+         END_STRUCT;
+         R2 : Struct   // Result 2
+            Count_Cleared : Int;   // Total count of acccepted message received
+            Count_Rejected : Int;   // Total count of Reject message received
+            Count_TimeOut : Int;   // Total count of Timeout message received
+            Count_Obvious_Threat : Int;   // Total count of Obvious Threat message received
+         END_STRUCT;
+         Tracking : Struct   // EDS tracking performance
+            Positively_Tracked : Int;   // Bag positively tracked with the BHS bag ID - screening pending
+            Trk_Lost_Result_Pending : Int;   // Tracking lost - screening pending
+            Trk_Lost_No_Result : Int;   // Tracking lost - no screening pending
+            Spacing_Error : Int;   // Number of reported spacing errors
+         END_STRUCT;
+      END_STRUCT;
+      s_Send_Data_Inf : Struct   // All data regarding the handover BHS -> EDS
+         Itm_Data : Struct   // Local BHS data regarding the last bag received from the EDS
+            LNK : Int;   // LNK number found in tracking for Code req
+            LPN : Array[1..10] of Char;   // LPN code
+            LNK_Record : "UDT_LNK_Record";   // LNK Record
+            HBS_Record : "UDT_PEN_Record";   // HBS Record
+            Process_1 : Struct   // Screening Process
+               Screening_Not_Required : Bool;   // Infeed bag should't be screened per BHS request
+               Machine_Scrn_Required : Bool;   // Machine decision is required
+               Operator_Scrn_Required : Bool;   // Bag decision should be made by an operator
+               Screen_Result : "UDT_Screen_Result";   // Screen result
+            END_STRUCT;
+         END_STRUCT;
+         Pseudo_Seq : DInt;   // Pseudo sequence number
+         Bag_Found_Position : Int;   // PLT position on infeed where bag was found
+         CurVal_Data_Ready_TO : Int;   // Counter for data ready timeout (ACKN not received)
+         Data_Ready_Delay_Time : Int;   // Remaining time before sending data ready bit to ensure all data is consistent
+         Valid_LNK_Available : Bool;   // A valid LNK is found/created and ready to be attached to the outfeed bag
+         Multiple_LNKs_Found : Bool;   // Error - Multiple LNK's found
+         LIC_Missing : Bool;   // No bag information - Bag should not be analyzed (e.g. empty tub)
+         Data_Ready : Bool;   // Data prepared. Delay send to ensure data consistency
+         Data_Acknowledged : Bool;   // EDS acknowledged the bag data
+         Physically_Handed_Over : Bool;   // Bag physically in screening tunnel
+         Screening_Required : Bool;   // At least one process requires an HBS record (screening pending)
+         Init_HBS_Record : Bool;   // New HBS record created, set initial values
+      END_STRUCT;
+      s_Receive_Data_Outf : Struct   // All data regarding the handover EDS -> BHS (black box tracking)
+         Itm_Data : Struct   // Local BHS data regarding the last bag received from the EDS
+            LNK : Int;   // LNK number of the outfeed bag
+            LNK_Record : "UDT_LNK_Record";   // LNK Record
+            HBS_Record : "UDT_PEN_Record";   // HBS Record
+            Process_1 : Struct   // Screening Process
+               Screening_Not_Required : Bool;   // Outfeed bag should't be screened per BHS request
+               Screening_Pending : Bool;   // A screening result is to be expected for the outfeed bag
+            END_STRUCT;
+         END_STRUCT;
+         EDS_Tracking : Struct   // EDS tracking feedback
+            Positively_Tracked : Bool;   // Bag positively tracked with the BHS bag ID - screening pending
+            Possible_EDS_Spacing_Err : Bool;   // Bit indicating that the EDS might have seen 2 bags together
+            Trk_Lost_Result_Pending : Bool;   // Tracking lost - screening pending
+            Trk_Lost_No_Result : Bool;   // Tracking lost - no screening pending
+         END_STRUCT;
+         Succ_Tracking_Lst_Cnt : Int;   // Counter: Bags lost in tracking
+         Succ_No_Data : Int;   // Counter: No data received from EDS for outfeed bag
+         Bag_Found_Position : Int;   // PLT position on outfeed where bag was found
+         Bag_Found_In_Outfeed_PLT : Bool;   // A physical bag was found in PLT within the configured update window
+         Lost_In_Tracking : Bool;   // EDS lost the bag in tracking, a new pseudo was created by the EDS
+         New_LNK_Created : Bool;   // A new LNK was created for the outfeed bag (unable to restore old LNK)
+         Valid_LNK_Available : Bool;   // A valid LNK is found/created and ready to be attached to the outfeed bag
+         LIC_Missing : Bool;   // No bag information - Bag probably not be analyzed (e.g. empty tub)
+         Tracking_Restored : Bool;   // A LNK was succesfully attached to the outfeed bag
+         HBS_Record_Present : Bool;   // A HBS record is available with the validated LNK
+         Screening_Pending : Bool;   // At least 1 process still expects a screening result
+         Init_HBS_Record : Bool;   // New HBS record created, set initial values
+      END_STRUCT;
+      s_Decision_Data : Struct   // All data regarding screening results
+         Itm_Data : Struct   // Local BHS data regarding the last bag decision received from the EDS
+            LNK : Int;   // LNK Number of received LIC
+            PEN_ID : Int;   // Pending ID record
+            Pseudo : DInt;   // Pseudo of current bag with decision
+            LNK_Record : "UDT_LNK_Record";   // LNK Record
+            HBS_Record : "UDT_PEN_Record";   // HBS Record
+            Process_1 : Struct   // Decision data regarding process 1
+               EDS_Decision : Struct   // Decision number of EDS mapped to bits for process 1
+                  Decision_Bag_Disposition : Int;   // Decision INT of the screening machine on the current item
+                  No_Decision : Bool;   // No decision for current process
+                  Not_Analyzed : Bool;   // Machine error
+                  Cleared_Machine : Bool;   // Cleared by machine
+                  Rejected_Machine : Bool;   // Rejected (unclear) by machine
+                  Cleared_Operator : Bool;   // Cleared by operator
+                  Rejected_Operator : Bool;   // Rejected (unclear) by operator
+                  Pending : Bool;   // Decision pending
+                  Timed_Out_Operator : Bool;   // Operator timeout
+                  Spacing_Error : Bool;   // Spacing error
+                  Forced_Reject : Bool;   // Force rejected
+                  Obvious_Threat : Bool;   // Obvious threat
+               END_STRUCT;
+               Machine_Result_To_HL : Int;   // Machine result being sent to High Level
+               Operator_Result_To_HL : Int;   // Operator result being sent to High Level
+               No_Decision_Expected : Bool;   // A decision came in on a bag without 'screening pending' status.Decision ignored
+            END_STRUCT;
+         END_STRUCT;
+         Valid_LNK_Available : Bool;   // A valid LNK is found/created and ready to be attached to the outfeed bag
+         Inval_LNK_Pseudo_Lookup : Bool;   // The provided LNK was invalid or unknown. Search on pseudo ID started
+         LIC_Missing : Bool;   // Bag handed over to downstream area (LIC not present while HBS record present)
+         Send_Package_Report : Bool;   // Request to send package report
+         Package_Report_Sent : Bool;   // A package report was sent
+         No_Decision_Expected : Bool;   // A decision came in on a bag without 'screening pending' status.Decision ignored
+      END_STRUCT;
+      s_EDS_Pseudo_Lookup : Struct
+         Write_Position_Lookup_T : Int;   // Next write position in the HBS lookup table
+         HBS_Lookup_Table : Array[0..4] of Int;   // Array containing all the last x HBS records with EDS generated pseudo
+      END_STRUCT;
+      s_ISD_ID_Tracking : "UDT_HBO_BagIDArr_I_MV3D";   // ISD ID containing outfeed tracking information
+      s_ISD_ID_Decision : "UDT_HBO_BagIDArr_I_MV3D";   // ISD ID containing decision information
+      s_BHS_ID : "UDT_HBO_BagIDArr_O_MV3D";   // BHS ID
+      s_FB_Manage_PLT : "FB_Manage_PLT";   // Block call static FB_Manage_PLT
+      s_FB_HBS_Force_Reject : "FB_HBS_PEN_Force_Rej";   // Block call force reject
+      s_LNK_Found : Int;   // Link data found in tracking
+      s_Number_Of_Items_Found : Int;   // Number of items found in PLT
+      s_DB_PLT_Num_Infeed : Int;   // Number of PLT DB
+      s_DB_PLT_Num_Outfeed : Int;   // Number of PLT DB
+      s_Handover_LNK : Int;   // LNK being passed over to EDS
+      s_LNK_Tracking_Report : Int;   // LNK of physically handed over bag, used for tracking report
+      s_IO_Rcve_Outf_Dly_Cnt : Int;   // Delay counter for Receive data trigger at outfeed
+      s_IO_Rcve_Dec_Dly_Cnt : Int;   // Delay counter for Receive data trigger upon decision
+      s_Bags_In_Proces_Dly_Cnt : Int;   // Bag in process delay
+      s_OS_Send_Bag_Data : Bool;   // One Shot: Send_Bag_ID
+      s_OS_Bag_Data_Prepared : Bool;   // One Shot: Bag data is prepared to be sent to the EDS
+      s_OS_Receive_Bag_Data : Bool;   // One Shot: New exit bag data available from EDS
+      s_OS_New_Decision_Avail : Bool;   // One Shot: New bag decision available
+      s_FP_Send_Bag_Data : Bool;   // Positive flank: Send_Bag_ID
+      s_FP_New_Decision_Avail : Bool;   // Positive flank: Bag Decision Data Valid
+      s_FP_Bag_Data_Prepared : Bool;   // Positive flank: Bag data is prepared to be sent to the EDS
+      s_FP_Receive_Bag_Data : Bool;   // Positive flank: New data available from EDS
+      s_FN_Bag_In_Upd_Win_Outf : Bool;   // Negative flank: Bag in update window on outfeed
+      s_FP_EDS_Empty : Bool;   // Positive flank: EDS indicates it has no items in tracking
+      s_FP_Force_Reject : Bool;   // Positive flank: Request to EDS to force reject a bag
+      s_FP_IO_Inf_Bag_Data_Ready : Bool;   // Positive flank: Data[0].4 Bag ID data ready (IBDP)
+      s_FP_IO_Receive_Data_Outf : Bool;   // Positive flank: Data[0].7 Exit decision posted (XBDP)
+      s_FP_IO_Decision_Available : Bool;   // Positive flank: Data[0].8 Bag decision posted (SBDP)
+      s_FP_IO_Force_Reject : Bool;   // Positive flank: Data[9].1 Clear bag data in case of force reject
+      s_FP_IO_Forced_Reject_Ack : Bool;   // Positive flank: Data[0].9 Forced Reject Acknowledge
+      s_Dly_IO_BIP : Bool;   // Delay count active status
+      s_HBO_Restart_Required : Bool;   // HBO restart required
+      s_EDS_Data_Received : Bool;   // Data for item in search window is received
+   END_VAR
+
+   VAR_TEMP 
+      t_LogMessage : Struct   // Temporary Log message
+         Prefix : Byte;   // Prefix of the Log message
+         Separator : Byte;   // Separator of the Log message
+         MessageBody : Array[2..202] of Byte;   // Message body of the Log message
+      END_STRUCT;
+      t_CharArray : Array[0..9] of Char;   // Temp char array to store LPN
+      t_CharPseudo : Array[1..8] of Char;   // Temp char array to store PseudoID
+      t_IO_ISD_ID_Tracking : Any;   // Any pointer
+      t_IO_ISD_ID_Decision : Any;   // Any pointer
+      t_IO_BHS_ID : Any;   // Any pointer
+      t_AR2_Store_Restore : DWord;   // Backup addres register AR2
+      t_Base_Address : DWord;   // Relative address of instance-DB
+      t_Last_Location : DInt;   // Last physical location of the item
+      t_PEN_ID : Int;   // Pending ID to Pending Record
+      t_DB_No_Route : Int;   // DB number of route list
+      t_INT_not_used : Int;   // Temp - Unused Variable
+      t_Position : Int;   // Position in PLT
+      t_Window : Int;   // Search window
+      t_DB_HBS_List_Num : Int;   // DB number of DB_HBS_List
+      t_DB_Event_Num_Section : Int;   // DB event number on section level
+      t_DB_Event_Num_Object : Int;   // DB event number on object level
+      t_DB_PLT_Num_Non_Trk : Int;   // Data block number of non tracking PLT
+      t_Non_Trk_PLT_Displ : Int;   // Displacement of the non tracking PLT DB
+      t_PLT_DB_Of_LNK : Int;   // PLT DB in which the LNK is found
+      t_PLT_Non_Trk_Length : Int;   // Length of the non tracking PLT DB
+      t_LNK_Found : Int;   // LNK found
+      t_LNK_Found_Infeed : Int;   // LNK which was found on the infeed
+      t_Num_Items_Found : Int;   // Number of items found in non tracking PLT DB
+      t_ECS : Int;   // ECS number of an item found in non tracking PLT DB
+      t_LIC : Int;   // LIC number of current item
+      t_Rep_Route : Int;   // Report route information
+      t_Scn_Event : Int;   // Event data of Screening Event
+      t_adress : Int;   // Adress pointer
+      t_LNK_Clrd_Non_Trk_DB : Bool;   // LNK was found and removed from non tracking PLT DB
+      t_Clear_Non_Trk_PLT_DB : Bool;   // Remove all entries from the non tracking PLT DB
+      t_Start_DR_Timeout_Count : Bool;   // Start data ready timeout counter. Timeout when no ACKN is received from EDS
+      t_Data_Ready_Timeout : Bool;   // No ACKN on data ready received
+      t_OS_Physical_Handover : Bool;   // OneShot: Physical handover to EDS
+      t_Infeed_Operational : Bool;   // Infeed is operational
+      t_IO_Receive_Outf_Dly : Bool;   // Delayed IO receive signal
+      t_IO_Receive_Dec_Dly : Bool;   // Delayed IO receive signal upon decision
+      t_Bag_In_Upd_Window_Outf : Bool;   // Bag in update window on outfeed
+      t_OS_EDS_Empty : Bool;   // One Shot: EDS indicates it has no items in tracking
+   END_VAR
+
+
+BEGIN
+NETWORK
+TITLE = AA: Get offset from instance-DB and start address backbone
+//The 'base address' is used to get the absolute address of the intances-DB's 
+//
+//AR2:         10000ZZZ 00000yyy yyyyyyyy yyyyyxxx
+//Mask:        00000000 11111111 11111111 11111111
+//             ----------------------------------- +
+//t_AR2_Mask:  00000000 00000yyy yyyyyyyy yyyyyxxx
+//
+//   Z=Operand area      y=Byte address    x=Bit address
+      TAR2;// Load 'base address' of instance-DB
+      AD DW#16#FFFFFF;// Filter last 3 bytes
+      T #t_Base_Address;// 'relative address'
+NETWORK
+TITLE = BA: Copy EDS input to readable STAT records
+//ISD_ID.BAGIDARRAY.Data from HBS machine
+      TAR2 #t_AR2_Store_Restore;// AR2 Store
+
+      L P##i_IO_ISD_ID_Tracking;// 'area-crossing pointer'
+      L #t_Base_Address;// 'relative address'-mask
+      +D;
+      LAR1;// 'absolute address' Source
+      LAR2 P##t_IO_ISD_ID_Tracking;//  address Destination
+
+      L W[ AR1, P#0.0];// Copy ANY pointer
+      T LW[ AR2, P#0.0];// Byte0=$10 (for S7), Byte1=data type
+      L W[ AR1, P#2.0];
+      T LW[ AR2, P#2.0];// Byte2..3=Repetition factor
+      L W[ AR1, P#4.0];
+      T LW[ AR2, P#4.0];// Byte4..5=DB number
+      L D[ AR1, P#6.0];
+      T LD[ AR2, P#6.0];// Byte6=memory area, Byte7..9=Byte,Bit address
+
+      L P##i_IO_ISD_ID_Decision;// 'area-crossing pointer'
+      L #t_Base_Address;// 'relative address'-mask
+      +D;
+      LAR1;// 'absolute address' Source
+      LAR2 P##t_IO_ISD_ID_Decision;//  address Destination
+
+      L W[ AR1, P#0.0];// Copy ANY pointer
+      T LW[ AR2, P#0.0];// Byte0=$10 (for S7), Byte1=data type
+      L W[ AR1, P#2.0];
+      T LW[ AR2, P#2.0];// Byte2..3=Repetition factor
+      L W[ AR1, P#4.0];
+      T LW[ AR2, P#4.0];// Byte4..5=DB number
+      L D[ AR1, P#6.0];
+      T LD[ AR2, P#6.0];// Byte6=memory area, Byte7..9=Byte,Bit address
+
+      LAR2 #t_AR2_Store_Restore;// AR2 Restore
+
+      CALL BLKMOV
+      {blk_type := 'Variant'}
+      (  SRCBLK                      := #t_IO_ISD_ID_Tracking , 
+         RET_VAL                     := #t_INT_not_used , 
+         DSTBLK                      := #s_ISD_ID_Tracking
+      );
+
+      CALL BLKMOV
+      {blk_type := 'Variant'}
+      (  SRCBLK                      := #t_IO_ISD_ID_Decision , 
+         RET_VAL                     := #t_INT_not_used , 
+         DSTBLK                      := #s_ISD_ID_Decision
+      );
+
+
+NETWORK
+TITLE = CA: Read DB numbers
+
+      OPN #i_DB_PLT_Infeed;
+      L DBNO;
+      T #s_DB_PLT_Num_Infeed;
+
+      A %DBX10.5;
+      = #t_Infeed_Operational;
+
+      OPN #i_DB_PLT_Outfeed;
+      L DBNO;
+      T #s_DB_PLT_Num_Outfeed;
+
+      OPN #i_DB_PLT_Non_Trk;
+      L DBNO;
+      T #t_DB_PLT_Num_Non_Trk;
+
+      L %DBW4;
+      L 10;
+      +I;
+      T %DBW12;
+      T #t_PLT_Non_Trk_Length;
+
+      L %DBW0;
+      T #o_Nr_Items;
+
+      OPN #i_DB_Event_Object;
+      L DBNO;
+      T #t_DB_Event_Num_Object;
+
+      OPN #i_DB_Event_Section;
+      L DBNO;
+      T #t_DB_Event_Num_Section;
+
+      OPN "DB_HBS_List";
+      L DBNO;
+      T #t_DB_HBS_List_Num;
+
+NETWORK
+TITLE = DA: Prepare data for handover to EDS at infeed
+//When a bag is at the entrance of the screening machine (EOS PEC of the 
+//infeed), the bag data which needs to be sent to the screening machine is 
+//gathered and placed in correct fields to send to the EDS.
+      A #i_IO_Send_Data_Inf;
+      FP #s_FP_Send_Bag_Data;
+      AN #i_Test_Mode_Active;
+      AN #s_Send_Data_Inf.Data_Ready;// Don't change data when being sent
+      AN #o_IO_Inf_Bag_Data_Ready;
+      AN #i_IO_ACKN_Data_Inf;
+      = #s_OS_Send_Bag_Data;
+
+      A #s_OS_Send_Bag_Data;
+      R #s_Send_Data_Inf.Itm_Data.Process_1.Screening_Not_Required;
+      R #s_Send_Data_Inf.Itm_Data.Process_1.Machine_Scrn_Required;
+      R #s_Send_Data_Inf.Itm_Data.Process_1.Operator_Scrn_Required;
+      R #s_Send_Data_Inf.Valid_LNK_Available;
+      R #s_Send_Data_Inf.Multiple_LNKs_Found;
+      R #s_Send_Data_Inf.LIC_Missing;
+      R #s_Send_Data_Inf.Data_Acknowledged;
+      R #s_Send_Data_Inf.Physically_Handed_Over;
+      R #s_Send_Data_Inf.Screening_Required;
+      JCN DA99;// Code requested. Search for valid LNK
+
+      L 0;// Clear static data
+      T #s_Send_Data_Inf.Itm_Data.LNK;
+
+      CALL "FC_Read_ANY_Record"
+      (  i_Record_Number             := 0 , 
+         i_ANY_Data_Record           := "DB_UDT_LNK_Record" , 
+         i_ANY_Data                  := #s_Send_Data_Inf.Itm_Data.LNK_Record , 
+         i_DB                        := "DB_LNK_List" , 
+         i_DB_Event_Num              := #t_DB_Event_Num_Object
+      );
+
+      CALL "FC_Read_ANY_Record"
+      (  i_Record_Number             := 0 , 
+         i_ANY_Data_Record           := "DB_UDT_HBS_Record" , 
+         i_ANY_Data                  := #s_Send_Data_Inf.Itm_Data.HBS_Record , 
+         i_DB                        := "DB_HBS_List" , 
+         i_DB_Event_Num              := #t_DB_Event_Num_Object
+      );
+
+      CALL "FC_Read_ANY_Record"
+      (  i_Record_Number             := 0 , 
+         i_ANY_Data_Record           := "DB_UDT_LIC_Record".BIR.Process_1 , 
+         i_ANY_Data                  := #s_Send_Data_Inf.Itm_Data.Process_1.Screen_Result , 
+         i_DB                        := "DB_LIC_List" , 
+         i_DB_Event_Num              := #t_DB_Event_Num_Object
+      );
+
+
+      L ' ';
+      T #s_Send_Data_Inf.Itm_Data.LPN[1];
+      T #s_Send_Data_Inf.Itm_Data.LPN[2];
+      T #s_Send_Data_Inf.Itm_Data.LPN[3];
+      T #s_Send_Data_Inf.Itm_Data.LPN[4];
+      T #s_Send_Data_Inf.Itm_Data.LPN[5];
+      T #s_Send_Data_Inf.Itm_Data.LPN[6];
+      T #s_Send_Data_Inf.Itm_Data.LPN[7];
+      T #s_Send_Data_Inf.Itm_Data.LPN[8];
+      T #s_Send_Data_Inf.Itm_Data.LPN[9];
+      T #s_Send_Data_Inf.Itm_Data.LPN[10];
+
+      L #i_HBO_Settings.Code_Req_Position_Inf;// Start LNK search
+      L #i_HBO_Settings.Srch_Dwn_Window;
+      -I;
+      JPZ DA01;
+      L 0;
+DA01:      T #t_Position;
+
+      L #i_HBO_Settings.Srch_Up_Window;
+      L #i_HBO_Settings.Srch_Dwn_Window;
+      +I;
+      T #t_Window;
+
+      CALL "FC_PLT_Srch_Inf_Up"// Search for LNK number in PLT DB
+      (  i_DB_PLT_Num                := #s_DB_PLT_Num_Infeed , 
+         i_Position                  := #t_Position , 
+         i_Window                    := #t_Window , 
+         i_Info                      := 1 , 
+         o_Position                  := #s_Send_Data_Inf.Bag_Found_Position , 
+         o_Info                      := #t_INT_not_used , 
+         o_LNK                       := #s_LNK_Found , 
+         o_DB_PLT_Num                := #t_INT_not_used , 
+         o_Number_Items_Found        := #s_Number_Of_Items_Found
+      );
+
+      A(;
+      L #s_LNK_Found;// LNK number should be present
+      L 0;
+      >I;
+      );
+      A(;
+      L #s_Number_Of_Items_Found;// Only one LNK may be found within request window
+      L 1;
+      ==I;
+      );
+      = #s_Send_Data_Inf.Valid_LNK_Available;
+
+      AN #s_Send_Data_Inf.Valid_LNK_Available;
+      JCN DA03;// Unable to identify bag. Write log
+
+      L #s_Number_Of_Items_Found;
+      L 1;
+      >I;
+      S #s_Send_Data_Inf.Multiple_LNKs_Found;
+      JCN DA02;
+
+      CALL "FC_Write_Event"// Screening: Data handover to EDS failed - multiple items found
+      (  i_Message_ID                := 3203 , 
+         i_Event_value               := 0 , 
+         i_DB_Event_Num              := #t_DB_Event_Num_Object , 
+         o_Return_Value              := #t_INT_not_used
+      );
+
+      JU DA03;
+
+DA02:      CALL "FC_Write_Event"// Screening: Data handover to EDS failed - no item data found
+      (  i_Message_ID                := 3202 , 
+         i_Event_value               := 0 , 
+         i_DB_Event_Num              := #t_DB_Event_Num_Object , 
+         o_Return_Value              := #t_INT_not_used
+      );
+
+DA03:      A #s_Send_Data_Inf.Valid_LNK_Available;
+      JCN DA99;
+
+      L #s_LNK_Found;
+      T #s_Send_Data_Inf.Itm_Data.LNK;
+
+      CALL "FC_Generator_LNK"
+      (  i_LNK                       := #s_Send_Data_Inf.Itm_Data.LNK , 
+         i_DB_List                   := #t_DB_HBS_List_Num , 
+         i_Default_Record            := 0 , //#i_Default_Record_Inf HBS don't use the default record
+         i_DB_Event_Num              := #t_DB_Event_Num_Object , 
+         o_LNK                       := #t_INT_not_used
+      );
+
+      CALL "FC_Read_ANY_Record"// Read entire LNK record
+      (  i_Record_Number             := #s_Send_Data_Inf.Itm_Data.LNK , 
+         i_ANY_Data_Record           := "DB_UDT_LNK_Record" , 
+         i_ANY_Data                  := #s_Send_Data_Inf.Itm_Data.LNK_Record , 
+         i_DB                        := "DB_LNK_List" , 
+         i_DB_Event_Num              := #t_DB_Event_Num_Object
+      );
+
+      L #s_Send_Data_Inf.Itm_Data.LNK_Record.LIC;// Check for valid LIC
+      L 0;
+      <=I;
+      S #s_Send_Data_Inf.LIC_Missing;
+      JC DA04;
+
+      CALL "FC_Read_ANY_Record"// Valid LIC. Read the LPC from the LIC
+      (  i_Record_Number             := #s_Send_Data_Inf.Itm_Data.LNK_Record.LIC , 
+         i_ANY_Data_Record           := "DB_UDT_LIC_Record".BIR.LPN , 
+         i_ANY_Data                  := #s_Send_Data_Inf.Itm_Data.LPN , 
+         i_DB                        := "DB_LIC_List" , 
+         i_DB_Event_Num              := #t_DB_Event_Num_Object
+      );
+
+      L #s_Send_Data_Inf.Itm_Data.LPN[1];// Check for valid LPN
+      L ' ';
+      <>I;
+      JCN DA04;
+
+      L #s_Send_Data_Inf.Itm_Data.LPN[1];
+      L '?';
+      <>I;
+      JCN DA04;
+
+      L #s_Send_Data_Inf.Itm_Data.LPN[1];// Fallback tag
+      L '1';
+      <>I;
+      JCN DA04;
+      JU DA05;
+
+DA04:      NOP 0;// No valid LPN.
+
+      L 9;// Write no_read indication(s) to interface
+      T #s_BHS_ID.BagIDArray.Barcode_Type;
+
+      L 0;
+      T #s_BHS_ID.BagIDArray.Tag_ID1;
+      T #s_BHS_ID.BagIDArray.Tag_ID2;
+
+      JU DA06;
+
+DA05:      NOP 0;// Valid LPN
+
+      L 2;// 2 indicates an IATA code
+      T #s_BHS_ID.BagIDArray.Barcode_Type;
+
+      L '0';// Convert LPN[1..5] (char) for first consecutive five digits to a DINT
+      T #t_CharArray[0];
+      T #t_CharArray[1];
+      T #t_CharArray[2];
+      T #t_CharArray[3];
+      T #t_CharArray[4];
+      L #s_Send_Data_Inf.Itm_Data.LPN[1];
+      T #t_CharArray[5];
+      L #s_Send_Data_Inf.Itm_Data.LPN[2];
+      T #t_CharArray[6];
+      L #s_Send_Data_Inf.Itm_Data.LPN[3];
+      T #t_CharArray[7];
+      L #s_Send_Data_Inf.Itm_Data.LPN[4];
+      T #t_CharArray[8];
+      L #s_Send_Data_Inf.Itm_Data.LPN[5];
+      T #t_CharArray[9];
+
+      CALL "FC_Any_ASCII_To_DInt"
+      (  i_ANY_ASCII                 := #t_CharArray , 
+         i_DB_Event_Num              := #t_DB_Event_Num_Object , 
+         o_DINT                      := #s_BHS_ID.BagIDArray.Tag_ID1
+      );
+
+      L #s_Send_Data_Inf.Itm_Data.LPN[6];// Convert LPN[6..10] (char) for second consecutive five digits to a DINT
+      T #t_CharArray[5];
+      L #s_Send_Data_Inf.Itm_Data.LPN[7];
+      T #t_CharArray[6];
+      L #s_Send_Data_Inf.Itm_Data.LPN[8];
+      T #t_CharArray[7];
+      L #s_Send_Data_Inf.Itm_Data.LPN[9];
+      T #t_CharArray[8];
+      L #s_Send_Data_Inf.Itm_Data.LPN[10];
+      T #t_CharArray[9];
+
+      CALL "FC_Any_ASCII_To_DInt"
+      (  i_ANY_ASCII                 := #t_CharArray , 
+         i_DB_Event_Num              := #t_DB_Event_Num_Object , 
+         o_DINT                      := #s_BHS_ID.BagIDArray.Tag_ID2
+      );
+
+//Generate Pseudo_Bag_ID(10000001<Pseudo_ID<89999999)
+//1st      digit = 1 (always)   Pseudo=1xxxxxxx
+//2nd..3th digit = line-ID      Pseudo=xIDxxxxx
+//4th..8th digit = Sequence No  Pseudo=xxxnnnnn where n=1..99999
+
+DA06:      L #s_Send_Data_Inf.Pseudo_Seq;//Generate pseudo ID
+      L DINT#1;
+      >=D;
+      A(;
+      L #s_Send_Data_Inf.Pseudo_Seq;
+      L DINT#99999;
+      <D;
+      );
+      JC DA07;
+      L DINT#0;
+      T #s_Send_Data_Inf.Pseudo_Seq;
+DA07:      L #s_Send_Data_Inf.Pseudo_Seq;
+      L DINT#1;
+      +D;
+      T #s_Send_Data_Inf.Pseudo_Seq;
+
+      L #i_CFG_Line_ID;// Line ID [00...99]
+      L DINT#100000;// Shift line ID to 2nd/3th digit
+      *D;// Line ID [0000000..9900000]
+      L DINT#10000000;// first digit
+      +D;// add to put '1' at 1st digit
+      L #s_Send_Data_Inf.Pseudo_Seq;// add sequence number
+      +D;
+      T #s_BHS_ID.BagIDArray.Pseudo_ID;
+
+      L #s_Send_Data_Inf.Itm_Data.LNK;
+      L 12000;// Bit 12 = Process Start
+      +I;
+      T #t_Scn_Event;
+
+      CALL "FC_Write_Event"
+      (  i_Message_ID                := 2610 , 
+         i_Event_value               := #t_Scn_Event , 
+         i_DB_Event_Num              := #t_DB_Event_Num_Object , 
+         o_Return_Value              := #t_INT_not_used
+      );
+
+      CALL "FC_Generator_PEN"
+      (  i_PEN_LNK                   := #s_Send_Data_Inf.Itm_Data.LNK , 
+         i_Pseudo_ID                 := #s_BHS_ID.BagIDArray.Pseudo_ID , 
+         i_DB_Event_Num              := #t_DB_Event_Num_Object , 
+         o_PEN_ID                    := #t_PEN_ID
+      );
+
+      L #t_PEN_ID;
+      T "DB_HBS_List".HBS[#s_Send_Data_Inf.Itm_Data.LNK_Record.HBS].PEN_General.PEN_ID;
+
+      L "DB_LNK_List".LNK[#s_Send_Data_Inf.Itm_Data.LNK].LIC;
+      T #t_LIC;
+
+      L "DB_LIC_List".LIC[#t_LIC].BIR.PID;
+      T "DB_Pending_Record".THIS[#t_PEN_ID].PEN.PEN_General.PID;
+
+      AN #s_Send_Data_Inf.LIC_Missing;
+      JCN DA09;
+
+      CALL "FC_Read_ANY_Record"
+      (  i_Record_Number             := #s_Send_Data_Inf.Itm_Data.LNK_Record.LIC , 
+         i_ANY_Data_Record           := "DB_UDT_LIC_Record".BIR.Process_1 , 
+         i_ANY_Data                  := #s_Send_Data_Inf.Itm_Data.Process_1.Screen_Result , 
+         i_DB                        := "DB_LIC_List" , 
+         i_DB_Event_Num              := #t_DB_Event_Num_Object
+      );
+
+      A #s_Send_Data_Inf.Itm_Data.Process_1.Screen_Result.Required_Screen_Level_1;// Check if L1 screening is necessary
+      AN #s_Send_Data_Inf.Itm_Data.Process_1.Screen_Result.Required_Screen_Level_2;
+      AN #s_Send_Data_Inf.Itm_Data.Process_1.Screen_Result.Required_Screen_Level_3;
+      AN #s_Send_Data_Inf.Itm_Data.Process_1.Screen_Result.Required_Screen_Level_4;
+      AN #s_Send_Data_Inf.Itm_Data.Process_1.Screen_Result.Required_Screen_Level_5;
+      AN #s_Send_Data_Inf.Itm_Data.Process_1.Screen_Result.Reached_Screen_Level_1;
+      AN #s_Send_Data_Inf.Itm_Data.Process_1.Screen_Result.Reached_Screen_Level_2;
+      AN #s_Send_Data_Inf.Itm_Data.Process_1.Screen_Result.Reached_Screen_Level_3;
+      AN #s_Send_Data_Inf.Itm_Data.Process_1.Screen_Result.Reached_Screen_Level_4;
+      AN #s_Send_Data_Inf.Itm_Data.Process_1.Screen_Result.Reached_Screen_Level_5;
+      AN #i_IO_Transport_Mode;// Manually set on EDS
+      JCN DA08;
+
+      L 1;// 1 = Normal ISD Screening
+      T #s_BHS_ID.BagIDArray.Special_Routing;
+
+      SET;
+      S #s_Send_Data_Inf.Itm_Data.Process_1.Machine_Scrn_Required;
+
+      JU DA10;
+
+DA08:      A #s_Send_Data_Inf.Itm_Data.Process_1.Screen_Result.Required_Screen_Level_2;// Check if L2 screening is necessary
+      AN #s_Send_Data_Inf.Itm_Data.Process_1.Screen_Result.Required_Screen_Level_3;
+      AN #s_Send_Data_Inf.Itm_Data.Process_1.Screen_Result.Required_Screen_Level_4;
+      AN #s_Send_Data_Inf.Itm_Data.Process_1.Screen_Result.Required_Screen_Level_5;
+      AN #s_Send_Data_Inf.Itm_Data.Process_1.Screen_Result.Reached_Screen_Level_2;
+      AN #s_Send_Data_Inf.Itm_Data.Process_1.Screen_Result.Reached_Screen_Level_3;
+      AN #s_Send_Data_Inf.Itm_Data.Process_1.Screen_Result.Reached_Screen_Level_4;
+      AN #s_Send_Data_Inf.Itm_Data.Process_1.Screen_Result.Reached_Screen_Level_5;
+      AN #i_IO_Transport_Mode;// Manually set on EDS
+      JCN DA09;
+
+      L 3;// 3 = Selectee Bag. The bag image is sent to the PVS regardless of machine decision.
+      T #s_BHS_ID.BagIDArray.Special_Routing;
+
+      SET;
+      S #s_Send_Data_Inf.Itm_Data.Process_1.Operator_Scrn_Required;
+
+      JU DA10;
+
+DA09:      L 2;// 2 = No Control (Bag Not Scanned by ISD)
+      T #s_BHS_ID.BagIDArray.Special_Routing;
+
+      SET;
+      S #s_Send_Data_Inf.Itm_Data.Process_1.Screening_Not_Required;
+
+DA10:      NOP 0;// Set general information
+
+      L 0;// No dynamic bag screening
+      T #s_BHS_ID.BagIDArray.Dynamic_Screening;
+
+      L 1;// Write general information to interface
+      T #s_BHS_ID.BagIDArray.Pass_Number;//Pass Number
+
+      CALL "FC_Int_To_Any_ASCII"
+      (  i_INT                       := 0 , //BHS always sends "0"
+         i_ANY_ASCII_Dest            := #s_BHS_ID.BagIDArray.Airport_Code , //Airport Code (IATA) as integer coded ASCII
+         i_DB_Event_Num              := #t_DB_Event_Num_Object
+      );
+
+      CALL "FC_Int_To_Any_ASCII"
+      (  i_INT                       := #i_CFG_Line_ID , 
+         i_ANY_ASCII_Dest            := #s_BHS_ID.BagIDArray.Sub_Identifier , //Line ID (AREA ID) as integer coded ASCII
+         i_DB_Event_Num              := #t_DB_Event_Num_Object
+      );
+
+
+      L "DB_HBS_List".HBS[#s_Send_Data_Inf.Itm_Data.LNK_Record.HBS].PEN_General.PEN_ID;// Pen ID
+      T #s_BHS_ID.BagIDArray.LNK;// LNK number
+
+      L #o_IO_Time_Sync_Sec;
+      T #s_BHS_ID.BagIDArray.Second_Passed;
+
+      L #o_IO_Time_Sync_Min;
+      T #s_BHS_ID.BagIDArray.Minute_Passed;
+
+      L #o_IO_Time_Sync_Hour;
+      T #s_BHS_ID.BagIDArray.Hour_Passed;
+
+      L #o_IO_Time_Sync_Day;
+      T #s_BHS_ID.BagIDArray.Day_Passed;
+
+      L #o_IO_Time_Sync_Month;
+      T #s_BHS_ID.BagIDArray.Month_Passed;
+
+      L #o_IO_Time_Sync_Year;
+      T #s_BHS_ID.BagIDArray.Year_Passed;
+
+      L #s_Statisticals.Bags_Handed_Over;
+      L 1;
+      +I;
+      JP DA11;
+      L 1;
+DA11:      T #s_Statisticals.Bags_Handed_Over;
+
+      SET;// DATA READY
+      S #s_Send_Data_Inf.Data_Ready;
+
+      AN #s_Send_Data_Inf.Itm_Data.Process_1.Screening_Not_Required;
+      S #s_Send_Data_Inf.Screening_Required;
+      JC DA99;
+
+      L #s_Statisticals.R1.No_Decision_Required;
+      L 1;
+      +I;
+      JP DA12;
+      L 1;
+DA12:      T #s_Statisticals.R1.No_Decision_Required;
+
+DA99:      NOP 0;
+NETWORK
+TITLE = EA: Update GENERAL local records (HBS/LIC) at infeed
+//When the data of a bag at the entrance of the screening machine is gathered and 
+//ready to be sent, local bag records (like LIC and HBS) are updated to reflect 
+//the data being sent to the EDS (e.g.: pseudo ID, creation HBS record if 
+//screening is pending).
+      A #s_Send_Data_Inf.Data_Ready;
+      FP #s_FP_Bag_Data_Prepared;
+      = #s_OS_Bag_Data_Prepared;
+
+      A #s_OS_Bag_Data_Prepared;
+      JCN EA02;
+      S #s_Send_Data_Inf.Init_HBS_Record;
+
+      A #s_Send_Data_Inf.Screening_Required;
+      JCN EA99;
+
+EA01:      CALL "FC_Read_ANY_Record"// Load HBS record
+      (  i_Record_Number             := #s_Send_Data_Inf.Itm_Data.LNK_Record.HBS , 
+         i_ANY_Data_Record           := "DB_UDT_HBS_Record" , 
+         i_ANY_Data                  := #s_Send_Data_Inf.Itm_Data.HBS_Record , 
+         i_DB                        := "DB_HBS_List" , 
+         i_DB_Event_Num              := #t_DB_Event_Num_Object
+      );
+
+      CALL "FC_Write_ANY_Record"// Attach to bag
+      (  i_Record_Number             := #s_Send_Data_Inf.Itm_Data.LNK_Record.HBS , 
+         i_ANY_Data_Record           := "DB_UDT_HBS_Record".PEN_General , 
+         i_ANY_Data                  := #s_Send_Data_Inf.Itm_Data.HBS_Record.PEN_General , 
+         i_DB                        := "DB_HBS_List" , 
+         i_DB_Event_Num              := #t_DB_Event_Num_Object
+      );
+
+EA02:      A #s_Send_Data_Inf.Physically_Handed_Over;
+      A #s_Send_Data_Inf.Screening_Required;
+      JCN EA99;// Check bag presence on infeed
+
+      A(;
+      L #s_Send_Data_Inf.Itm_Data.LNK_Record.HBS;
+      L 0;
+      >I;
+      );
+      A(;
+      L #s_Send_Data_Inf.Itm_Data.LNK_Record.DB_PLT_Number;
+      L #s_DB_PLT_Num_Infeed;
+      ==I;
+      );
+      JCN EA99;// If item still on infeed: check if bag records are still alive
+
+      CALL "FC_Read_Int_Record"
+      (  i_Record_Number             := #s_Send_Data_Inf.Itm_Data.LNK , 
+         i_P_INT_Record              := "DB_UDT_LNK_Record".DB_PLT_Number , 
+         i_DB                        := "DB_LNK_List" , 
+         i_DB_Event_Num              := #t_DB_Event_Num_Object , 
+         o_INT                       := #s_Send_Data_Inf.Itm_Data.LNK_Record.DB_PLT_Number
+      );
+
+EA99:      NOP 0;
+NETWORK
+TITLE = EB: Update PROCESS_1 local records (HBS/LIC) at infeed
+
+      A #s_OS_Bag_Data_Prepared;// Bag data handed over to EDS
+      JCN EB10;// If new data prepared: create records and check if HBS record update is required
+
+      A #s_Send_Data_Inf.Init_HBS_Record;
+      JCN EB01;
+      R #s_Send_Data_Inf.Init_HBS_Record;
+
+      SET;
+      R #s_Send_Data_Inf.Itm_Data.HBS_Record.PEN_Process_1.Machine_Result_Rcvd;
+      R #s_Send_Data_Inf.Itm_Data.HBS_Record.PEN_Process_1.Operator_Result_Rcvd;
+      R #s_Send_Data_Inf.Itm_Data.HBS_Record.PEN_Process_1.Result_Pending;
+      R #s_Send_Data_Inf.Itm_Data.HBS_Record.PEN_Process_1.Update_Send;
+      R #s_Send_Data_Inf.Itm_Data.HBS_Record.PEN_Process_1.Resend_Required;
+      R #s_Send_Data_Inf.Itm_Data.HBS_Record.PEN_Process_1.Force_Rejected;
+      R #s_Send_Data_Inf.Itm_Data.HBS_Record.PEN_General.Item_Lost;
+      R #s_Send_Data_Inf.Itm_Data.HBS_Record.PEN_General.Bag_Status.Alarmed;
+
+      L 0;
+      T #s_Send_Data_Inf.Itm_Data.HBS_Record.PEN_General.TRA_LNK;
+      T #s_Send_Data_Inf.Itm_Data.HBS_Record.PEN_General.HBA_LNK;
+      T #s_Send_Data_Inf.Itm_Data.HBS_Record.PEN_General.AreaID_Receive;
+
+      CALL "FC_Any_To_Adress"
+      (  i_ANY_Data                  := #s_Send_Data_Inf.Itm_Data.HBS_Record.PEN_General.Bag_Status , 
+         o_Adress                    := #t_adress   //Determine the adress to Bag_Status
+      );
+
+      L #t_adress;
+      SLD 3;// Shift bytes to make pointer to last entry
+      LAR2;// Pointer to Bag_Status
+
+      L 0;
+      T DIW[ AR2, P#0.0];// Clear Bag_Status
+
+      L DINT#0;
+      T #s_Send_Data_Inf.Itm_Data.HBS_Record.PEN_Process_1.Screen_Result.Pseudo_ID;
+      T #s_Send_Data_Inf.Itm_Data.HBS_Record.PEN_Process_1.ID_Screening;
+
+EB01:      AN #s_Send_Data_Inf.Itm_Data.Process_1.Screening_Not_Required;
+      JCN EB02;// If bag is about te be screened: fill in HBS record
+
+      SET;
+      S #s_Send_Data_Inf.Itm_Data.HBS_Record.PEN_Process_1.Result_Pending;
+
+      CALL RD_SYS_T// Write timestamp
+      {date_type := 'Date_And_Time'}
+      (  RET_VAL                     := #t_INT_not_used , 
+         OUT                         := #s_Send_Data_Inf.Itm_Data.HBS_Record.PEN_Process_1.Timestamp_screening
+      );
+
+      L #s_Send_Data_Inf.Itm_Data.LNK;// Write LNK
+      T #s_Send_Data_Inf.Itm_Data.HBS_Record.PEN_General.HBA_LNK;
+
+      L #i_HBO_ID;// Write screening machine ID
+      T #s_Send_Data_Inf.Itm_Data.HBS_Record.PEN_Process_1.ID_Screening;
+
+      L #i_Local_Destination;
+      T #s_Send_Data_Inf.Itm_Data.HBS_Record.PEN_Process_1.EDS_Destination;
+
+      CALL BLKMOV// Sync already present process data
+      {blk_type := 'Variant'}
+      (  SRCBLK                      := #s_Send_Data_Inf.Itm_Data.Process_1.Screen_Result , 
+         RET_VAL                     := #t_INT_not_used , 
+         DSTBLK                      := #s_Send_Data_Inf.Itm_Data.HBS_Record.PEN_Process_1.Screen_Result
+      );
+
+      L #s_BHS_ID.BagIDArray.Pseudo_ID;// Write pseudo
+      T #s_Send_Data_Inf.Itm_Data.HBS_Record.PEN_Process_1.Screen_Result.Pseudo_ID;
+
+      AN #s_Send_Data_Inf.LIC_Missing;
+      JCN EB02;
+
+      SET;
+      R #s_Send_Data_Inf.Itm_Data.Process_1.Screen_Result.Reached_Screen_Level_1;
+      R #s_Send_Data_Inf.Itm_Data.Process_1.Screen_Result.Reached_Screen_Level_2;
+      R #s_Send_Data_Inf.Itm_Data.Process_1.Screen_Result.Reached_Screen_Level_3;
+      R #s_Send_Data_Inf.Itm_Data.Process_1.Screen_Result.Reached_Screen_Level_4;
+      R #s_Send_Data_Inf.Itm_Data.Process_1.Screen_Result.Reached_Screen_Level_5;
+      R #s_Send_Data_Inf.Itm_Data.Process_1.Screen_Result.Failed_Screen_Level_1;
+      R #s_Send_Data_Inf.Itm_Data.Process_1.Screen_Result.Failed_Screen_Level_2;
+      R #s_Send_Data_Inf.Itm_Data.Process_1.Screen_Result.Failed_Screen_Level_3;
+      R #s_Send_Data_Inf.Itm_Data.Process_1.Screen_Result.Failed_Screen_Level_4;
+      R #s_Send_Data_Inf.Itm_Data.Process_1.Screen_Result.Failed_Screen_Level_5;
+
+      L #s_BHS_ID.BagIDArray.Pseudo_ID;
+      T #s_Send_Data_Inf.Itm_Data.Process_1.Screen_Result.Pseudo_ID;
+
+      CALL MOVE
+      {value_type := 'Variant'}
+      (  IN                          := "DB_LIC_List".LIC[#s_Send_Data_Inf.Itm_Data.LNK_Record.LIC].BIR.Bag_Status , 
+         OUT                         := #s_Send_Data_Inf.Itm_Data.HBS_Record.PEN_General.Bag_Status
+      );
+
+      CALL "FC_Write_ANY_Record"
+      (  i_Record_Number             := #s_Send_Data_Inf.Itm_Data.LNK_Record.LIC , 
+         i_ANY_Data_Record           := "DB_UDT_LIC_Record".BIR.Process_1 , 
+         i_ANY_Data                  := #s_Send_Data_Inf.Itm_Data.Process_1.Screen_Result , 
+         i_DB                        := "DB_LIC_List" , 
+         i_DB_Event_Num              := #t_DB_Event_Num_Object
+      );
+
+EB02:      A #s_Send_Data_Inf.Init_HBS_Record;
+      ON #s_Send_Data_Inf.Itm_Data.Process_1.Screening_Not_Required;
+      A(;
+      L #s_Send_Data_Inf.Itm_Data.LNK_Record.HBS;
+      L 0;
+      >I;
+      );
+      JCN EB99;
+
+      CALL "FC_Write_ANY_Record"// Attach to bag
+      (  i_Record_Number             := #s_Send_Data_Inf.Itm_Data.LNK_Record.HBS , 
+         i_ANY_Data_Record           := "DB_UDT_HBS_Record".PEN_Process_1 , 
+         i_ANY_Data                  := #s_Send_Data_Inf.Itm_Data.HBS_Record.PEN_Process_1 , 
+         i_DB                        := "DB_HBS_List" , 
+         i_DB_Event_Num              := #t_DB_Event_Num_Object
+      );
+
+EB10:      A #s_Send_Data_Inf.Physically_Handed_Over;
+      JCN EB99;
+      R #s_Send_Data_Inf.Physically_Handed_Over;
+      AN #s_Send_Data_Inf.Itm_Data.Process_1.Screening_Not_Required;
+      JCN EB90;// If item still on infeed: prevent HBS record timeout
+
+      L #s_Send_Data_Inf.Itm_Data.LNK_Record.HBS;
+      L 0;
+      >I;
+      JCN EB99;// If record still alive and on current HBZ infeed: update time
+
+      CALL RD_SYS_T// Write timestamp
+      {date_type := 'Date_And_Time'}
+      (  RET_VAL                     := #t_INT_not_used , 
+         OUT                         := #s_Send_Data_Inf.Itm_Data.HBS_Record.PEN_Process_1.Timestamp_screening
+      );
+
+      CALL "FC_Write_ANY_Record"// Attach to bag
+      (  i_Record_Number             := #s_Send_Data_Inf.Itm_Data.LNK_Record.HBS , 
+         i_ANY_Data_Record           := "DB_UDT_HBS_Record".PEN_Process_1.Timestamp_screening , 
+         i_ANY_Data                  := #s_Send_Data_Inf.Itm_Data.HBS_Record.PEN_Process_1.Timestamp_screening , 
+         i_DB                        := "DB_HBS_List" , 
+         i_DB_Event_Num              := #t_DB_Event_Num_Object
+      );
+
+EB90:      L #s_Send_Data_Inf.Itm_Data.LNK_Record.HBS;
+      L 0;
+      >I;
+      JCN EB99;// If record still alive and on current HBZ infeed: update time
+
+      L "DB_HBS_List".HBS[#s_Send_Data_Inf.Itm_Data.LNK_Record.HBS].PEN_General.PEN_ID;
+      T #t_PEN_ID;
+
+      L 1;
+      T "DB_HBS_List".HBS[#s_Send_Data_Inf.Itm_Data.LNK_Record.HBS].PEN_General.Process_Number;
+      T "DB_Pending_Record".THIS[#t_PEN_ID].PEN.PEN_General.Process_Number;
+
+      CALL MOVE
+      {value_type := 'Variant'}
+      (  IN                          := #s_Send_Data_Inf.Itm_Data.HBS_Record.PEN_Process_1 , 
+         OUT                         := "DB_Pending_Record".THIS[#t_PEN_ID].PEN.PEN_Process_1
+      );
+
+EB99:      NOP 0;
+NETWORK
+TITLE = FA: Insert infeed bag in non tracking DB at infeed
+//Bag information is moved to a non tracking PLT DB.
+      L 0;
+      T #t_Non_Trk_PLT_Displ;
+
+      CALL "FC_PLT_Srch_Inf_Dwn"
+      (  i_DB_PLT_Num                := #s_DB_PLT_Num_Infeed , 
+         i_Position                  := 5 , 
+         i_Window                    := 20 , // Account for negative values
+         i_Info                      := 1 , 
+         o_Position                  := #t_INT_not_used , 
+         o_Info                      := #t_INT_not_used , 
+         o_LNK                       := #t_LNK_Found_Infeed , 
+         o_DB_PLT_Num                := #t_INT_not_used , 
+         o_Number_Items_Found        := #t_INT_not_used
+      );
+
+      A(;
+      L #t_LNK_Found_Infeed;
+      L 0;
+      ==I;
+      );
+      A(;
+      L #s_Handover_LNK;
+      L 0;
+      <>I;
+      );
+      A #t_Infeed_Operational;// No handover at clear PLT
+      = #t_OS_Physical_Handover;
+
+      A #t_OS_Physical_Handover;
+      JCN FA90;// If bag physically enters EDS: Transfer bag data to shadow PLT
+
+      L 1;
+      T #t_Non_Trk_PLT_Displ;
+
+      CALL "FC_PLT_Write"
+      (  i_DB_PLT_Num                := #t_DB_PLT_Num_Non_Trk , 
+         i_Position                  := #t_PLT_Non_Trk_Length , 
+         i_Info_State                := W#16#0 , 
+         i_Info_Physical             := 1 , 
+         i_LNK                       := #s_Handover_LNK , 
+         i_DB_Event_Num              := #t_DB_Event_Num_Object
+      );
+
+      CALL "FC_Write_Int_Record"
+      (  i_Record_Number             := #s_Handover_LNK , 
+         i_P_INT_Record              := "DB_UDT_LNK_Record".DB_PLT_Number , 
+         i_DB                        := "DB_LNK_List" , 
+         i_INT                       := #t_DB_PLT_Num_Non_Trk , 
+         i_DB_Event_Num              := #t_DB_Event_Num_Object
+      );
+
+      L #s_Handover_LNK;
+      T #s_LNK_Tracking_Report;
+
+FA90:      CALL #s_FB_Manage_PLT
+      (  i_ID                        := #i_HBS_ID , 
+         i_DB_PLT_Num                := #t_DB_PLT_Num_Non_Trk , 
+         i_DB_Event_Num              := #t_DB_Event_Num_Object , 
+         i_Basic_Offset              := 0 , 
+         i_Dwnstr_PLT_Pos            := #t_PLT_Non_Trk_Length , 
+         i_Displacement              := #t_Non_Trk_PLT_Displ , 
+         i_CFG_Del_Window_Codes      := TRUE , 
+         i_Section_Run               := TRUE
+      );
+
+      A #t_OS_Physical_Handover;
+      A(;
+      L #s_Handover_LNK;
+      L #s_Send_Data_Inf.Itm_Data.LNK;
+      ==I;
+      );
+      S #s_Send_Data_Inf.Physically_Handed_Over;
+
+      L #t_LNK_Found_Infeed;
+      T #s_Handover_LNK;
+NETWORK
+TITLE = GA: Send tracking report at infeed
+//When an item is physically handed over to the screening machine, a 
+//PackageReport is sent.
+      A #t_OS_Physical_Handover;// Bag handed over to EDS
+      AN #i_Test_Mode_Active;
+      JCN GA99;
+
+      L #s_LNK_Tracking_Report;
+      L 0;
+      >I;
+      JCN GA99;
+
+      CALL "FC_Read_Int_Record"
+      (  i_Record_Number             := #s_LNK_Tracking_Report , 
+         i_P_INT_Record              := "DB_UDT_LNK_Record".LIC , 
+         i_DB                        := "DB_LNK_List" , 
+         i_DB_Event_Num              := #t_DB_Event_Num_Object , 
+         o_INT                       := #t_LIC
+      );
+
+      A(;
+      L #t_LIC;
+      L 0;
+      >I;
+      );
+      JCN GA99;// No tracking report if no LIC info
+
+      CALL "FC_Read_Int_Record"
+      (  i_Record_Number             := #s_LNK_Tracking_Report , 
+         i_P_INT_Record              := "DB_UDT_LNK_Record".Rep_Route , 
+         i_DB                        := "DB_LNK_List" , 
+         i_DB_Event_Num              := #t_DB_Event_Num_Object , 
+         o_INT                       := #t_Rep_Route
+      );
+
+      L #t_Rep_Route;
+      L 0;
+      <=I;
+      JCN GA01;
+
+      OPN "DB_Route_List";
+      L DBNO;
+      T #t_DB_No_Route;
+
+      CALL "FC_Generator_LNK"
+      (  i_LNK                       := #s_LNK_Tracking_Report , 
+         i_DB_List                   := #t_DB_No_Route , 
+         i_Default_Record            := -1 , 
+         i_DB_Event_Num              := #t_DB_Event_Num_Object , 
+         o_LNK                       := #t_Rep_Route
+      );
+
+      CALL "FC_Read_Int_Record"
+      (  i_Record_Number             := #s_LNK_Tracking_Report , 
+         i_P_INT_Record              := "DB_UDT_LNK_Record".Rep_Route , 
+         i_DB                        := "DB_LNK_List" , 
+         i_DB_Event_Num              := #t_DB_Event_Num_Object , 
+         o_INT                       := #t_Rep_Route
+      );
+
+GA01:      CALL "FC_Read_ANY_Record"
+      (  i_Record_Number             := #t_LIC , 
+         i_ANY_Data_Record           := "DB_UDT_LIC_Record".BIR , 
+         i_ANY_Data                  := "DB_Outgoing_Msgs".TrackingReport.Body.BIR , 
+         i_DB                        := "DB_LIC_List" , 
+         i_DB_Event_Num              := #t_DB_Event_Num_Object
+      );
+
+      CALL "FC_Write_ANY_Record"
+      (  i_Record_Number             := #t_Rep_Route , 
+         i_ANY_Data_Record           := "DB_UDT_Route_Record".BIR , 
+         i_ANY_Data                  := "DB_Outgoing_Msgs".TrackingReport.Body.BIR , 
+         i_DB                        := "DB_Route_List" , 
+         i_DB_Event_Num              := #t_DB_Event_Num_Object
+      );
+
+      CALL "FC_Write_ANY_Record"
+      (  i_Record_Number             := #t_Rep_Route , 
+         i_ANY_Data_Record           := "DB_UDT_Route_Record".SuccessDirection , 
+         i_ANY_Data                  := "DB_Route_List".Rep_Route[0].SuccessDirection , 
+         i_DB                        := "DB_Route_List" , 
+         i_DB_Event_Num              := #t_DB_Event_Num_Object
+      );
+
+      CALL "FC_Write_ANY_Record"
+      (  i_Record_Number             := #t_Rep_Route , 
+         i_ANY_Data_Record           := "DB_UDT_Route_Record".FailedDirection1 , 
+         i_ANY_Data                  := "DB_Route_List".Rep_Route[0].FailedDirection1 , 
+         i_DB                        := "DB_Route_List" , 
+         i_DB_Event_Num              := #t_DB_Event_Num_Object
+      );
+
+      CALL "FC_Write_ANY_Record"
+      (  i_Record_Number             := #t_Rep_Route , 
+         i_ANY_Data_Record           := "DB_UDT_Route_Record".FailedDirection2 , 
+         i_ANY_Data                  := "DB_Route_List".Rep_Route[0].FailedDirection2 , 
+         i_DB                        := "DB_Route_List" , 
+         i_DB_Event_Num              := #t_DB_Event_Num_Object
+      );
+
+// Write Direction From to the current ECS Record
+      CALL "FC_Write_Int_Record"
+      (  i_Record_Number             := #t_Rep_Route , 
+         i_P_INT_Record              := "DB_UDT_Route_Record".SuccessDirection.DirectionTaken , 
+         i_DB                        := "DB_Route_List" , 
+         i_INT                       := 1 , 
+         i_DB_Event_Num              := #t_DB_Event_Num_Object
+      );
+
+      CALL "FC_Write_Int_Record"
+      (  i_Record_Number             := #t_Rep_Route , 
+         i_P_INT_Record              := "DB_UDT_Route_Record".SuccessDirection.DecisionLevel , 
+         i_DB                        := "DB_Route_List" , 
+         i_INT                       := 5 , // 5 = Transport Default
+         i_DB_Event_Num              := #t_DB_Event_Num_Object
+      );
+
+      CALL "FC_Write_Event"// Send TrackingReport (1201)
+      (  i_Message_ID                := 1201 , 
+         i_Event_value               := #s_LNK_Tracking_Report , 
+         i_DB_Event_Num              := #t_DB_Event_Num_Section , 
+         o_Return_Value              := #t_INT_not_used
+      );
+
+GA99:      NOP 0;
+NETWORK
+TITLE = HA: Handover data to EDS at infeed
+//The BHS will, 100ms after it has copied the data to the interface, make the BHS 
+//infeed Bag Data Ready signal high indicating the data is ready to be retrieved 
+//by the EDS.
+//
+//The EDS will reset the EDS Request Bag_ID and set EDS Bag Data Received signal 
+//after it has retrieved the bag data from the interface. 
+//
+//The BHS will reset the BHS Infeed Bag Data Ready and BHS infeed Request Ack 
+//signal when the trailing edge of the EDS Request Bag_ID and Bag data received 
+//signal is detected.
+      A #i_IO_ACKN_Data_Inf;// Handshake acknowledged by EDS
+      R #o_IO_Inf_Bag_Data_Ready;
+      S #s_Send_Data_Inf.Data_Acknowledged;
+
+      A #o_IO_Inf_Bag_Data_Ready;// Time out in case 'Data Ready' will not be acknowlegded
+      = #t_Start_DR_Timeout_Count;
+
+      CALL "FC_On_Dly_T_0.1s"
+      (  i_Start                     := #t_Start_DR_Timeout_Count , 
+         i_Enable_Dly                := TRUE , 
+         i_Time_Value                := 7 , //Time out
+         i_Current_Value             := #s_Send_Data_Inf.CurVal_Data_Ready_TO , 
+         o_Status                    := #t_Data_Ready_Timeout , 
+         o_Current_Value             := #s_Send_Data_Inf.CurVal_Data_Ready_TO
+      );
+
+      A #t_Data_Ready_Timeout;// IF time Out Data Ready handshake
+      R #o_IO_Inf_Bag_Data_Ready;// THEN reset
+
+      AN #s_Send_Data_Inf.Data_Ready;// Delay on Data Ready to ensure consistent data handover
+      JCN HA01;
+
+      L 100;// Preset 100ms delay
+      JU HA02;
+
+HA01:      L #s_Send_Data_Inf.Data_Ready_Delay_Time;// Countdown of the delay data valid
+      L "MW_Prev_Cycle_Time";
+      -I;
+      JPZ HA02;
+      L 0;
+HA02:      T #s_Send_Data_Inf.Data_Ready_Delay_Time;
+
+      L #s_Send_Data_Inf.Data_Ready_Delay_Time;
+      L 0;
+      ==I;
+      S #o_IO_Inf_Bag_Data_Ready;// Handshake Data Ready for screening machine
+      R #s_Send_Data_Inf.Data_Ready;
+
+NETWORK
+TITLE = IA: Receive data from EDS (restore tracking) at outfeed
+//When a bag exits the scan tunnel and reaches the SOS PEC of the outfeed 
+//section, the EDS will return the LNK number of the exiting bag (if known). If 
+//the bag was lost in tracking, the EDS will generate a new pseudo for the bag 
+//and 
+//it will indicate if a screening result is to be expected. When the bag was lost 
+//in tracking after the XRay tubes, there will be no screening result.
+//
+//If PLT information cannot be recovered from the non tracking PLT DB, new PLT DB 
+//information will be generated.
+      CALL "FC_On_Dly_T_0.1s"
+      (  i_Start                     := #i_IO_Receive_Data_Outf , 
+         i_Enable_Dly                := TRUE , 
+         i_Time_Value                := 3 , 
+         i_Current_Value             := #s_IO_Rcve_Outf_Dly_Cnt , 
+         o_Status                    := #t_IO_Receive_Outf_Dly , // Make sure the bag is also detected (flap filter) on the outfeed
+         o_Current_Value             := #s_IO_Rcve_Outf_Dly_Cnt
+      );
+
+      A #t_IO_Receive_Outf_Dly;
+      FP #s_FP_Receive_Bag_Data;
+      A #i_CMD_Enable;
+      = #s_OS_Receive_Bag_Data;
+
+      A #t_IO_Receive_Outf_Dly;
+      = #o_IO_Ack_Exit_Bag_Data;// Acknowledge
+
+      A #s_OS_Receive_Bag_Data;
+      R #s_Receive_Data_Outf.Screening_Pending;
+      R #s_Receive_Data_Outf.Bag_Found_In_Outfeed_PLT;
+      R #s_Receive_Data_Outf.Lost_In_Tracking;
+      R #s_Receive_Data_Outf.New_LNK_Created;
+      R #s_Receive_Data_Outf.Valid_LNK_Available;
+      R #s_Receive_Data_Outf.Tracking_Restored;
+      R #s_Receive_Data_Outf.HBS_Record_Present;
+      R #s_Receive_Data_Outf.EDS_Tracking.Positively_Tracked;
+      R #s_Receive_Data_Outf.EDS_Tracking.Trk_Lost_Result_Pending;
+      R #s_Receive_Data_Outf.EDS_Tracking.Trk_Lost_No_Result;
+      R #s_Receive_Data_Outf.EDS_Tracking.Possible_EDS_Spacing_Err;
+      R #s_Receive_Data_Outf.LIC_Missing;
+      R #s_Receive_Data_Outf.Init_HBS_Record;
+      JCN IA99;
+
+      L 0;// Clear static data
+      T #s_Receive_Data_Outf.Itm_Data.LNK;
+
+      CALL "FC_Read_ANY_Record"
+      (  i_Record_Number             := 0 , 
+         i_ANY_Data_Record           := "DB_UDT_LNK_Record" , 
+         i_ANY_Data                  := #s_Receive_Data_Outf.Itm_Data.LNK_Record , 
+         i_DB                        := "DB_LNK_List" , 
+         i_DB_Event_Num              := #t_DB_Event_Num_Object
+      );
+
+      CALL "FC_Read_ANY_Record"
+      (  i_Record_Number             := 0 , 
+         i_ANY_Data_Record           := "DB_UDT_HBS_Record" , 
+         i_ANY_Data                  := #s_Receive_Data_Outf.Itm_Data.HBS_Record , 
+         i_DB                        := "DB_HBS_List" , 
+         i_DB_Event_Num              := #t_DB_Event_Num_Object
+      );
+
+      L #s_ISD_ID_Tracking.BagIDArray.Decision_Bag_Disposition;// Bag found in tracking, start bag data match
+      L 4;// The bag exiting the MV3D was positively tracked with the BHS bag ID
+      ==I;// and security decision data is pending from the ISD with the BHS provided ID
+      S #s_Receive_Data_Outf.EDS_Tracking.Positively_Tracked;
+      JC IA01;
+
+      L #s_ISD_ID_Tracking.BagIDArray.Decision_Bag_Disposition;// Bag found in tracking, start bag data match
+      L 6;// The bag exiting the MV3D was positively tracked with the BHS bag ID
+      ==I;// and security decision data is pending from the ISD with the BHS provided ID
+      S #s_Receive_Data_Outf.EDS_Tracking.Positively_Tracked;
+      S #s_Receive_Data_Outf.EDS_Tracking.Possible_EDS_Spacing_Err;
+      JC IA01;
+
+      L #s_ISD_ID_Tracking.BagIDArray.Decision_Bag_Disposition;// Look for bag based on pseudo data
+      L 8;// The bag exiting the MV3D was lost in the entry of the ISD
+      ==I;// and was screened with an EDS assigned bag ID
+      S #s_Receive_Data_Outf.EDS_Tracking.Trk_Lost_Result_Pending;
+      JC IA01;
+
+      L #s_ISD_ID_Tracking.BagIDArray.Decision_Bag_Disposition;
+      L 9;// The bag exiting the MV3D was lost in tracking at the exit of the EDS
+      ==I;// and no final decision data will be provided for the EDS generated ID
+      S #s_Receive_Data_Outf.EDS_Tracking.Trk_Lost_No_Result;
+
+IA01:      L #i_HBO_Settings.Code_Req_Position_Outf;
+      L #i_HBO_Settings.Srch_Dwn_Window;
+      -I;
+      JPZ IA02;
+      L 0;
+IA02:      T #t_Position;
+
+      L #i_HBO_Settings.Srch_Up_Window;
+      L #i_HBO_Settings.Srch_Dwn_Window;
+      +I;
+      T #t_Window;
+
+      CALL "FC_PLT_Srch_Inf_Up"// Search for LNK number in PLT DB
+      (  i_DB_PLT_Num                := #s_DB_PLT_Num_Outfeed , 
+         i_Position                  := #t_Position , 
+         i_Window                    := #t_Window , 
+         i_Info                      := 1 , 
+         o_Position                  := #s_Receive_Data_Outf.Bag_Found_Position , 
+         o_Info                      := #t_INT_not_used , 
+         o_LNK                       := #s_LNK_Found , 
+         o_DB_PLT_Num                := #t_INT_not_used , 
+         o_Number_Items_Found        := #s_Number_Of_Items_Found
+      );
+
+      L #s_Number_Of_Items_Found;
+      L 1;
+      >I;
+      JCN IA03;
+
+      CALL "FC_Write_Event"// Screening: Tracking data handover but multiple bags in upd window at outfeed
+      (  i_Message_ID                := 3211 , 
+         i_Event_value               := #s_ISD_ID_Tracking.BagIDArray.LNK , 
+         i_DB_Event_Num              := #t_DB_Event_Num_Object , 
+         o_Return_Value              := #t_INT_not_used
+      );
+
+      JU IA99;
+
+IA03:      L #s_Number_Of_Items_Found;
+      L 0;
+      ==I;
+      JCN IA04;
+
+      CALL "FC_Write_Event"// Screening: Tracking data handover but no bag in upd window at outfeed
+      (  i_Message_ID                := 3210 , 
+         i_Event_value               := #s_ISD_ID_Tracking.BagIDArray.LNK , 
+         i_DB_Event_Num              := #t_DB_Event_Num_Object , 
+         o_Return_Value              := #t_INT_not_used
+      );
+
+      JU IA99;
+
+IA04:      L #s_LNK_Found;
+      L 0;
+      ==I;
+      JCN IA99;// If LNK = 0: bag not processed yet, else: don't overwrite LNK
+
+      SET;
+      = #s_Receive_Data_Outf.Bag_Found_In_Outfeed_PLT;
+
+      A #s_Receive_Data_Outf.EDS_Tracking.Positively_Tracked;
+      JCN IA06;// If bag is positively tracked by the EDS: retreive existing data records
+
+      L #s_ISD_ID_Tracking.BagIDArray.LNK;
+      T #t_PEN_ID;
+//Check PEN_ID is valid
+      L #t_PEN_ID;
+      L 0;
+      >I;
+      JCN IA08;
+      L "DB_PEN_List".Entries_Present;
+      L #t_PEN_ID;
+      >=I;
+      JCN IA08;
+      L "DB_Pending_Record".THIS[#t_PEN_ID].PEN.LNK;
+      T #s_Receive_Data_Outf.Itm_Data.LNK;
+
+      A(;
+      L #s_Receive_Data_Outf.Itm_Data.LNK;
+      L 0;
+      >I;
+      );
+      A(;
+      L #s_Receive_Data_Outf.Itm_Data.LNK;
+      L "DB_LNK_List".Entries_Present;
+      <I;
+      );
+      JCN IA08;
+
+      CALL "FC_Read_Int_Record"
+      (  i_Record_Number             := #s_Receive_Data_Outf.Itm_Data.LNK , 
+         i_P_INT_Record              := "DB_UDT_LNK_Record".DB_PLT_Number , 
+         i_DB                        := "DB_LNK_List" , 
+         i_DB_Event_Num              := #t_DB_Event_Num_Object , 
+         o_INT                       := #t_PLT_DB_Of_LNK
+      );
+
+      L #t_PLT_DB_Of_LNK;
+      L #t_DB_PLT_Num_Non_Trk;
+      ==I;
+      JCN IA08;// If LNK in shadow PLT: accept LNK received from EDS
+
+      CALL "FC_Read_ANY_Record"
+      (  i_Record_Number             := #s_Receive_Data_Outf.Itm_Data.LNK , 
+         i_ANY_Data_Record           := "DB_UDT_LNK_Record" , 
+         i_ANY_Data                  := #s_Receive_Data_Outf.Itm_Data.LNK_Record , 
+         i_DB                        := "DB_LNK_List" , 
+         i_DB_Event_Num              := #t_DB_Event_Num_Object
+      );
+
+      L #s_Receive_Data_Outf.Itm_Data.LNK_Record.LIC;
+      L 0;
+      <=I;
+      S #s_Receive_Data_Outf.LIC_Missing;
+
+      SET;
+      S #s_Receive_Data_Outf.Valid_LNK_Available;
+
+      JU IA09;
+
+IA06:      A #s_Receive_Data_Outf.EDS_Tracking.Trk_Lost_Result_Pending;
+      O #s_Receive_Data_Outf.EDS_Tracking.Trk_Lost_No_Result;
+      JCN IA99;// If unknown bag disposition: End code execution
+
+IA08:      SET;
+      S #s_Receive_Data_Outf.Lost_In_Tracking;
+
+//ISD will create its own Pseudo_Bag_ID(90000000<Pseudo_ID<99999999) when not provided
+//1st      digit = 9            Pseudo=9xxxxxxx
+//2nd..3th digit = Machine-ID   Pseudo=xIDxxxxx
+//4th..8th digit = Sequence No  Pseudo=xxxnnnnn where n=1..99999
+
+      CALL "FC_DInt_To_Any_ASCII"// Write individual pseudo ID characters to temp
+      (  i_DINT                      := #s_ISD_ID_Tracking.BagIDArray.Pseudo_ID , 
+         i_ANY_ASCII_Dest            := #t_CharPseudo , 
+         i_DB_Event_Num              := #t_DB_Event_Num_Object
+      );
+
+      L #t_CharPseudo[1];
+      L '9';
+      ==I;// If bag is lost in tracking AND pseudo starts with 9 (new pseudo created by EDS):
+      JCN IA99;// create new bag record, else: end execution
+
+      CALL "FC_Gen_Default_LNK"
+      (  i_LNK                       := 0 , 
+         i_Default_Record            := #i_Default_Record_Outf , 
+         i_DB_Event_Num              := #t_DB_Event_Num_Object , 
+         o_LNK                       := #s_Receive_Data_Outf.Itm_Data.LNK
+      );
+
+//Create new PEN record with Pseudo_ID from machine (start with 9x)
+      CALL "FC_Generator_PEN"
+      (  i_PEN_LNK                   := #s_Receive_Data_Outf.Itm_Data.LNK , 
+         i_Pseudo_ID                 := #s_ISD_ID_Tracking.BagIDArray.Pseudo_ID , 
+         i_DB_Event_Num              := #t_DB_Event_Num_Object , 
+         o_PEN_ID                    := #t_PEN_ID
+      );
+
+      L #s_Receive_Data_Outf.Itm_Data.LNK;
+      L 0;
+      <>I;
+      JCN IA99;
+
+      CALL "FC_Read_ANY_Record"
+      (  i_Record_Number             := #s_Receive_Data_Outf.Itm_Data.LNK , 
+         i_ANY_Data_Record           := "DB_UDT_LNK_Record" , 
+         i_ANY_Data                  := #s_Receive_Data_Outf.Itm_Data.LNK_Record , 
+         i_DB                        := "DB_LNK_List" , 
+         i_DB_Event_Num              := #t_DB_Event_Num_Object
+      );
+
+      L #s_Receive_Data_Outf.Itm_Data.LNK_Record.LIC;
+      L 0;
+      <=I;
+      S #s_Receive_Data_Outf.LIC_Missing;
+
+      SET;
+      S #s_Receive_Data_Outf.New_LNK_Created;
+      S #s_Receive_Data_Outf.Valid_LNK_Available;
+
+      CALL "FC_Write_Event"// Screening: EDS reports lost in tracking - UFO created
+      (  i_Message_ID                := 3815 , 
+         i_Event_value               := #s_Receive_Data_Outf.Itm_Data.LNK , 
+         i_DB_Event_Num              := #t_DB_Event_Num_Object , 
+         o_Return_Value              := #t_INT_not_used
+      );
+
+IA09:      A #s_Receive_Data_Outf.Valid_LNK_Available;
+      JCN IA99;// If LNK available for outfeed bag, restore bag tracking
+
+      CALL "FC_PLT_Clr_Position"
+      (  i_DB_PLT_Num                := #s_DB_PLT_Num_Outfeed , 
+         i_Position                  := #s_Receive_Data_Outf.Bag_Found_Position , 
+         i_Info_Physical             := 1 , 
+         i_DB_Event_Num              := -1   //Events not reported
+      );
+
+      CALL "FC_PLT_Write"
+      (  i_DB_PLT_Num                := #s_DB_PLT_Num_Outfeed , 
+         i_Position                  := #s_Receive_Data_Outf.Bag_Found_Position , 
+         i_Info_State                := W#16#0 , 
+         i_Info_Physical             := 1 , 
+         i_LNK                       := #s_Receive_Data_Outf.Itm_Data.LNK , 
+         i_DB_Event_Num              := #t_DB_Event_Num_Object
+      );
+
+      CALL "FC_Write_Int_Record"
+      (  i_Record_Number             := #s_Receive_Data_Outf.Itm_Data.LNK , 
+         i_P_INT_Record              := "DB_UDT_LNK_Record".DB_PLT_Number , 
+         i_DB                        := "DB_LNK_List" , 
+         i_INT                       := #s_DB_PLT_Num_Outfeed , 
+         i_DB_Event_Num              := #t_DB_Event_Num_Object
+      );
+
+      A #s_Receive_Data_Outf.New_LNK_Created;// If new LNK, register with HLC
+      JCN IA10;
+
+      CALL "FC_Write_BOOL_Record"
+      (  i_Record_Number             := #s_Receive_Data_Outf.Itm_Data.LNK_Record.ECS , 
+         i_P_BOOL_Record             := "DB_UDT_ECS_Record".CIR.Expected_Item , 
+         i_DB                        := "DB_ECS_List" , 
+         i_BOOL                      := FALSE , 
+         i_DB_Event_Num              := #t_DB_Event_Num_Object
+      );
+
+      CALL "FC_Write_BOOL_Record"
+      (  i_Record_Number             := #s_Receive_Data_Outf.Itm_Data.LNK_Record.ECS , 
+         i_P_BOOL_Record             := "DB_UDT_ECS_Record".CIR.Unexpected_Item , 
+         i_DB                        := "DB_ECS_List" , 
+         i_BOOL                      := TRUE , 
+         i_DB_Event_Num              := #t_DB_Event_Num_Object
+      );
+
+      CALL "FC_Write_BOOL_Record"
+      (  i_Record_Number             := #s_Receive_Data_Outf.Itm_Data.LNK_Record.ECS , 
+         i_P_BOOL_Record             := "DB_UDT_ECS_Record".CIR.Hand_Over , 
+         i_DB                        := "DB_ECS_List" , 
+         i_BOOL                      := FALSE , 
+         i_DB_Event_Num              := #t_DB_Event_Num_Object
+      );
+
+      CALL "FC_Write_BOOL_Record"// Prevent register message on EOS PEC
+      (  i_Record_Number             := #s_Receive_Data_Outf.Itm_Data.LNK_Record.ECS , 
+         i_P_BOOL_Record             := "DB_UDT_ECS_Record".CIR.Update_Succesfull , 
+         i_DB                        := "DB_ECS_List" , 
+         i_BOOL                      := TRUE , 
+         i_DB_Event_Num              := #t_DB_Event_Num_Object
+      );
+
+      CALL "FC_Write_Event"// Send RegisterPackage (1205)
+      (  i_Message_ID                := 1205 , 
+         i_Event_value               := #s_Receive_Data_Outf.Itm_Data.LNK , 
+         i_DB_Event_Num              := #t_DB_Event_Num_Section , 
+         o_Return_Value              := #t_INT_not_used
+      );
+
+IA10:      SET;// Link correct bag data to bag in tracking
+      S #s_Receive_Data_Outf.Tracking_Restored;
+
+      A(;
+      L #s_Receive_Data_Outf.Itm_Data.LNK_Record.HBS;
+      L 0;
+      >I;
+      );
+      S #s_Receive_Data_Outf.HBS_Record_Present;
+
+IA99:      NOP 0;
+
+NETWORK
+TITLE = IB: Check PROCESS_1 pending
+//Determine if the bag at the screening machine exit is still pending. If a 
+//decision is pending, a HBS record needs to be updated/created
+      A #s_OS_Receive_Bag_Data;
+      JCN IB99;
+
+      SET;
+      R #s_Receive_Data_Outf.Itm_Data.Process_1.Screening_Pending;
+      S #s_Receive_Data_Outf.Itm_Data.Process_1.Screening_Not_Required;
+
+      A #s_Receive_Data_Outf.Tracking_Restored;
+      AN #i_Test_Mode_Active;
+      AN #s_Receive_Data_Outf.LIC_Missing;
+      JCN IB99;
+
+      A #s_Receive_Data_Outf.EDS_Tracking.Positively_Tracked;
+      JCN IB01;
+
+      A(;
+      L #s_ISD_ID_Tracking.BagIDArray.Special_Routing;
+      L 2;
+      <>I;
+      );
+      R #s_Receive_Data_Outf.Itm_Data.Process_1.Screening_Not_Required;
+      JCN IB99;// If bag was requested to be screened: check HBS presence
+
+      A #s_Receive_Data_Outf.HBS_Record_Present;
+      JCN IB01;
+
+      L "DB_HBS_List".HBS[#s_Receive_Data_Outf.Itm_Data.LNK_Record.HBS].PEN_General.PEN_ID;
+      T #t_PEN_ID;
+
+      CALL MOVE
+      {value_type := 'Variant'}
+      (  IN                          := "DB_Pending_Record".THIS[#t_PEN_ID].PEN.PEN_Process_1 , 
+         OUT                         := #s_Receive_Data_Outf.Itm_Data.HBS_Record.PEN_Process_1   //"DB_HBS_List".HBS[#s_Receive_Data_Outf.Itm_Data.LNK_Record.HBS].PEN_Process_1
+      );
+
+      AN #s_Receive_Data_Outf.Itm_Data.Process_1.Screening_Not_Required;
+      A #s_Receive_Data_Outf.Itm_Data.HBS_Record.PEN_Process_1.Result_Pending;
+      A(;
+      L #s_Receive_Data_Outf.Itm_Data.HBS_Record.PEN_General.HBA_LNK;
+      L #s_Receive_Data_Outf.Itm_Data.LNK;
+      ==I;
+      );
+      A(;
+      L #s_Receive_Data_Outf.Itm_Data.HBS_Record.PEN_Process_1.Screen_Result.Pseudo_ID;
+      L #s_ISD_ID_Tracking.BagIDArray.Pseudo_ID;
+      ==D;
+      );
+      S #s_Receive_Data_Outf.Itm_Data.Process_1.Screening_Pending;
+      S #s_Receive_Data_Outf.Screening_Pending;// If a certain process contains the pseudo which is sent by the EDS, while "result expected": item is pending
+
+IB01:      A #s_Receive_Data_Outf.EDS_Tracking.Trk_Lost_Result_Pending;
+      JCN IB99;
+
+      SET;
+      S #s_Receive_Data_Outf.Itm_Data.Process_1.Screening_Pending;
+      S #s_Receive_Data_Outf.Screening_Pending;
+
+IB99:      NOP 0;
+NETWORK
+TITLE = JA: Update GENERAL local records (HBS/LIC) at outfeed
+//Local records will be updated to reflect the current bag status.
+      A #s_OS_Receive_Bag_Data;// Bag tracking was restored (outfeed)
+      A #s_Receive_Data_Outf.Tracking_Restored;// Check HBS record
+      JCN JA99;
+
+      L #i_HBS_ID;
+      T #t_Last_Location;
+
+      CALL "FC_Write_Dint_Record"
+      (  i_Record_Number             := #s_Receive_Data_Outf.Itm_Data.LNK_Record.ECS , 
+         i_P_DINT_Record             := "DB_UDT_ECS_Record".CIR.Last_Location , 
+         i_DB                        := "DB_ECS_List" , 
+         i_DINT                      := #t_Last_Location , 
+         i_DB_Event_Num              := #t_DB_Event_Num_Object
+      );
+
+      A #s_Receive_Data_Outf.Screening_Pending;
+      JCN JA99;
+
+      A #s_Receive_Data_Outf.HBS_Record_Present;
+      JCN JA01;
+
+      CALL "FC_Read_ANY_Record"
+      (  i_Record_Number             := #s_Receive_Data_Outf.Itm_Data.LNK_Record.HBS , 
+         i_ANY_Data_Record           := "DB_UDT_HBS_Record".PEN_General , 
+         i_ANY_Data                  := #s_Receive_Data_Outf.Itm_Data.HBS_Record.PEN_General , 
+         i_DB                        := "DB_HBS_List" , 
+         i_DB_Event_Num              := #t_DB_Event_Num_Object
+      );
+
+      JU JA99;
+
+JA01:      CALL "FC_Generator_LNK"
+      (  i_LNK                       := #s_Receive_Data_Outf.Itm_Data.LNK , 
+         i_DB_List                   := #t_DB_HBS_List_Num , 
+         i_Default_Record            := #i_Default_Record_Outf , 
+         i_DB_Event_Num              := #t_DB_Event_Num_Object , 
+         o_LNK                       := #t_INT_not_used
+      );
+
+      CALL "FC_Read_Int_Record"
+      (  i_Record_Number             := #s_Receive_Data_Outf.Itm_Data.LNK , 
+         i_P_INT_Record              := "DB_UDT_LNK_Record".HBS , 
+         i_DB                        := "DB_LNK_List" , 
+         i_DB_Event_Num              := #t_DB_Event_Num_Object , 
+         o_INT                       := #s_Receive_Data_Outf.Itm_Data.LNK_Record.HBS
+      );
+
+      CALL "FC_Read_ANY_Record"
+      (  i_Record_Number             := #s_Receive_Data_Outf.Itm_Data.LNK_Record.HBS , 
+         i_ANY_Data_Record           := "DB_UDT_HBS_Record" , 
+         i_ANY_Data                  := #s_Receive_Data_Outf.Itm_Data.HBS_Record , 
+         i_DB                        := "DB_HBS_List" , 
+         i_DB_Event_Num              := #t_DB_Event_Num_Object
+      );
+
+      L #s_Receive_Data_Outf.Itm_Data.LNK_Record.HBS;
+      L 0;
+      >I;
+      S #s_Receive_Data_Outf.HBS_Record_Present;
+      JCN JA99;// Creation succeeded
+
+      SET;
+      R #s_Receive_Data_Outf.Itm_Data.HBS_Record.PEN_General.Item_Lost;
+      S #s_Receive_Data_Outf.Init_HBS_Record;
+
+      L 0;
+      T #s_Receive_Data_Outf.Itm_Data.HBS_Record.PEN_General.AreaID_Receive;
+
+      CALL "FC_Write_ANY_Record"// Attach to bag
+      (  i_Record_Number             := #s_Receive_Data_Outf.Itm_Data.LNK_Record.HBS , 
+         i_ANY_Data_Record           := "DB_UDT_HBS_Record".PEN_General , 
+         i_ANY_Data                  := #s_Receive_Data_Outf.Itm_Data.HBS_Record.PEN_General , 
+         i_DB                        := "DB_HBS_List" , 
+         i_DB_Event_Num              := #t_DB_Event_Num_Object
+      );
+
+      A #s_Receive_Data_Outf.New_LNK_Created;
+      JCN JA99;// If new LNK with HBS was created: store HBS number in lookup table
+
+      L #s_EDS_Pseudo_Lookup.Write_Position_Lookup_T;
+      JL JA10;
+      JU JA11;
+      JU JA12;
+      JU JA13;
+      JU JA14;
+      JU JA15;
+JA10:      JU JA99;
+JA11:      L #s_Receive_Data_Outf.Itm_Data.LNK_Record.HBS;
+      T #s_EDS_Pseudo_Lookup.HBS_Lookup_Table[0];
+      JU JA20;
+JA12:      L #s_Receive_Data_Outf.Itm_Data.LNK_Record.HBS;
+      T #s_EDS_Pseudo_Lookup.HBS_Lookup_Table[1];
+      JU JA20;
+JA13:      L #s_Receive_Data_Outf.Itm_Data.LNK_Record.HBS;
+      T #s_EDS_Pseudo_Lookup.HBS_Lookup_Table[2];
+      JU JA20;
+JA14:      L #s_Receive_Data_Outf.Itm_Data.LNK_Record.HBS;
+      T #s_EDS_Pseudo_Lookup.HBS_Lookup_Table[3];
+      JU JA20;
+JA15:      L #s_Receive_Data_Outf.Itm_Data.LNK_Record.HBS;
+      T #s_EDS_Pseudo_Lookup.HBS_Lookup_Table[4];
+
+JA20:      L #s_EDS_Pseudo_Lookup.Write_Position_Lookup_T;
+      L 1;
+      +I;
+      T #s_EDS_Pseudo_Lookup.Write_Position_Lookup_T;
+
+      L #s_EDS_Pseudo_Lookup.Write_Position_Lookup_T;
+      L 4;
+      >I;
+      JCN JA99;
+
+      L 0;
+      T #s_EDS_Pseudo_Lookup.Write_Position_Lookup_T;
+JA99:      NOP 0;
+NETWORK
+TITLE = JB: Update PROCESS_1 local records (HBS/LIC) at outfeed
+
+      A #s_OS_Receive_Bag_Data;
+      JCN JB99;
+
+      A #s_Receive_Data_Outf.New_LNK_Created;
+      AN #s_Receive_Data_Outf.LIC_Missing;
+      JCN JB01;// If LIC is available and a new records was generated: attach pseudo, else: continue HBS record update
+
+      CALL "FC_Write_Dint_Record"// Write pseudo to LIC
+      (  i_Record_Number             := #s_Receive_Data_Outf.Itm_Data.LNK_Record.LIC , 
+         i_P_DINT_Record             := "DB_UDT_LIC_Record".BIR.Process_1.Pseudo_ID , 
+         i_DB                        := "DB_LIC_List" , 
+         i_DINT                      := #s_ISD_ID_Tracking.BagIDArray.Pseudo_ID , 
+         i_DB_Event_Num              := #t_DB_Event_Num_Object
+      );
+
+JB01:      A #s_Receive_Data_Outf.Screening_Pending;
+      A #s_Receive_Data_Outf.HBS_Record_Present;
+      JCN JB99;// If new data prepared: create records and check if HBS record update is required
+
+      A #s_Receive_Data_Outf.Init_HBS_Record;
+      JCN JB02;
+
+      SET;
+      R #s_Receive_Data_Outf.Itm_Data.HBS_Record.PEN_Process_1.Machine_Result_Rcvd;
+      R #s_Receive_Data_Outf.Itm_Data.HBS_Record.PEN_Process_1.Operator_Result_Rcvd;
+      R #s_Receive_Data_Outf.Itm_Data.HBS_Record.PEN_Process_1.Result_Pending;
+      R #s_Receive_Data_Outf.Itm_Data.HBS_Record.PEN_Process_1.Update_Send;
+      R #s_Receive_Data_Outf.Itm_Data.HBS_Record.PEN_Process_1.Resend_Required;
+      R #s_Receive_Data_Outf.Itm_Data.HBS_Record.PEN_Process_1.Force_Rejected;
+
+      L 0;
+      T #s_Receive_Data_Outf.Itm_Data.HBS_Record.PEN_General.TRA_LNK;
+      T #s_Receive_Data_Outf.Itm_Data.HBS_Record.PEN_General.HBA_LNK;
+
+      CALL "FC_Any_To_Adress"
+      (  i_ANY_Data                  := #s_Receive_Data_Outf.Itm_Data.HBS_Record.PEN_General.Bag_Status , 
+         o_Adress                    := #t_adress   //Determine the adress to Bag_Status
+      );
+
+      L #t_adress;
+      SLD 3;// Shift bytes to make pointer to last entry
+      LAR2;// Pointer to Bag_Status
+
+      L 0;
+      T DIW[ AR2, P#0.0];
+
+      L DINT#0;
+      T #s_Receive_Data_Outf.Itm_Data.HBS_Record.PEN_Process_1.Screen_Result.Pseudo_ID;
+      T #s_Receive_Data_Outf.Itm_Data.HBS_Record.PEN_Process_1.ID_Screening;
+
+JB02:      A #s_Receive_Data_Outf.Itm_Data.Process_1.Screening_Pending;
+      JCN JB90;// If bag is about te be screened: fill in HBS record
+
+      SET;
+      S #s_Receive_Data_Outf.Itm_Data.HBS_Record.PEN_Process_1.Result_Pending;
+
+      CALL RD_SYS_T// Write timestamp
+      {date_type := 'Date_And_Time'}
+      (  RET_VAL                     := #t_INT_not_used , 
+         OUT                         := #s_Receive_Data_Outf.Itm_Data.HBS_Record.PEN_Process_1.Timestamp_screening
+      );
+
+      L #s_Receive_Data_Outf.Itm_Data.LNK;// Write LNK
+      T #s_Receive_Data_Outf.Itm_Data.HBS_Record.PEN_General.HBA_LNK;
+
+      L #i_HBO_ID;// Write screening machine ID
+      T #s_Receive_Data_Outf.Itm_Data.HBS_Record.PEN_Process_1.ID_Screening;
+
+      L #i_Local_Destination;
+      T #s_Receive_Data_Outf.Itm_Data.HBS_Record.PEN_Process_1.EDS_Destination;
+
+      CALL "FC_Read_ANY_Record"// Sync already present process data
+      (  i_Record_Number             := #s_Receive_Data_Outf.Itm_Data.LNK_Record.LIC , 
+         i_ANY_Data_Record           := "DB_UDT_LIC_Record".BIR.Process_1 , 
+         i_ANY_Data                  := #s_Receive_Data_Outf.Itm_Data.HBS_Record.PEN_Process_1.Screen_Result , 
+         i_DB                        := "DB_LIC_List" , 
+         i_DB_Event_Num              := #t_DB_Event_Num_Object
+      );
+
+      L #s_ISD_ID_Tracking.BagIDArray.Pseudo_ID;// Write pseudo
+      T #s_Receive_Data_Outf.Itm_Data.HBS_Record.PEN_Process_1.Screen_Result.Pseudo_ID;
+
+      CALL "FC_Write_ANY_Record"// Attach to bag
+      (  i_Record_Number             := #s_Receive_Data_Outf.Itm_Data.LNK_Record.HBS , 
+         i_ANY_Data_Record           := "DB_UDT_HBS_Record".PEN_Process_1 , 
+         i_ANY_Data                  := #s_Receive_Data_Outf.Itm_Data.HBS_Record.PEN_Process_1 , 
+         i_DB                        := "DB_HBS_List" , 
+         i_DB_Event_Num              := #t_DB_Event_Num_Object
+      );
+
+      L "DB_LNK_List".LNK[#s_Receive_Data_Outf.Itm_Data.LNK].HBS;
+      T #t_LIC;
+
+      L "DB_HBS_List".HBS[#s_Receive_Data_Outf.Itm_Data.LNK_Record.HBS].PEN_General.PEN_ID;
+      T #t_PEN_ID;
+
+      CALL MOVE
+      {value_type := 'Variant'}
+      (  IN                          := "DB_HBS_List".HBS[#t_LIC].PEN_Process_1 , 
+         OUT                         := "DB_Pending_Record".THIS[#t_PEN_ID].PEN.PEN_Process_1
+      );
+      JU JB99;
+
+JB90:      AN #s_Receive_Data_Outf.Itm_Data.HBS_Record.PEN_Process_1.Result_Pending;
+      AN #s_Receive_Data_Outf.Itm_Data.HBS_Record.PEN_Process_2.Result_Pending;
+      AN #s_Receive_Data_Outf.Itm_Data.HBS_Record.PEN_Process_3.Result_Pending;
+      AN #s_Receive_Data_Outf.Itm_Data.HBS_Record.PEN_Process_4.Result_Pending;
+      AN #s_Receive_Data_Outf.Itm_Data.HBS_Record.PEN_Process_5.Result_Pending;
+      JCN JB99;
+//If item is not screen pending, deassign the HBS and pending record
+      CALL "FC_PEN_Deassign"
+      (  i_PEN_ID                    := #t_PEN_ID
+      );
+
+      L 0;
+      T "DB_LNK_List".LNK[#s_Receive_Data_Outf.Itm_Data.LNK].HBS;
+      T "DB_HBS_List".HBS[#s_Receive_Data_Outf.Itm_Data.LNK_Record.HBS].LNK;
+JB99:      NOP 0;
+NETWORK
+TITLE = KA: Handle data receiving errors and statisticals at outfeed
+//Check incoming data to detect errors
+      AN #s_Receive_Data_Outf.Tracking_Restored;// Error occured while trying to restore tracking
+      O #s_Receive_Data_Outf.Lost_In_Tracking;
+      A #s_OS_Receive_Bag_Data;
+      AN #i_Allow_Unexpected_Data;
+      JCN KA01;// Tracking NOK. Increment lost count
+
+      L #s_Receive_Data_Outf.Succ_Tracking_Lst_Cnt;
+      L 1;
+      +I;
+      T #s_Receive_Data_Outf.Succ_Tracking_Lst_Cnt;
+
+      AN #s_Receive_Data_Outf.Tracking_Restored;
+      JCN KA01;// Data matching failed: log event
+
+      CALL "FC_Write_Event"// Screening: Tracking restore failed - unknown or invalid item
+      (  i_Message_ID                := 3201 , 
+         i_Event_value               := #s_Receive_Data_Outf.Itm_Data.LNK , 
+         i_DB_Event_Num              := #t_DB_Event_Num_Object , 
+         o_Return_Value              := #t_INT_not_used
+      );
+
+KA01:      A #s_Receive_Data_Outf.Tracking_Restored;
+      AN #s_Receive_Data_Outf.New_LNK_Created;
+      A #s_OS_Receive_Bag_Data;
+      O(;
+      A #i_CMD_Reset;
+      A #o_ST_Succ_Unexp_Data;
+      );
+      JCN KA02;// Tracking OK. Reset lost count
+
+      L 0;
+      T #s_Receive_Data_Outf.Succ_Tracking_Lst_Cnt;
+
+KA02:      L #i_HBO_Settings.Code_Req_Position_Outf;
+      L #i_HBO_Settings.Srch_Dwn_Window;
+      -I;
+      JPZ KA03;
+      L 0;
+KA03:      T #t_Position;
+
+      L #i_HBO_Settings.Srch_Up_Window;
+      L #i_HBO_Settings.Srch_Dwn_Window;
+      +I;
+      T #t_Window;
+
+      CALL "FC_PLT_Srch_Inf_Up"// Search for LNK number in PLT DB
+      (  i_DB_PLT_Num                := #s_DB_PLT_Num_Outfeed , 
+         i_Position                  := #t_Position , 
+         i_Window                    := #t_Window , 
+         i_Info                      := 1 , 
+         o_Position                  := #t_INT_not_used , 
+         o_Info                      := #t_INT_not_used , 
+         o_LNK                       := #t_INT_not_used , 
+         o_DB_PLT_Num                := #t_INT_not_used , 
+         o_Number_Items_Found        := #s_Number_Of_Items_Found
+      );
+
+      L #s_Number_Of_Items_Found;
+      L 0;
+      >I;
+      = #t_Bag_In_Upd_Window_Outf;
+
+      A #s_OS_Receive_Bag_Data;
+      A #t_Bag_In_Upd_Window_Outf;
+      S #s_EDS_Data_Received;
+
+      A #t_Bag_In_Upd_Window_Outf;
+      FN #s_FN_Bag_In_Upd_Win_Outf;
+      AN #s_EDS_Data_Received;
+      AN #i_IO_Transport_Mode;
+      JCN KA04;// If a bag left the update window while no data was received: Log
+
+      CALL "FC_Write_Event"
+      (  i_Message_ID                := 3214 , // Screening: No EDS data received for item in upd window at outfeed
+         i_Event_value               := 0 , // LNK still unknown due to black box
+         i_DB_Event_Num              := #t_DB_Event_Num_Object , 
+         o_Return_Value              := #t_INT_not_used
+      );
+
+      L #s_Receive_Data_Outf.Succ_No_Data;
+      L 1;
+      +I;
+      T #s_Receive_Data_Outf.Succ_No_Data;
+
+KA04:      AN #t_Bag_In_Upd_Window_Outf;
+      R #s_EDS_Data_Received;
+
+      A #i_CMD_Reset;
+      A #o_ST_Succ_No_Data;
+      O #s_OS_Receive_Bag_Data;
+      JCN KA05;// Reset successive no data when new data is received
+
+      L 0;
+      T #s_Receive_Data_Outf.Succ_No_Data;
+
+KA05:      AN #i_Test_Mode_Active;
+      JCN KA99;// Don't count statisticals in test mode
+
+      A #s_OS_Receive_Bag_Data;
+      A #s_Receive_Data_Outf.EDS_Tracking.Positively_Tracked;
+      AN #s_Receive_Data_Outf.EDS_Tracking.Possible_EDS_Spacing_Err;
+      JCN KA07;
+
+      L #s_Statisticals.Tracking.Positively_Tracked;
+      L 1;
+      +I;
+      JP KA06;
+      L 1;
+KA06:      T #s_Statisticals.Tracking.Positively_Tracked;
+
+KA07:      A #s_OS_Receive_Bag_Data;
+      A #s_Receive_Data_Outf.EDS_Tracking.Trk_Lost_Result_Pending;
+      JCN KA09;
+
+      L #s_Statisticals.Tracking.Trk_Lost_Result_Pending;
+      L 1;
+      +I;
+      JP KA08;
+      L 1;
+KA08:      T #s_Statisticals.Tracking.Trk_Lost_Result_Pending;
+
+KA09:      A #s_OS_Receive_Bag_Data;
+      A #s_Receive_Data_Outf.EDS_Tracking.Trk_Lost_No_Result;
+      JCN KA11;
+
+      L #s_Statisticals.Tracking.Trk_Lost_No_Result;
+      L 1;
+      +I;
+      JP KA10;
+      L 1;
+KA10:      T #s_Statisticals.Tracking.Trk_Lost_No_Result;
+
+KA11:      A #s_OS_Receive_Bag_Data;
+      A #s_Receive_Data_Outf.EDS_Tracking.Possible_EDS_Spacing_Err;
+      JCN KA99;
+
+      L #s_Statisticals.Tracking.Spacing_Error;
+      L 1;
+      +I;
+      JP KA12;
+      L 1;
+KA12:      T #s_Statisticals.Tracking.Spacing_Error;
+
+KA99:      A #i_CMD_Reset;
+      R #o_ST_Succ_Unexp_Data;
+      R #o_ST_Succ_No_Data;
+
+      A(;
+      L #i_CFG_Num_Unex_Data_Er;
+      L #s_Receive_Data_Outf.Succ_Tracking_Lst_Cnt;
+      <=I;
+      );
+      A(;
+      L #i_CFG_Num_Unex_Data_Er;
+      L 0;
+      <>I;
+      );
+      S #o_ST_Succ_Unexp_Data;
+
+      A(;
+      L #i_CFG_Num_No_Data_Er;
+      L #s_Receive_Data_Outf.Succ_No_Data;
+      <=I;
+      );
+      A(;
+      L #i_CFG_Num_No_Data_Er;
+      L 0;
+      <>I;
+      );
+      S #o_ST_Succ_No_Data;
+NETWORK
+TITLE = LA: Clean up non tracking DB at outfeed
+//Non tracking PLT DB clean up
+//- Upon receival of new data: remove received item if tracking is restored and 
+//remove data which got lost according to the FIFO principle
+//- When the EDS reports to be empty: clean up entire PLT DB
+
+      CALL "FC_Off_Dly_T_0.1s"
+      (  i_Start                     := #i_IO_EDS_Bag_In_Process , 
+         i_Enable_Dly                := TRUE , 
+         i_Time_Value                := 10 , 
+         i_Current_Value             := #s_Bags_In_Proces_Dly_Cnt , 
+         o_Status                    := #s_Dly_IO_BIP , 
+         o_Current_Value             := #s_Bags_In_Proces_Dly_Cnt
+      );
+
+      AN #s_Dly_IO_BIP;
+      FP #s_FP_EDS_Empty;
+      = #t_OS_EDS_Empty;
+
+      A #i_Comm_Error;
+      A(;
+      L #o_Nr_Items;
+      L 0;
+      >I;
+      );
+      O #t_OS_EDS_Empty;
+      O "M_First_Scan";
+      = #t_Clear_Non_Trk_PLT_DB;
+
+      A #s_OS_Receive_Bag_Data;
+      A #s_Receive_Data_Outf.Tracking_Restored;
+      AN #s_Receive_Data_Outf.New_LNK_Created;
+      O #t_Clear_Non_Trk_PLT_DB;
+      JCN LA02;// If tracking data is restored using shadow PLT data: clean-up shadow PLT
+
+LA01:      CALL "FC_PLT_Srch_Inf_Up"
+      (  i_DB_PLT_Num                := #t_DB_PLT_Num_Non_Trk , 
+         i_Position                  := 0 , 
+         i_Window                    := #t_PLT_Non_Trk_Length , 
+         i_Info                      := 1 , 
+         o_Position                  := #t_Position , 
+         o_Info                      := #t_INT_not_used , 
+         o_LNK                       := #t_LNK_Found , 
+         o_DB_PLT_Num                := #t_INT_not_used , 
+         o_Number_Items_Found        := #t_Num_Items_Found
+      );
+
+      L #t_Num_Items_Found;
+      L 0;
+      <>I;
+      JCN LA02;
+
+      CALL "FC_PLT_Clr_Position"
+      (  i_DB_PLT_Num                := #t_DB_PLT_Num_Non_Trk , 
+         i_Position                  := #t_Position , 
+         i_Info_Physical             := 1 , 
+         i_DB_Event_Num              := -1   //Events not reported
+      );
+
+      A(;
+      L #t_LNK_Found;
+      L #s_Receive_Data_Outf.Itm_Data.LNK;
+      ==I;// IF LNK found was not the one which was received from the EDS OR EDS indicates it has no items in tracking
+      );// Current (found) item is consider lost according to the FIFO principle -> deregister
+      A #s_OS_Receive_Bag_Data;
+      = #t_LNK_Clrd_Non_Trk_DB;
+
+      AN #t_Clear_Non_Trk_PLT_DB;
+      A #t_LNK_Clrd_Non_Trk_DB;// If received LNK is found in non tracking PLT DB while EDS not reporting empty: End cleanup,
+      JC LA02;// else: Continue
+
+      A #t_Clear_Non_Trk_PLT_DB;
+      A #t_LNK_Clrd_Non_Trk_DB;// If received LNK is found in non tracking PLT DB while EDS reporting empty: Also remove other records,
+      JC LA01;// else: Deregister current item since it is considered lost
+
+      CALL "FC_Read_Int_Record"
+      (  i_Record_Number             := #t_LNK_Found , 
+         i_P_INT_Record              := "DB_UDT_LNK_Record".ECS , 
+         i_DB                        := "DB_LNK_List" , 
+         i_DB_Event_Num              := #t_DB_Event_Num_Object , 
+         o_INT                       := #t_ECS
+      );
+
+      CALL "FC_Write_BOOL_Record"
+      (  i_Record_Number             := #t_ECS , 
+         i_P_BOOL_Record             := "DB_UDT_ECS_Record".CIR.Expected_Item , 
+         i_DB                        := "DB_ECS_List" , 
+         i_BOOL                      := FALSE , 
+         i_DB_Event_Num              := #t_DB_Event_Num_Object
+      );
+
+      CALL "FC_Write_BOOL_Record"
+      (  i_Record_Number             := #t_ECS , 
+         i_P_BOOL_Record             := "DB_UDT_ECS_Record".CIR.Unexpected_Item , 
+         i_DB                        := "DB_ECS_List" , 
+         i_BOOL                      := TRUE , 
+         i_DB_Event_Num              := #t_DB_Event_Num_Object
+      );
+
+      CALL "FC_Write_BOOL_Record"
+      (  i_Record_Number             := #t_ECS , 
+         i_P_BOOL_Record             := "DB_UDT_ECS_Record".CIR.Hand_Over , 
+         i_DB                        := "DB_ECS_List" , 
+         i_BOOL                      := FALSE , 
+         i_DB_Event_Num              := #t_DB_Event_Num_Object
+      );
+
+      CALL "FC_Write_Event"// Send DeregisterPackage (1206)
+      (  i_Message_ID                := 1206 , 
+         i_Event_value               := #t_LNK_Found , 
+         i_DB_Event_Num              := #t_DB_Event_Num_Section , 
+         o_Return_Value              := #t_INT_not_used
+      );
+
+      JU LA01;// LOOP: Check if next record contains the correct LNK number OR loop till empty
+
+LA02:      A #i_IO_EDS_Bag_In_Process;
+      = #o_ST_Items;
+NETWORK
+TITLE = MA: Detect the receival of new decision data
+//Map EDS decision to readable STATs and find the correct bagage item. Bagage 
+//item can be found using the LNK or by a pseudo lookup in the HBS records.
+      CALL "FC_On_Dly_T_0.1s"
+      (  i_Start                     := #i_IO_Decision_Available , 
+         i_Enable_Dly                := TRUE , 
+         i_Time_Value                := 2 , 
+         i_Current_Value             := #s_IO_Rcve_Dec_Dly_Cnt , 
+         o_Status                    := #t_IO_Receive_Dec_Dly , 
+         o_Current_Value             := #s_IO_Rcve_Dec_Dly_Cnt
+      );
+
+      A #t_IO_Receive_Dec_Dly;
+      = #o_IO_Ack_Sec_Bag_Data;// Acknowledge
+
+      A #t_IO_Receive_Dec_Dly;
+      FP #s_FP_New_Decision_Avail;
+      = #s_OS_New_Decision_Avail;
+      JCN MA99;// If new decision data available: process it
+
+      CALL "FC_Read_ANY_Record"
+      (  i_Record_Number             := 0 , 
+         i_ANY_Data_Record           := "DB_UDT_LNK_Record" , 
+         i_ANY_Data                  := #s_Decision_Data.Itm_Data.LNK_Record , 
+         i_DB                        := "DB_LNK_List" , 
+         i_DB_Event_Num              := #t_DB_Event_Num_Object
+      );
+
+      CALL "FC_Read_ANY_Record"
+      (  i_Record_Number             := 0 , 
+         i_ANY_Data_Record           := "DB_UDT_HBS_Record" , 
+         i_ANY_Data                  := #s_Decision_Data.Itm_Data.HBS_Record , 
+         i_DB                        := "DB_HBS_List" , 
+         i_DB_Event_Num              := #t_DB_Event_Num_Object
+      );
+
+      SET;
+      R #s_Decision_Data.Valid_LNK_Available;
+      R #s_Decision_Data.Inval_LNK_Pseudo_Lookup;
+      R #s_Decision_Data.LIC_Missing;
+      R #s_Decision_Data.Send_Package_Report;
+      R #s_Decision_Data.No_Decision_Expected;
+
+      L DINT#0;
+      T #s_Decision_Data.Itm_Data.Pseudo;
+
+      L 0;
+      T #s_Decision_Data.Itm_Data.LNK;
+
+      L #s_ISD_ID_Decision.BagIDArray.LNK;
+      T #t_PEN_ID;
+//Check PEN_ID is valid
+      L #t_PEN_ID;
+      L 0;
+      <I;
+      R #s_OS_New_Decision_Avail;
+      L #t_PEN_ID;
+      L "DB_PEN_List".Entries_Present;
+      >I;
+      R #s_OS_New_Decision_Avail;
+
+      A #s_OS_New_Decision_Avail;
+      JCN MA99;
+
+      L #t_PEN_ID;
+      T #s_Decision_Data.Itm_Data.PEN_ID;
+      L "DB_Pending_Record".THIS[#t_PEN_ID].PEN_LNK;
+      T #s_Decision_Data.Itm_Data.LNK;
+
+      L #s_ISD_ID_Decision.BagIDArray.Pseudo_ID;
+      T #s_Decision_Data.Itm_Data.Pseudo;
+
+MA99:      NOP 0;
+NETWORK
+TITLE = MB: Receive PROCESS_1 EDS decision and find applicable item
+//Map EDS decision to readable STATs and find the correct bagage item. Bagage 
+//item can be found using the LNK or by a pseudo lookup in the HBS records.
+      A #s_OS_New_Decision_Avail;
+      JCN MB99;// If new decision data available (exit bag decision OR security bag decision): process it
+
+      L 0;
+      T #s_Decision_Data.Itm_Data.Process_1.EDS_Decision.Decision_Bag_Disposition;
+      T #s_Decision_Data.Itm_Data.Process_1.Machine_Result_To_HL;
+      T #s_Decision_Data.Itm_Data.Process_1.Operator_Result_To_HL;
+
+      SET;// Clear static data
+      R #s_Decision_Data.Itm_Data.Process_1.EDS_Decision.No_Decision;
+      R #s_Decision_Data.Itm_Data.Process_1.EDS_Decision.Not_Analyzed;
+      R #s_Decision_Data.Itm_Data.Process_1.EDS_Decision.Pending;
+      R #s_Decision_Data.Itm_Data.Process_1.EDS_Decision.Cleared_Machine;
+      R #s_Decision_Data.Itm_Data.Process_1.EDS_Decision.Rejected_Machine;
+      R #s_Decision_Data.Itm_Data.Process_1.EDS_Decision.Cleared_Operator;
+      R #s_Decision_Data.Itm_Data.Process_1.EDS_Decision.Rejected_Operator;
+      R #s_Decision_Data.Itm_Data.Process_1.EDS_Decision.Timed_Out_Operator;
+      R #s_Decision_Data.Itm_Data.Process_1.EDS_Decision.Spacing_Error;
+      R #s_Decision_Data.Itm_Data.Process_1.EDS_Decision.Forced_Reject;
+      R #s_Decision_Data.Itm_Data.Process_1.EDS_Decision.Obvious_Threat;
+      S #s_Decision_Data.Itm_Data.Process_1.No_Decision_Expected;
+
+      L #s_ISD_ID_Decision.BagIDArray.Decision_Bag_Disposition;
+      T #s_Decision_Data.Itm_Data.Process_1.EDS_Decision.Decision_Bag_Disposition;
+
+      L 0;// 0=No decision on current process
+      L #s_Decision_Data.Itm_Data.Process_1.EDS_Decision.Decision_Bag_Disposition;
+      ==I;
+      S #s_Decision_Data.Itm_Data.Process_1.EDS_Decision.No_Decision;
+      JC MB10;
+
+      L 1;// 1=Machine alarm
+      L #s_Decision_Data.Itm_Data.Process_1.EDS_Decision.Decision_Bag_Disposition;
+      ==I;
+      S #s_Decision_Data.Itm_Data.Process_1.EDS_Decision.Rejected_Machine;
+      JC MB10;
+
+      L 2;// 2=Machine cleared
+      L #s_Decision_Data.Itm_Data.Process_1.EDS_Decision.Decision_Bag_Disposition;
+      ==I;
+      S #s_Decision_Data.Itm_Data.Process_1.EDS_Decision.Cleared_Machine;
+      JC MB10;
+
+      L 3;// 3=Machine error / unkown / bag not analyzed
+      L #s_Decision_Data.Itm_Data.Process_1.EDS_Decision.Decision_Bag_Disposition;
+      ==I;
+      S #s_Decision_Data.Itm_Data.Process_1.EDS_Decision.Not_Analyzed;
+      JC MB10;
+
+      L 4;// 4=Decision pending
+      L #s_Decision_Data.Itm_Data.Process_1.EDS_Decision.Decision_Bag_Disposition;
+      ==I;
+      S #s_Decision_Data.Itm_Data.Process_1.EDS_Decision.Pending;
+      JC MB10;
+
+      L 5;// 5=operator timed out
+      L #s_Decision_Data.Itm_Data.Process_1.EDS_Decision.Decision_Bag_Disposition;
+      ==I;
+      S #s_Decision_Data.Itm_Data.Process_1.EDS_Decision.Timed_Out_Operator;
+      JC MB10;
+
+      L 11;//11=operator alarm
+      L #s_Decision_Data.Itm_Data.Process_1.EDS_Decision.Decision_Bag_Disposition;
+      ==I;
+      S #s_Decision_Data.Itm_Data.Process_1.EDS_Decision.Rejected_Operator;
+      JC MB10;
+
+      L 12;// 12=operator clear
+      L #s_Decision_Data.Itm_Data.Process_1.EDS_Decision.Decision_Bag_Disposition;
+      ==I;
+      S #s_Decision_Data.Itm_Data.Process_1.EDS_Decision.Cleared_Operator;
+      JC MB10;
+
+      L 13;// 13=obvious threat
+      L #s_Decision_Data.Itm_Data.Process_1.EDS_Decision.Decision_Bag_Disposition;
+      ==I;
+      S #s_Decision_Data.Itm_Data.Process_1.EDS_Decision.Obvious_Threat;
+      JC MB10;
+
+      L 6;// 6=Machine bag spacing error
+      L #s_Decision_Data.Itm_Data.Process_1.EDS_Decision.Decision_Bag_Disposition;
+      ==I;
+      S #s_Decision_Data.Itm_Data.Process_1.EDS_Decision.Spacing_Error;
+      JC MB10;
+
+      L 7;// 7=Forced Reject
+      L #s_Decision_Data.Itm_Data.Process_1.EDS_Decision.Decision_Bag_Disposition;
+      ==I;
+      S #s_Decision_Data.Itm_Data.Process_1.EDS_Decision.Forced_Reject;
+      JC MB10;
+
+      SET;// all other result are unknown
+      S #s_Decision_Data.Itm_Data.Process_1.EDS_Decision.Not_Analyzed;
+
+MB10:      AN #s_Decision_Data.No_Decision_Expected;
+      JCN MB98;
+
+      AN #s_Decision_Data.Valid_LNK_Available;
+      JCN MB11;// Item already found, no data reload needed
+
+      A(;
+      L #s_Decision_Data.Itm_Data.LNK;
+      L 0;
+      >I;
+      );
+      JCN MB12;// If LNK is unknown by EDS, start lookup on pseudo ID
+
+      L #s_Decision_Data.Itm_Data.PEN_ID;
+      L "DB_PEN_List".Entries_Present;
+      <=I;
+      JCN MB98;// If LNK is not in expected range: Abort data attachment
+
+      L "DB_Pending_Record".THIS[#s_Decision_Data.Itm_Data.PEN_ID].PEN_LNK;
+      L 0;
+      ==I;
+      S #s_Decision_Data.No_Decision_Expected;
+
+      AN #s_Decision_Data.No_Decision_Expected;
+      JCN MB98;// No HBS record = no screening result expected
+
+      L "DB_Pending_Record".THIS[#s_Decision_Data.Itm_Data.PEN_ID].PEN.LNK;
+      L 0;
+      >I;
+      JCN MB11;
+
+      CALL "FC_Read_ANY_Record"// Read entire LNK record
+      (  i_Record_Number             := #s_Decision_Data.Itm_Data.LNK , 
+         i_ANY_Data_Record           := "DB_UDT_LNK_Record" , 
+         i_ANY_Data                  := #s_Decision_Data.Itm_Data.LNK_Record , 
+         i_DB                        := "DB_LNK_List" , 
+         i_DB_Event_Num              := #t_DB_Event_Num_Object
+      );
+
+MB11:      L #s_Decision_Data.Itm_Data.Pseudo;
+      L "DB_Pending_Record".THIS[#s_Decision_Data.Itm_Data.PEN_ID].PEN.PEN_Process_1.Screen_Result.Pseudo_ID;
+      ==D;
+      JCN MB12;
+
+      L #s_Decision_Data.Itm_Data.PEN_ID;
+      L 0;
+      >I;
+      JCN MB12;
+
+      L "DB_Pending_Record".THIS[#s_Decision_Data.Itm_Data.PEN_ID].PEN.PEN_Process_1.ID_Screening;
+      L #i_HBO_ID;
+      ==D;
+      S #s_Decision_Data.Valid_LNK_Available;
+      R #s_Decision_Data.Itm_Data.Process_1.No_Decision_Expected;
+
+      JU MB98;
+
+MB12:      A #s_Decision_Data.Valid_LNK_Available;
+      JC MB98;
+
+      A #s_Decision_Data.Itm_Data.Process_1.No_Decision_Expected;
+      JC MB99;
+
+      SET;
+      S #s_Decision_Data.Inval_LNK_Pseudo_Lookup;
+
+      L DINT#0;
+      L #s_Decision_Data.Itm_Data.Pseudo;
+      <>D;
+      JCN MB98;// If no pseudo available: End bag lookup, else: lookup bag by pseudo
+
+      CALL "FC_PEN_Srch_ID"
+      (  i_Pseudo_ID                 := #s_Decision_Data.Itm_Data.Pseudo , 
+         o_PEN_ID                    := #s_Decision_Data.Itm_Data.PEN_ID
+      );
+
+      L #s_Decision_Data.Itm_Data.PEN_ID;
+      L 0;
+      >I;
+      JCN MB99;
+
+MB50:      AN #s_Decision_Data.Valid_LNK_Available;
+      JCN MB98;// If correct LNK not found yet, try next pseudo
+
+MB98:      A #s_Decision_Data.Itm_Data.Process_1.No_Decision_Expected;
+      O #s_Decision_Data.No_Decision_Expected;
+      AN #s_Decision_Data.Itm_Data.Process_1.EDS_Decision.No_Decision;
+      AN #s_Decision_Data.Itm_Data.Process_1.EDS_Decision.Forced_Reject;// We already know the item is no longer present
+      AN #s_Decision_Data.Itm_Data.Process_1.EDS_Decision.Not_Analyzed;//With LIC=0 EDS responds Not Analyzed
+      JCN MB99;// Unable to find applicable item or item is not pending while decision is present: log event
+
+      CALL "FC_Write_Event"// Screening: Unexpected decision from EDS
+      (  i_Message_ID                := 3213 , 
+         i_Event_value               := #s_ISD_ID_Decision.BagIDArray.LNK , 
+         i_DB_Event_Num              := #t_DB_Event_Num_Object , 
+         o_Return_Value              := #t_INT_not_used
+      );
+
+MB99:      NOP 0;
+NETWORK
+TITLE = NA: Upd. PROCESS_1 records (HBS/LIC) upon decision + PackageRep
+//Update local bag records to match received decisions
+      A #s_OS_New_Decision_Avail;
+      A #s_Decision_Data.Valid_LNK_Available;
+      JCN NA99;
+
+      AN #s_Decision_Data.Itm_Data.Process_1.No_Decision_Expected;
+      JCN NA99;// If no HBS record available: stop receival, else: process
+
+      CALL MOVE
+      {value_type := 'Variant'}
+      (  IN                          := "DB_Pending_Record".THIS[#s_Decision_Data.Itm_Data.PEN_ID].PEN , 
+         OUT                         := #s_Decision_Data.Itm_Data.HBS_Record
+      );
+
+      AN #s_Decision_Data.Itm_Data.HBS_Record.PEN_Process_1.Result_Pending;
+      O #s_Decision_Data.Itm_Data.HBS_Record.PEN_General.Item_Lost;
+      O(;
+      L #s_Decision_Data.Itm_Data.HBS_Record.PEN_General.HBA_LNK;
+      L #s_Decision_Data.Itm_Data.LNK;
+      <>I;
+      );
+      S #s_Decision_Data.Itm_Data.Process_1.No_Decision_Expected;// No decision expected concluded by HBS record content
+
+      L "DB_Pending_Record".THIS[#s_Decision_Data.Itm_Data.PEN_ID].PEN.LNK;
+      L 0;
+      ==I;
+      S #s_Decision_Data.LIC_Missing;
+
+      A #s_Decision_Data.Itm_Data.Process_1.No_Decision_Expected;
+      O #s_Decision_Data.Itm_Data.Process_1.EDS_Decision.No_Decision;
+      JC NA23               ;// If process 1 decision expected and present: process, else: make sure PackageReport DB is empty
+
+      A #s_Decision_Data.Itm_Data.Process_1.EDS_Decision.Cleared_Machine;
+      AN #s_Decision_Data.Itm_Data.HBS_Record.PEN_Process_1.Machine_Result_Rcvd;
+      JCN NA01;
+      S #s_Decision_Data.Itm_Data.HBS_Record.PEN_General.Bag_Status.Cleared;
+      R #s_Decision_Data.Itm_Data.HBS_Record.PEN_General.Bag_Status.Alarmed;
+
+      L 1;// Update screening status : "CLEAR"
+      T #s_Decision_Data.Itm_Data.Process_1.Machine_Result_To_HL;
+
+      SET;
+      S #s_Decision_Data.Itm_Data.HBS_Record.PEN_Process_1.Screen_Result.Reached_Screen_Level_1;
+
+      JU NA20;
+NA01:      A #s_Decision_Data.Itm_Data.Process_1.EDS_Decision.Rejected_Machine;
+      AN #s_Decision_Data.Itm_Data.HBS_Record.PEN_Process_1.Machine_Result_Rcvd;
+      JCN NA02;
+      S #s_Decision_Data.Itm_Data.HBS_Record.PEN_General.Bag_Status.Alarmed;
+      R #s_Decision_Data.Itm_Data.HBS_Record.PEN_General.Bag_Status.Cleared;
+
+      L 2;// Update screening status : "REJECT"
+      T #s_Decision_Data.Itm_Data.Process_1.Machine_Result_To_HL;
+
+      SET;
+      S #s_Decision_Data.Itm_Data.HBS_Record.PEN_Process_1.Screen_Result.Failed_Screen_Level_1;
+
+      JU NA20;
+
+NA02:      A #s_Decision_Data.Itm_Data.Process_1.EDS_Decision.Not_Analyzed;
+      JCN NA04;
+
+      A #s_Decision_Data.Itm_Data.HBS_Record.PEN_General.Bag_Status.NoDecision;
+      JCN NA03;
+      S #s_Decision_Data.Itm_Data.HBS_Record.PEN_General.Bag_Status.Alarmed;
+      R #s_Decision_Data.Itm_Data.HBS_Record.PEN_General.Bag_Status.Cleared;
+
+      L 5;// Suspect
+      T #s_Decision_Data.Itm_Data.Process_1.Machine_Result_To_HL;
+
+      SET;
+      S #s_Decision_Data.Itm_Data.HBS_Record.PEN_Process_1.Screen_Result.Failed_Screen_Level_1;
+
+      JU NA20;
+
+NA03:      L 5;
+      T #s_Decision_Data.Itm_Data.Process_1.Machine_Result_To_HL;
+
+      SET;
+      S #s_Decision_Data.Itm_Data.HBS_Record.PEN_General.Bag_Status.Unknown;
+//      L     4                    // Not screened/Not Analyzed
+//      T     #s_Decision_Data.Itm_Data.HBS_Record.PEN_General.Bag_Status
+
+      JU NA20;
+
+NA04:      A #s_Decision_Data.Itm_Data.Process_1.EDS_Decision.Spacing_Error;
+      JCN NA06;
+
+// Check current bag status for result
+      A #s_Decision_Data.Itm_Data.HBS_Record.PEN_General.Bag_Status.NoDecision;
+      JCN NA05;
+      S #s_Decision_Data.Itm_Data.HBS_Record.PEN_General.Bag_Status.Alarmed;
+      R #s_Decision_Data.Itm_Data.HBS_Record.PEN_General.Bag_Status.Cleared;
+
+      L 6;
+      T #s_Decision_Data.Itm_Data.Process_1.Machine_Result_To_HL;
+
+      SET;
+      S #s_Decision_Data.Itm_Data.HBS_Record.PEN_Process_1.Screen_Result.Failed_Screen_Level_1;
+
+      JU NA20;
+
+NA05:      L 5;
+      T #s_Decision_Data.Itm_Data.Process_1.Machine_Result_To_HL;
+
+      SET;
+      S #s_Decision_Data.Itm_Data.HBS_Record.PEN_General.Bag_Status.Unknown;
+//      L     4                    // Not screened/Not Analyzed
+//      T     #s_Decision_Data.Itm_Data.HBS_Record.PEN_General.Bag_Status
+
+      JU NA20;
+
+NA06:      A #s_Decision_Data.Itm_Data.Process_1.EDS_Decision.Cleared_Operator;// Evaluate L2 (operator) decision
+      AN #s_Decision_Data.Itm_Data.HBS_Record.PEN_Process_1.Operator_Result_Rcvd;
+      JCN NA07;// L2 clear
+      S #s_Decision_Data.Itm_Data.HBS_Record.PEN_General.Bag_Status.Cleared;
+      R #s_Decision_Data.Itm_Data.HBS_Record.PEN_General.Bag_Status.Alarmed;
+
+      L 1;// Update screening status : "CLEAR"
+      T #s_Decision_Data.Itm_Data.Process_1.Operator_Result_To_HL;
+
+      SET;
+      S #s_Decision_Data.Itm_Data.HBS_Record.PEN_Process_1.Screen_Result.Reached_Screen_Level_2;
+
+      JU NA20;
+
+NA07:      A #s_Decision_Data.Itm_Data.Process_1.EDS_Decision.Rejected_Operator;// L2 fail
+      AN #s_Decision_Data.Itm_Data.HBS_Record.PEN_Process_1.Operator_Result_Rcvd;
+      JCN NA08;
+      S #s_Decision_Data.Itm_Data.HBS_Record.PEN_General.Bag_Status.Alarmed;
+      R #s_Decision_Data.Itm_Data.HBS_Record.PEN_General.Bag_Status.Cleared;
+
+      L 6;// Update screening status : "UNCLEARED"
+      T #s_Decision_Data.Itm_Data.Process_1.Operator_Result_To_HL;
+
+      SET;
+      S #s_Decision_Data.Itm_Data.HBS_Record.PEN_Process_1.Screen_Result.Failed_Screen_Level_2;
+
+      JU NA20;
+
+NA08:      A #s_Decision_Data.Itm_Data.Process_1.EDS_Decision.Timed_Out_Operator;
+      AN #s_Decision_Data.Itm_Data.HBS_Record.PEN_Process_1.Operator_Result_Rcvd;
+      JCN NA09;
+      S #s_Decision_Data.Itm_Data.HBS_Record.PEN_General.Bag_Status.TimeOut;
+
+      L 4;
+      T #s_Decision_Data.Itm_Data.Process_1.Operator_Result_To_HL;
+
+      JU NA20;
+
+NA09:      A #s_Decision_Data.Itm_Data.Process_1.EDS_Decision.Pending;
+      JCN NA10;// Pending = L1 unclear
+      S #s_Decision_Data.Itm_Data.HBS_Record.PEN_General.Bag_Status.Pending;
+
+      L 6;// Update screening status : "UNCLEARED"
+      T #s_Decision_Data.Itm_Data.Process_1.Machine_Result_To_HL;
+
+      SET;
+      S #s_Decision_Data.Itm_Data.HBS_Record.PEN_Process_1.Screen_Result.Failed_Screen_Level_1;
+
+      JU NA20;
+
+NA10:      A #s_Decision_Data.Itm_Data.Process_1.EDS_Decision.Obvious_Threat;
+      AN #s_Decision_Data.Itm_Data.HBS_Record.PEN_Process_1.Operator_Result_Rcvd;
+      JCN NA11;// Obvious threat
+      S #s_Decision_Data.Itm_Data.HBS_Record.PEN_General.Bag_Status.Alarmed;
+      R #s_Decision_Data.Itm_Data.HBS_Record.PEN_General.Bag_Status.Cleared;
+
+      L 6;
+      T #s_Decision_Data.Itm_Data.Process_1.Operator_Result_To_HL;
+
+      SET;
+      S #s_Decision_Data.Itm_Data.HBS_Record.PEN_Process_1.Screen_Result.Failed_Screen_Level_2;
+
+      JU NA20;
+
+NA11:      A #s_Decision_Data.Itm_Data.Process_1.EDS_Decision.Forced_Reject;
+      JCN NA20;// No record updates, only log message
+
+      CALL "FC_Write_Event"// Log: Screening: Force reject on item
+      (  i_Message_ID                := 3813 , 
+         i_Event_value               := #s_ISD_ID_Decision.BagIDArray.LNK , 
+         i_DB_Event_Num              := #t_DB_Event_Num_Object , 
+         o_Return_Value              := #t_INT_not_used
+      );
+
+      JU NA99;
+
+NA20:      A #s_Decision_Data.Itm_Data.Process_1.EDS_Decision.Cleared_Machine;
+      O #s_Decision_Data.Itm_Data.Process_1.EDS_Decision.Rejected_Machine;
+      O #s_Decision_Data.Itm_Data.Process_1.EDS_Decision.Not_Analyzed;
+      O #s_Decision_Data.Itm_Data.Process_1.EDS_Decision.Spacing_Error;
+      O #s_Decision_Data.Itm_Data.Process_1.EDS_Decision.Cleared_Operator;
+      O #s_Decision_Data.Itm_Data.Process_1.EDS_Decision.Rejected_Operator;
+      O #s_Decision_Data.Itm_Data.Process_1.EDS_Decision.Timed_Out_Operator;
+      O #s_Decision_Data.Itm_Data.Process_1.EDS_Decision.Pending;
+      O #s_Decision_Data.Itm_Data.Process_1.EDS_Decision.Obvious_Threat;
+      JCN NA99;// In case of new data: Update HBS, LIC and send PackageReport
+
+      CALL MOVE
+      {value_type := 'Variant'}
+      (  IN                          := #s_Decision_Data.Itm_Data.HBS_Record.PEN_Process_1.Screen_Result , 
+         OUT                         := "DB_Pending_Record".THIS[#s_Decision_Data.Itm_Data.PEN_ID].PEN.PEN_Process_1.Screen_Result
+      );
+
+      CALL MOVE
+      {value_type := 'Variant'}
+      (  IN                          := #s_Decision_Data.Itm_Data.HBS_Record.PEN_General.Bag_Status , 
+         OUT                         := "DB_Pending_Record".THIS[#s_Decision_Data.Itm_Data.PEN_ID].PEN.PEN_General.Bag_Status
+      );
+
+      L 0;
+      L #s_Decision_Data.Itm_Data.LNK_Record.HBS;
+      <I;
+      L "DB_HBS_List".Entries_Present;
+      <I;
+      JCN NA21;
+
+      CALL MOVE
+      {value_type := 'Variant'}
+      (  IN                          := #s_Decision_Data.Itm_Data.HBS_Record.PEN_General.Bag_Status , 
+         OUT                         := "DB_HBS_List".HBS[#s_Decision_Data.Itm_Data.LNK_Record.HBS].PEN_General.Bag_Status
+      );
+
+NA21:      A #s_Decision_Data.Itm_Data.HBS_Record.PEN_Process_1.Update_Send;
+      JCN NA22               ;// Enable sending of new data if required
+      R #s_Decision_Data.Itm_Data.HBS_Record.PEN_Process_1.Update_Send;
+      R "DB_Pending_Record".THIS[#s_Decision_Data.Itm_Data.PEN_ID].PEN.PEN_Process_1.Update_Send;
+
+NA22:      CALL "FC_Write_Event"   // Screening pending: Update request from HBO
+      (  i_Message_ID                := 3814 , 
+         i_Event_value               := #s_Decision_Data.Itm_Data.LNK , 
+         i_DB_Event_Num              := #t_DB_Event_Num_Object , 
+         o_Return_Value              := #t_INT_not_used
+      );
+
+      AN #s_Decision_Data.LIC_Missing;
+      JCN NA23;
+
+      CALL "FC_Write_ANY_Record"
+      (  i_Record_Number             := #s_Decision_Data.Itm_Data.LNK_Record.LIC , 
+         i_ANY_Data_Record           := "DB_UDT_LIC_Record".BIR.Process_1 , 
+         i_ANY_Data                  := #s_Decision_Data.Itm_Data.HBS_Record.PEN_Process_1.Screen_Result , 
+         i_DB                        := "DB_LIC_List" , 
+         i_DB_Event_Num              := #t_DB_Event_Num_Object
+      );
+
+      CALL MOVE
+      {value_type := 'Variant'}
+      (  IN                          := #s_Decision_Data.Itm_Data.HBS_Record.PEN_General.Bag_Status , 
+         OUT                         := "DB_LIC_List".LIC[#s_Decision_Data.Itm_Data.LNK_Record.LIC].BIR.Bag_Status
+      );
+
+      CALL MOVE
+      {value_type := 'Variant'}
+      (  IN                          := #s_Decision_Data.Itm_Data.HBS_Record.PEN_Process_1.Screen_Result , 
+         OUT                         := "DB_Pending_Record".THIS[#s_Decision_Data.Itm_Data.PEN_ID].PEN.PEN_Process_1.Screen_Result
+      );
+
+      CALL MOVE
+      {value_type := 'Variant'}
+      (  IN                          := #s_Decision_Data.Itm_Data.HBS_Record.PEN_General.Bag_Status , 
+         OUT                         := "DB_Pending_Record".THIS[#s_Decision_Data.Itm_Data.PEN_ID].PEN.PEN_General.Bag_Status
+      );
+
+NA23:      L #s_Decision_Data.Itm_Data.Process_1.Machine_Result_To_HL;
+      L 0;
+      >I;
+      S #s_Decision_Data.Send_Package_Report;
+      R #s_Decision_Data.Package_Report_Sent;
+      JCN NA24;
+      S "DB_Pending_Record".THIS[#s_Decision_Data.Itm_Data.PEN_ID].PEN.PEN_Process_1.Machine_Result_Rcvd;
+
+      A #s_Decision_Data.Itm_Data.Process_1.EDS_Decision.Not_Analyzed;
+      O(;
+      A #s_Decision_Data.Itm_Data.Process_1.EDS_Decision.Cleared_Machine;
+      AN #s_Decision_Data.Itm_Data.HBS_Record.PEN_Process_1.Screen_Result.Required_Screen_Level_2;
+      );
+      O #s_Decision_Data.Itm_Data.Process_1.EDS_Decision.Spacing_Error;
+      O #s_Decision_Data.Itm_Data.Process_1.EDS_Decision.Forced_Reject;
+      JCN NA24;
+      R "DB_Pending_Record".THIS[#s_Decision_Data.Itm_Data.PEN_ID].PEN.PEN_Process_1.Result_Pending;
+
+      L #s_Decision_Data.Itm_Data.LNK;
+      L 11000;// Bit 11 Process End
+      +I;
+      T #t_Scn_Event;
+
+      CALL "FC_Write_Event"
+      (  i_Message_ID                := 2610 , 
+         i_Event_value               := #t_Scn_Event , 
+         i_DB_Event_Num              := #t_DB_Event_Num_Object , 
+         o_Return_Value              := #t_INT_not_used
+      );
+
+NA24:      L #s_Decision_Data.Itm_Data.Process_1.Operator_Result_To_HL;
+      L 0;
+      >I;
+      S #s_Decision_Data.Send_Package_Report;
+      R #s_Decision_Data.Package_Report_Sent;
+      JCN NA25;
+      S "DB_Pending_Record".THIS[#s_Decision_Data.Itm_Data.PEN_ID].PEN.PEN_Process_1.Operator_Result_Rcvd;
+      R "DB_Pending_Record".THIS[#s_Decision_Data.Itm_Data.PEN_ID].PEN.PEN_Process_1.Result_Pending;
+
+NA25:      A #s_Decision_Data.Send_Package_Report;
+      AN #s_Decision_Data.Package_Report_Sent;
+      JCN NA99;
+
+      OPN "DB_Send_FIFO";
+      L DBNO;
+      T #t_INT_not_used;
+
+      CALL MOVE
+      {value_type := 'Variant'}
+      (  IN                          := #s_Decision_Data.Itm_Data.HBS_Record.PEN_General.Bag_Status , 
+         OUT                         := "DB_Pending_Record".THIS[#s_Decision_Data.Itm_Data.PEN_ID].PEN.PEN_General.Bag_Status
+      );
+
+      L "DB_Pending_Record".THIS[#t_PEN_ID].PEN.PEN_General.TRA_LNK;
+      L 0;
+      <>I;
+      JCN NA26;
+
+      CALL "FC_Crt_PendingUpd"
+      (  i_ID                        := #i_HBO_ID , 
+         i_Data                      := #s_Decision_Data.Itm_Data.PEN_ID , 
+         i_TRA_LNK                   := "DB_Pending_Record".THIS[#t_PEN_ID].PEN.PEN_General.TRA_LNK , 
+         i_FIFO_PLC_DB_num           := #t_INT_not_used , 
+         i_DB_Event_Num              := #t_DB_Event_Num_Object , 
+         i_Mess_Type                 := 1
+      );
+
+NA26:      AN #s_Decision_Data.LIC_Missing;
+      JCN NA97;
+
+      L #s_Decision_Data.Itm_Data.LNK_Record.HBS;
+      L 0;
+      >I;
+      JCN NA97;
+
+      CALL MOVE
+      {value_type := 'Variant'}
+      (  IN                          := "DB_Pending_Record".THIS[#s_Decision_Data.Itm_Data.PEN_ID].PEN.PEN_General.Bag_Status , 
+         OUT                         := "DB_HBS_List".HBS[#s_Decision_Data.Itm_Data.LNK_Record.HBS].PEN_General.Bag_Status
+      );
+
+      CALL MOVE
+      {value_type := 'Variant'}
+      (  IN                          := "DB_Pending_Record".THIS[#s_Decision_Data.Itm_Data.PEN_ID].PEN.PEN_Process_1 , 
+         OUT                         := "DB_HBS_List".HBS[#s_Decision_Data.Itm_Data.LNK_Record.HBS].PEN_Process_1
+      );
+
+      CALL "FC_Write_ANY_Record"
+      (  i_Record_Number             := #s_Decision_Data.Itm_Data.LNK_Record.LIC , 
+         i_ANY_Data_Record           := "DB_UDT_LIC_Record".BIR.Process_1 , 
+         i_ANY_Data                  := #s_Decision_Data.Itm_Data.HBS_Record.PEN_Process_1.Screen_Result , 
+         i_DB                        := "DB_LIC_List" , 
+         i_DB_Event_Num              := #t_DB_Event_Num_Object
+      );
+
+      CALL "FC_Write_Event"
+      (  i_Message_ID                := 1210 , // Send PackageReport: Screening Result
+         i_Event_value               := #s_Decision_Data.Itm_Data.LNK , 
+         i_DB_Event_Num              := #t_DB_Event_Num_Object , 
+         o_Return_Value              := #t_INT_not_used
+      );
+
+      JU NA98;
+
+NA97:      CALL "FC_Crt_PackScrnPen"
+      (  i_ID                        := #i_HBO_ID , 
+         i_PEN_ID                    := #s_Decision_Data.Itm_Data.PEN_ID , 
+         i_FIFO_PLC_DB_num           := #t_INT_not_used , 
+         i_DB_Event_Num              := #t_DB_Event_Num_Object
+      );
+
+NA98:      SET;
+      S #s_Decision_Data.Package_Report_Sent;
+
+NA99:      NOP 0;
+NETWORK
+TITLE = OA: Update PROCESS_1 statisticals upon decision or timeout
+
+      A #s_OS_New_Decision_Avail;
+      AN #i_Test_Mode_Active;// Don't update machine decision statisticals in test mode
+      JCN OA99;
+
+      A #s_Decision_Data.Itm_Data.Process_1.EDS_Decision.Cleared_Machine;
+      JCN OA02;
+
+      L #s_Statisticals.R1.Count_Cleared;
+      L 1;
+      +I;
+      JP OA01;
+      L 1;
+OA01:      T #s_Statisticals.R1.Count_Cleared;
+
+      JU OA99;
+
+OA02:      A #s_Decision_Data.Itm_Data.Process_1.EDS_Decision.Rejected_Machine;
+      JCN OA04;
+
+      L #s_Statisticals.R1.Count_Rejected;
+      L 1;
+      +I;
+      JP OA03;
+      L 1;
+OA03:      T #s_Statisticals.R1.Count_Rejected;
+
+      JU OA99;
+
+OA04:      A #s_Decision_Data.Itm_Data.Process_1.EDS_Decision.Not_Analyzed;
+      JCN OA06;
+
+      L #s_Statisticals.R1.Count_NotAnalyzed;
+      L 1;
+      +I;
+      JP OA05;
+      L 1;
+OA05:      T #s_Statisticals.R1.Count_NotAnalyzed;
+
+      JU OA99;
+
+OA06:      A #s_Decision_Data.Itm_Data.Process_1.EDS_Decision.Cleared_Operator;// Evaluate L2 (operator) decision
+      JCN OA08;// L2 clear
+
+      L #s_Statisticals.R2.Count_Cleared;
+      L 1;
+      +I;
+      JP OA07;
+      L 1;
+OA07:      T #s_Statisticals.R2.Count_Cleared;
+
+      JU OA99;
+
+OA08:      A #s_Decision_Data.Itm_Data.Process_1.EDS_Decision.Rejected_Operator;// L2 fail
+      JCN OA10;
+
+      L #s_Statisticals.R2.Count_Rejected;
+      L 1;
+      +I;
+      JP OA09;
+      L 1;
+OA09:      T #s_Statisticals.R2.Count_Rejected;
+
+      JU OA99;
+
+OA10:      A #s_Decision_Data.Itm_Data.Process_1.EDS_Decision.Timed_Out_Operator;
+      JCN OA12;
+
+      L #s_Statisticals.R2.Count_TimeOut;
+      L 1;
+      +I;
+      JP OA11;
+      L 1;
+OA11:      T #s_Statisticals.R2.Count_TimeOut;
+
+      JU OA99;
+
+OA12:      A #s_Decision_Data.Itm_Data.Process_1.EDS_Decision.Obvious_Threat;
+      JCN OA99;
+
+      L #s_Statisticals.R2.Count_Obvious_Threat;
+      L 1;
+      +I;
+      JP OA13;
+      L 1;
+OA13:      T #s_Statisticals.R2.Count_Obvious_Threat;
+
+OA99:      NOP 0;
+NETWORK
+TITLE = PA: Force reject
+//When a bag decision is pending while it's no longer required. The bag will be 
+//force rejected
+      CALL #s_FB_HBS_Force_Reject
+      (  i_ID                        := #i_HBO_ID , 
+         i_Forced_Reject_Ack         := #i_IO_Forced_Reject_Ack , 
+         o_Force_Reject              := #o_IO_Force_Reject , 
+         o_Pseudo_Code_ForceRej      := #o_IO_Pseud_Code_ForceRej
+      );
+
+      A #o_IO_Force_Reject;
+      FP #s_FP_Force_Reject;
+      JCN PA99;
+
+      L #s_Statisticals.Force_Rejected;
+      L 1;
+      +I;
+      JP PA01;
+      L 1;
+PA01:      T #s_Statisticals.Force_Rejected;
+
+PA99:      NOP 0;
+NETWORK
+TITLE = QA: Send and clear statisticals
+
+      A #i_CMD_Send_Stat;
+      JCN QA99;
+
+      CALL "FC_Write_Event"
+      (  i_Message_ID                := 2001 , 
+         i_Event_value               := #s_Statisticals.Bags_Handed_Over , 
+         i_DB_Event_Num              := #t_DB_Event_Num_Object , 
+         o_Return_Value              := #t_INT_not_used
+      );
+
+      CALL "FC_Write_Event"
+      (  i_Message_ID                := 2002 , 
+         i_Event_value               := #s_Statisticals.Tracking.Positively_Tracked , 
+         i_DB_Event_Num              := #t_DB_Event_Num_Object , 
+         o_Return_Value              := #t_INT_not_used
+      );
+
+      CALL "FC_Write_Event"
+      (  i_Message_ID                := 2003 , 
+         i_Event_value               := #s_Statisticals.Tracking.Trk_Lost_Result_Pending , 
+         i_DB_Event_Num              := #t_DB_Event_Num_Object , 
+         o_Return_Value              := #t_INT_not_used
+      );
+
+      CALL "FC_Write_Event"
+      (  i_Message_ID                := 2004 , 
+         i_Event_value               := #s_Statisticals.Tracking.Trk_Lost_No_Result , 
+         i_DB_Event_Num              := #t_DB_Event_Num_Object , 
+         o_Return_Value              := #t_INT_not_used
+      );
+
+      CALL "FC_Write_Event"
+      (  i_Message_ID                := 2005 , 
+         i_Event_value               := #s_Statisticals.Tracking.Spacing_Error , 
+         i_DB_Event_Num              := #t_DB_Event_Num_Object , 
+         o_Return_Value              := #t_INT_not_used
+      );
+
+      CALL "FC_Write_Event"
+      (  i_Message_ID                := 2006 , 
+         i_Event_value               := #s_Statisticals.R1.No_Decision_Required , 
+         i_DB_Event_Num              := #t_DB_Event_Num_Object , 
+         o_Return_Value              := #t_INT_not_used
+      );
+
+      CALL "FC_Write_Event"
+      (  i_Message_ID                := 2007 , 
+         i_Event_value               := #s_Statisticals.R1.Count_Cleared , 
+         i_DB_Event_Num              := #t_DB_Event_Num_Object , 
+         o_Return_Value              := #t_INT_not_used
+      );
+
+      CALL "FC_Write_Event"
+      (  i_Message_ID                := 2008 , 
+         i_Event_value               := #s_Statisticals.R1.Count_Rejected , 
+         i_DB_Event_Num              := #t_DB_Event_Num_Object , 
+         o_Return_Value              := #t_INT_not_used
+      );
+
+      CALL "FC_Write_Event"
+      (  i_Message_ID                := 2009 , 
+         i_Event_value               := #s_Statisticals.R2.Count_Cleared , 
+         i_DB_Event_Num              := #t_DB_Event_Num_Object , 
+         o_Return_Value              := #t_INT_not_used
+      );
+
+      CALL "FC_Write_Event"
+      (  i_Message_ID                := 2010 , 
+         i_Event_value               := #s_Statisticals.R2.Count_Rejected , 
+         i_DB_Event_Num              := #t_DB_Event_Num_Object , 
+         o_Return_Value              := #t_INT_not_used
+      );
+
+      CALL "FC_Write_Event"
+      (  i_Message_ID                := 2011 , 
+         i_Event_value               := #s_Statisticals.R2.Count_Obvious_Threat , 
+         i_DB_Event_Num              := #t_DB_Event_Num_Object , 
+         o_Return_Value              := #t_INT_not_used
+      );
+
+      CALL "FC_Write_Event"
+      (  i_Message_ID                := 2012 , 
+         i_Event_value               := #s_Statisticals.R2.Count_TimeOut , 
+         i_DB_Event_Num              := #t_DB_Event_Num_Object , 
+         o_Return_Value              := #t_INT_not_used
+      );
+
+      CALL "FC_Write_Event"
+      (  i_Message_ID                := 2013 , 
+         i_Event_value               := #s_Statisticals.R1.Count_NotAnalyzed , 
+         i_DB_Event_Num              := #t_DB_Event_Num_Object , 
+         o_Return_Value              := #t_INT_not_used
+      );
+
+      CALL "FC_Write_Event"
+      (  i_Message_ID                := 2014 , 
+         i_Event_value               := #s_Statisticals.Force_Rejected , 
+         i_DB_Event_Num              := #t_DB_Event_Num_Object , 
+         o_Return_Value              := #t_INT_not_used
+      );
+
+QA99:      NOP 0;
+NETWORK
+TITLE = RA: Date/Time Master Clock Designator
+
+      CLR;// MV3D is master clock
+      = #o_IO_MasterClkDesignator;// No need to send BHS clock
+
+      L #i_IO_Time_Sync_Sec;// Seconds [00..59]
+      T #o_IO_Time_Sync_Sec;
+
+      L #i_IO_Time_Sync_Min;// Minutes [00..59]
+      T #o_IO_Time_Sync_Min;
+
+      L #i_IO_Time_Sync_Hour;// Time_hours [01..24]
+      T #o_IO_Time_Sync_Hour;
+
+      L #i_IO_Time_Sync_Day;// Day of month [1..31]
+      T #o_IO_Time_Sync_Day;
+
+      L #i_IO_Time_Sync_Month;// Month [1..31]
+      T #o_IO_Time_Sync_Month;
+
+      L #i_IO_Time_Sync_Year;// Year  [0..99]
+      T #o_IO_Time_Sync_Year;
+
+NETWORK
+TITLE = SA: Object/Section states
+
+      A #i_CMD_Start;
+      R #s_HBO_Restart_Required;
+
+      AN #i_Eqp_Operational_On;
+      O #o_ST_Succ_Unexp_Data;
+      O #o_ST_Succ_No_Data;
+      S #s_HBO_Restart_Required;
+
+      A #s_HBO_Restart_Required;
+      A #i_Eqp_Operational_On;
+      A #i_CMD_Enable;
+      AN #o_ST_Succ_Unexp_Data;
+      AN #o_ST_Succ_No_Data;
+      = #o_ST_WN_Restart;
+
+      A #s_HBO_Restart_Required;
+      = #o_Req_Halt_TRS;
+
+      AN #s_HBO_Restart_Required;
+      A #i_CMD_Enable;
+      = #o_ST_Started;
+NETWORK
+TITLE = TA: Copy BHS_ID.BAGIDARRAY (Data) to output
+//BHS_ID = BagIDArray + BagIDUpdate
+      TAR2 #t_AR2_Store_Restore;// AR2 Store
+
+      L P##i_IO_BHS_ID;// 'area-crossing pointer'
+      L #t_Base_Address;// 'relative address'-mask
+      +D;
+      LAR1;// 'absolute address' Source
+      LAR2 P##t_IO_BHS_ID;//  address Destination
+
+      L W[ AR1, P#0.0];// Copy ANY pointer
+      T LW[ AR2, P#0.0];// Byte0=$10 (for S7), Byte1=data type
+      L W[ AR1, P#2.0];
+      T LW[ AR2, P#2.0];// Byte2..3=Repetition factor
+      L W[ AR1, P#4.0];
+      T LW[ AR2, P#4.0];// Byte4..5=DB number
+      L D[ AR1, P#6.0];
+      T LD[ AR2, P#6.0];// Byte6=memory area, Byte7..9=Byte,Bit address
+
+      LAR2 #t_AR2_Store_Restore;// AR2 Restore
+
+      CALL BLKMOV
+      {blk_type := 'Variant'}
+      (  SRCBLK                      := #s_BHS_ID , 
+         RET_VAL                     := #t_INT_not_used , 
+         DSTBLK                      := #t_IO_BHS_ID
+      );
+
+NETWORK
+TITLE = UA: Log (1:) BHS.Infeed Bag Process to ApplicationLog
+//Log the screening raw data message to the ApplicationLog
+
+      A #o_IO_Inf_Bag_Data_Ready;
+      FP #s_FP_IO_Inf_Bag_Data_Ready;
+      JCN UA99;
+
+// Clear temp LogMessage using "DB_Outgoing_Msgs".Logging.MessageBody which cleared after usage
+      CALL BLKMOV
+      {blk_type := 'Variant'}
+      (  SRCBLK                      := "DB_Outgoing_Msgs".Logging.MessageBody , 
+         RET_VAL                     := #t_INT_not_used , 
+         DSTBLK                      := #t_LogMessage
+      );
+
+// Add Prefix and separator to log message for indication which message is logged
+// '1:' = BHS.Infeed Bag Process
+      L '1';
+      T #t_LogMessage.Prefix;
+      L ':';
+      T #t_LogMessage.Separator;
+
+// Convert raw data to a string of ASCII characters
+      CALL "FC_Any_Hex_To_Any_ASCII"
+      (  i_ANY_Hex_Src               := #s_BHS_ID , 
+         i_ANY_ASCII_Dst             := #t_LogMessage.MessageBody , 
+         i_DB_Event_Num              := #t_DB_Event_Num_Object
+      );
+
+// Load the complete message into Outgoing message buffer
+      CALL BLKMOV
+      {blk_type := 'Variant'}
+      (  SRCBLK                      := #t_LogMessage , 
+         RET_VAL                     := #t_INT_not_used , 
+         DSTBLK                      := "DB_Outgoing_Msgs".Logging.MessageBody
+      );
+
+// Send 2602 ApplicationLog Message
+      CALL "FC_Snd_Log_Txt_Msg"
+      (  i_ID                        := #i_HBO_ID , 
+         i_Event_value               := 1
+      );
+
+UA99:      NOP 0;
+
+NETWORK
+TITLE = UB: Log (2:) EDS.Exit Bag Process to ApplicationLog
+//Log the screening raw data message to the ApplicationLog
+
+      A #i_IO_Receive_Data_Outf;
+      FP #s_FP_IO_Receive_Data_Outf;
+      JCN UB99;
+
+// Clear temp LogMessage using "DB_Outgoing_Msgs".Logging.MessageBody which cleared after usage
+      CALL BLKMOV
+      {blk_type := 'Variant'}
+      (  SRCBLK                      := "DB_Outgoing_Msgs".Logging.MessageBody , 
+         RET_VAL                     := #t_INT_not_used , 
+         DSTBLK                      := #t_LogMessage
+      );
+
+// Add Prefix and separator to log message for indication which message is logged
+// '2:' = EDS.Exit Bag Process
+      L '2';
+      T #t_LogMessage.Prefix;
+      L ':';
+      T #t_LogMessage.Separator;
+
+// Convert raw data to a string of ASCII characters
+      CALL "FC_Any_Hex_To_Any_ASCII"
+      (  i_ANY_Hex_Src               := #s_ISD_ID_Tracking , 
+         i_ANY_ASCII_Dst             := #t_LogMessage.MessageBody , 
+         i_DB_Event_Num              := #t_DB_Event_Num_Object
+      );
+
+// Load the complete message into Outgoing message buffer
+      CALL BLKMOV
+      {blk_type := 'Variant'}
+      (  SRCBLK                      := #t_LogMessage , 
+         RET_VAL                     := #t_INT_not_used , 
+         DSTBLK                      := "DB_Outgoing_Msgs".Logging.MessageBody
+      );
+
+// Send 2602 ApplicationLog Message
+      CALL "FC_Snd_Log_Txt_Msg"
+      (  i_ID                        := #i_HBO_ID , 
+         i_Event_value               := 2
+      );
+
+UB99:      NOP 0;
+
+NETWORK
+TITLE = UC: Log (3:) EDS.Screening Result to ApplicationLog
+//Log the screening raw data message to the ApplicationLog
+
+      A #i_IO_Decision_Available;
+      FP #s_FP_IO_Decision_Available;
+      JCN UC99;
+
+// Clear temp LogMessage using "DB_Outgoing_Msgs".Logging.MessageBody which cleared after usage
+      CALL BLKMOV
+      {blk_type := 'Variant'}
+      (  SRCBLK                      := "DB_Outgoing_Msgs".Logging.MessageBody , 
+         RET_VAL                     := #t_INT_not_used , 
+         DSTBLK                      := #t_LogMessage
+      );
+
+// Add Prefix and separator to log message for indication which message is logged
+// '3:' = EDS.Screening Result
+      L '3';
+      T #t_LogMessage.Prefix;
+      L ':';
+      T #t_LogMessage.Separator;
+
+// Convert raw data to a string of ASCII characters
+      CALL "FC_Any_Hex_To_Any_ASCII"
+      (  i_ANY_Hex_Src               := #s_ISD_ID_Decision , 
+         i_ANY_ASCII_Dst             := #t_LogMessage.MessageBody , 
+         i_DB_Event_Num              := #t_DB_Event_Num_Object
+      );
+
+// Load the complete message into Outgoing message buffer
+      CALL BLKMOV
+      {blk_type := 'Variant'}
+      (  SRCBLK                      := #t_LogMessage , 
+         RET_VAL                     := #t_INT_not_used , 
+         DSTBLK                      := "DB_Outgoing_Msgs".Logging.MessageBody
+      );
+
+// Send 2602 ApplicationLog Message
+      CALL "FC_Snd_Log_Txt_Msg"
+      (  i_ID                        := #i_HBO_ID , 
+         i_Event_value               := 3
+      );
+
+UC99:      NOP 0;
+
+NETWORK
+TITLE = UD: Log (4:) BHS.ForcedReject to ApplicationLog
+//Log the screening raw data message to the ApplicationLog
+
+      A #o_IO_Force_Reject;
+      FP #s_FP_IO_Force_Reject;
+      JCN UD99;
+
+// Clear temp LogMessage using "DB_Outgoing_Msgs".Logging.MessageBody which cleared after usage
+      CALL BLKMOV
+      {blk_type := 'Variant'}
+      (  SRCBLK                      := "DB_Outgoing_Msgs".Logging.MessageBody , 
+         RET_VAL                     := #t_INT_not_used , 
+         DSTBLK                      := #t_LogMessage
+      );
+
+// Add Prefix and separator to log message for indication which message is logged
+// '4:' = BHS.ForcedReject
+      L '4';
+      T #t_LogMessage.Prefix;
+      L ':';
+      T #t_LogMessage.Separator;
+
+// Convert raw data to a string of ASCII characters
+      CALL "FC_Any_Hex_To_Any_ASCII"
+      (  i_ANY_Hex_Src               := #o_IO_Pseud_Code_ForceRej , 
+         i_ANY_ASCII_Dst             := #t_LogMessage.MessageBody , 
+         i_DB_Event_Num              := #t_DB_Event_Num_Object
+      );
+
+// Load the complete message into Outgoing message buffer
+      CALL BLKMOV
+      {blk_type := 'Variant'}
+      (  SRCBLK                      := #t_LogMessage , 
+         RET_VAL                     := #t_INT_not_used , 
+         DSTBLK                      := "DB_Outgoing_Msgs".Logging.MessageBody
+      );
+
+// Send 2602 ApplicationLog Message
+      CALL "FC_Snd_Log_Txt_Msg"
+      (  i_ID                        := #i_HBO_ID , 
+         i_Event_value               := 4
+      );
+
+UD99:      NOP 0;
+
+NETWORK
+TITLE = UE: Log (5:) EDS.ForcedReject to ApplicationLog
+//Log the screening raw data message to the ApplicationLog
+
+      A #i_IO_Forced_Reject_Ack;
+      FP #s_FP_IO_Forced_Reject_Ack;
+      JCN UE99;
+
+// Clear temp LogMessage using "DB_Outgoing_Msgs".Logging.MessageBody which cleared after usage
+      CALL BLKMOV
+      {blk_type := 'Variant'}
+      (  SRCBLK                      := "DB_Outgoing_Msgs".Logging.MessageBody , 
+         RET_VAL                     := #t_INT_not_used , 
+         DSTBLK                      := #t_LogMessage
+      );
+
+// Add Prefix and separator to log message for indication which message is logged
+// '5:' = EDS.ForcedReject
+      L '5';
+      T #t_LogMessage.Prefix;
+      L ':';
+      T #t_LogMessage.Separator;
+
+// Convert raw data to a string of ASCII characters
+      CALL "FC_Any_Hex_To_Any_ASCII"
+      (  i_ANY_Hex_Src               := #s_ISD_ID_Decision , 
+         i_ANY_ASCII_Dst             := #t_LogMessage.MessageBody , 
+         i_DB_Event_Num              := #t_DB_Event_Num_Object
+      );
+
+// Load the complete message into Outgoing message buffer
+      CALL BLKMOV
+      {blk_type := 'Variant'}
+      (  SRCBLK                      := #t_LogMessage , 
+         RET_VAL                     := #t_INT_not_used , 
+         DSTBLK                      := "DB_Outgoing_Msgs".Logging.MessageBody
+      );
+
+// Send 2602 ApplicationLog Message
+      CALL "FC_Snd_Log_Txt_Msg"
+      (  i_ID                        := #i_HBO_ID , 
+         i_Event_value               := 5
+      );
+
+UE99:      NOP 0;
+END_FUNCTION_BLOCK
+
+

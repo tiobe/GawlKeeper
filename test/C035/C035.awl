@@ -80,5 +80,7 @@ NETWORK TITLE = "Violation"
       LAR2;
       A     s_Flag;          
       L     B [AR2,P#1.0];   
+      A     s_Flag;          
+
 
 END_FUNCTION_BLOCK

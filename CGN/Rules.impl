@@ -195,13 +195,16 @@ CheckC035(vars : List(String), NIL : List(Instruction), in_mod : Bool, loc_candi
 }
 
 CheckC035(vars : List(String), instrs : (List(Instruction)), in_mod : Bool, loc_candidates : List(Int))
-conditions ~in_mod & IsModifyingAR2(instrs.head.instruction)
+conditions IsModifyingAR2(instrs.head.instruction)
 { 
+  [ { AddViolation("C035", loc, ["Local variables have been accessed without restoring the contents."]) } 
+  | loc : Int <- loc_candidates 
+  ]
   CheckC035(vars, instrs.tail, TRUE, []) 
 }
 
 CheckC035(vars : List(String), instrs : (List(Instruction)), in_mod : Bool, loc_candidates : List(Int))
-conditions in_mod & IsRestoringAR2(instrs.head.instruction)
+conditions in_mod & IsRestoringAR2(instrs.head)
 {
   [ { AddViolation("C035", loc, ["Symbolic access happened between save and restore."]) } 
   | loc : Int <- loc_candidates 

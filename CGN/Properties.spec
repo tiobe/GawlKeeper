@@ -42,7 +42,7 @@ IsUsingAR1(instr : InstrExpression|NIL): Bool
 
 IsAccessingAR2(locals : List(String), instr : Instruction): Bool
 IsModifyingAR2(instr : InstructionName): Bool
-IsRestoringAR2(instr : InstructionName): Bool
+IsRestoringAR2(instr : Instruction): Bool
 
 IsLoadInstruction(instr: InstructionName): Bool
 IsOutputInstruction(instr: InstructionName): Bool

@@ -22,11 +22,9 @@ GetName(fld: Field): String
 // Remove quotes if present
 GetRawName(ref: Reference): String
 
-// Returns the file line "encoded" into the LOC value.
-GetLocLine(loc: Int): Int
-
 GetComments(me : Instruction): List(Comment)
 GetComments(me : Field): List(Comment)
+GetFullComments(me : List(Field)): List(String)
 
 // Returns the jump label attached to an instruction, if any, or else an
 // empty string.

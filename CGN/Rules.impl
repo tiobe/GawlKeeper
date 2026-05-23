@@ -9,10 +9,11 @@ impl unit Rules
 use
 
 FunctionPrelude. $ 
-Properties. GetName, GetRawName, GetReferences, GetTitle, GetLocLine, GetComments, 
-            GetLabel, GetNetwPrefix, GetGlobalVar, IsDatabaseAction, IsLoadInstruction, 
+Properties. GetName, GetRawName, GetReferences, GetTitle, GetComments, GetLabel, 
+            GetNetwPrefix, GetGlobalVar, IsDatabaseAction, IsLoadInstruction, 
             IsOutputInstruction, IsUsed, IsAccessingAR2, IsModifyingAR2, IsRestoringAR2,
-            GetBlockType, HasComment, IsLoadingAR1, IsUsingAR1, IsSymbolicReference
+            GetBlockType, HasComment, IsLoadingAR1, IsUsingAR1, IsSymbolicReference,
+            GetFullComments
 RuleConfig. IsRuleEnabled
 RuleViolation. ', AddViolation
 ScanIO. FindFileName, FindLocation
@@ -31,6 +32,12 @@ conditions ~IsRuleEnabled(rule) { }
 Check(rule : String, loc : Int, me : Block)     
 conditions ~IsRuleEnabled(rule) { }
 
+Check(rule : String, loc : Int, me : Field)      
+conditions ~IsRuleEnabled(rule) { }
+
+Check(rule : String, loc : Int, me : List(Field))      
+conditions ~IsRuleEnabled(rule) { }
+
 Check(rule : String, loc : Int, me : GawlKeeper)
 conditions ~IsRuleEnabled(rule) { }
 
@@ -47,9 +54,6 @@ Check(rule : String, loc : Int, me : TimeLiteral)
 conditions ~IsRuleEnabled(rule) { }
 
 Check(rule : String, loc : Int, me : FunctionBody)
-conditions ~IsRuleEnabled(rule) { }
-
-Check(rule : String, loc : Int, me : Field)      
 conditions ~IsRuleEnabled(rule) { }
 
 Check(rule : String, loc : Int, me : (HeaderBlock, author # NIL))
@@ -607,18 +611,31 @@ conditions HasComment(me, comment)
 CheckG12(rule : String, loc : Int, me : Block, has_comment: String) 
 { }
 
-Check(rule : String, loc : Int, me : Field)
+Check(rule : String, loc : Int, me : List(Field))
 conditions rule == "G021"
 {
-  offset: Int := 0
-  comm_lst: [String] = FilterComments(GetComments(me), offset)
-  comment: String = if comm_lst = NIL | #comm_lst = 0 then ""
-                    else comm_lst.head
-                    fi
-  if ~IsCommentWellFormatted(comment) then
-      AddViolation(rule, loc, [], offset)
-  fi
+  // Important note: comments are attached to the next node
+  // Hence, we should collect comments and variables separately
+  // and shift the comments by one   
+  [ { CheckComment(rule, field.src_info.loc, GetName(field), Trim(comment)) } 
+  | field : Field, comment : String <- me, GetFullComments(me) 
+  ]
 }
+
+CheckComment(rule : String, loc : Int, variable : String, comment : String)
+conditions comment == ""
+{ 
+  AddViolation(rule, loc, ["Variable '" + variable  + "' has no comment"])
+}
+  
+CheckComment(rule : String, loc : Int, variable : String, comment : String)
+conditions ~IsCommentWellFormatted(comment)
+{ 
+  AddViolation(rule, loc, ["Comment \"" + comment + "\" doesn't start with a space followed by an uppercase letter"])
+}
+  
+CheckComment(rule : String, loc : Int, variable : String, comment : String)
+{ }
 
 Check(rule : String, loc : Int, me : (Field, type : StrLitAsType))
 conditions rule == "G022"
@@ -637,6 +654,7 @@ conditions rule == "G022"
 Check(rule : String, loc : Int, me : Block) { }
 Check(rule : String, loc : Int, me : List(CalleeExpression)) { }
 Check(rule : String, loc : Int, me : Field) { }
+Check(rule : String, loc : Int, me : List(Field)) { }
 Check(rule : String, loc : Int, me : FunctionBody) { }
 Check(rule : String, loc : Int, me : GawlKeeper) { }
 Check(rule : String, loc : Int, me : HeaderBlock) { }

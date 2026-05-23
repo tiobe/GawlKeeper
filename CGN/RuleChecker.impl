@@ -124,13 +124,12 @@ Check_FunctionBody(me : FunctionBody)
   Rules.Check("C007", LOC, me)
   Rules.Check("C052", LOC, me)
   Rules.Check("G040", LOC, me)
-  // TODO Can we shift the comments for each Field declaration
-  // (and "END_VAR") to the previous element?
   [ { Check_LocalVarInputs(xxxinputs) }
   | xxxinputs : LocalVarInputs <- me.inputs
   ]
   if me.outputs # NIL then
     Check_String("VAR_OUTPUT")
+    Rules.Check("G021", LOC, me.outputs)
     [ { Check_Field(xxxoutputs) }
     | xxxoutputs : Field <- me.outputs
     ]
@@ -138,6 +137,7 @@ Check_FunctionBody(me : FunctionBody)
   fi
   if me.in_outs # NIL then
     Check_String("VAR_IN_OUT")
+    Rules.Check("G021", LOC, me.in_outs)
     [ { 
         Rules.Check("C023", LOC, xxxin_outs)
         Check_Field(xxxin_outs)
@@ -148,6 +148,7 @@ Check_FunctionBody(me : FunctionBody)
   fi
   if me.locals # NIL then
     Check_String("VAR")
+    Rules.Check("G021", LOC, me.locals)
     [ { Check_Field(xxxlocals) }
     | xxxlocals : Field <- me.locals
     ]
@@ -155,6 +156,7 @@ Check_FunctionBody(me : FunctionBody)
   fi
   if me.temps # NIL then
     Check_String("VAR_TEMP")
+    Rules.Check("G021", LOC, me.temps)
     [ { Check_Field(xxxtemps) }
     | xxxtemps : Field <- me.temps
     ]
@@ -243,6 +245,7 @@ Check_LocalVarInputs(me : LocalVarInputs)
   if me.dbSpecf then
     Check_String("DB_SPECIFIC")
   fi
+  Rules.Check("G021", LOC, me.inputs)
   [ { Check_Field(xxxinputs) }
   | xxxinputs : Field <- me.inputs
   ]
@@ -304,7 +307,6 @@ Check_Field(me : Field)
   fi
   Check_String(";")
   Check_Comment(me.src_info)
-  Rules.Check("G021", LOC, me)
   Rules.Check("G022", LOC, me)
   // TODO get the comment from the closure of the declarations block
   // (i.e. END_STRUCT or END_VAR)

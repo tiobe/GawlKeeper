@@ -2,7 +2,7 @@ impl unit Properties
 
 use
 
-Comments. GetComments
+Comments. Flatten, GetComments
 FunctionPrelude. $, $$
 ScanIO. FindLocation
 StringTokenizer. IndexOf, Trim
@@ -97,6 +97,16 @@ GetComments(body : (FunctionBody, networks : (List(Network)))): List(String)
 GetComments(block : FunctionBody|NIL): List(String)
 { return [] }
 
+// The Field comments are attached to the next node
+GetFullComments(NIL : List(Field)): List(String)
+{ return NIL }
+
+GetFullComments(fields : (List(Field))): List(String)
+{ return fields.tail * GetFullComments }
+
+GetFullComments(field : Field): String
+{ return Flatten(GetComments(field.src_info.pre_comment)) }
+
 GetFunctionBody(block : Function): FunctionBody|NIL
 { return block.body }
 
@@ -149,14 +159,6 @@ GetName(ref : GlobalVariable): String
 	
 GetRawName(ref : Reference): String
 { return TrimQuotes(GetName(ref)) }
-
-GetLocLine(loc: Int): Int
-{
-    line : Int := 0; pos : Int := 0; file : Ident := file
-    FindLocation(loc, line, pos, file)
-    return line
-}
-
 
 GetComments(me : Instruction): List(Comment)  { return GetComments(me.src_info.pre_comment) }
 GetComments(me : Field): List(Comment)        { return GetComments(me.src_info.pre_comment) }

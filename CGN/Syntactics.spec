@@ -24,7 +24,7 @@ FilterComments(lines: [Comment], var offset: Int): [String]
 // Remove quotes (single and double) at either ends of a string.
 TrimQuotes(s : String) : String
 
-GetLineNumber(nr : Int) : Int
+GetLineNumber(loc : Int) : Int
 
 // Check morphological correction of a network title
 IsNetwTitleWellFormed(title: String): Bool

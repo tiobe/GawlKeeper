@@ -148,7 +148,7 @@ GetRules() : [([String])]
     ],
     [ "G021",
       "Comments for declarations.",
-      "Declaration needs a documentation comment starting with a space followed by an upper-case letter."
+      "\027."
     ],
     [ "G022",
       "Multi instance block calls",

@@ -330,14 +330,27 @@
     Rule ID: C030
     Global variable '"DB_Outgoing_Msgs"' was already modified in network 'DA: Check the non tracking DB PLT buffer for data'.
 
+ ----- Rule C034 ------------------------------------
+
+../GawlKeeper.linux64 --C034 ./C034/C034_1.awl
+
+./C034/C034_1.awl(192):
+    When using AR1 make sure that after loading and before use no other blocks are called and no higher data types are accessed
+    Rule ID: C034
+    Symbolic reference has been accessed before using AR1.
+
+../GawlKeeper.linux64 --C034 ./C034/C034_2.awl
+
+./C034/C034_2.awl(146):
+    When using AR1 make sure that after loading and before use no other blocks are called and no higher data types are accessed
+    Rule ID: C034
+    Symbolic reference has been accessed before using AR1.
+
  ----- Rule C035 ------------------------------------
 
-../GawlKeeper.linux64 --C035 ./C035/C035.awl
+../GawlKeeper.linux64 --C035 ./C035/C035-AR2.awl
 
-./C035/C035.awl(21):
-    When using AR2 in a FB; first save the contents and then restore them after use. In the meantime no symbolic access to the instance is allowed
-    Rule ID: C035
-    Symbolic access happened between save and restore.
+../GawlKeeper.linux64 --C035 ./C035/C035.awl
 
 ./C035/C035.awl(29):
     When using AR2 in a FB; first save the contents and then restore them after use. In the meantime no symbolic access to the instance is allowed
@@ -352,27 +365,32 @@
 ./C035/C035.awl(38):
     When using AR2 in a FB; first save the contents and then restore them after use. In the meantime no symbolic access to the instance is allowed
     Rule ID: C035
-    Symbolic access happened between save and restore.
+    Local variables have been accessed without restoring the contents.
+
+./C035/C035.awl(40):
+    When using AR2 in a FB; first save the contents and then restore them after use. In the meantime no symbolic access to the instance is allowed
+    Rule ID: C035
+    Local variables have been accessed without restoring the contents.
 
 ./C035/C035.awl(44):
     When using AR2 in a FB; first save the contents and then restore them after use. In the meantime no symbolic access to the instance is allowed
     Rule ID: C035
-    Symbolic access happened between save and restore.
+    Local variables have been accessed without restoring the contents.
 
 ./C035/C035.awl(49):
     When using AR2 in a FB; first save the contents and then restore them after use. In the meantime no symbolic access to the instance is allowed
     Rule ID: C035
-    Symbolic access happened between save and restore.
+    Local variables have been accessed without restoring the contents.
 
 ./C035/C035.awl(50):
     When using AR2 in a FB; first save the contents and then restore them after use. In the meantime no symbolic access to the instance is allowed
     Rule ID: C035
-    Symbolic access happened between save and restore.
+    Local variables have been accessed without restoring the contents.
 
 ./C035/C035.awl(55):
     When using AR2 in a FB; first save the contents and then restore them after use. In the meantime no symbolic access to the instance is allowed
     Rule ID: C035
-    Symbolic access happened between save and restore.
+    Local variables have been accessed without restoring the contents.
 
 ./C035/C035.awl(60):
     When using AR2 in a FB; first save the contents and then restore them after use. In the meantime no symbolic access to the instance is allowed
@@ -382,12 +400,12 @@
 ./C035/C035.awl(76):
     When using AR2 in a FB; first save the contents and then restore them after use. In the meantime no symbolic access to the instance is allowed
     Rule ID: C035
-    Symbolic access happened between save and restore.
+    Local variables have been accessed without restoring the contents.
 
 ./C035/C035.awl(81):
     When using AR2 in a FB; first save the contents and then restore them after use. In the meantime no symbolic access to the instance is allowed
     Rule ID: C035
-    Local variables have been accessed without restoring the contents.
+    Symbolic access happened between save and restore.
 
  ----- Rule C039 ------------------------------------
 
@@ -587,30 +605,20 @@
 
 ../GawlKeeper.linux64 --G021 ./G021/G021.awl
 
-./G021/G021.awl(38):
-    Comments for declarations.
-    Rule ID: G021
-    Declaration needs a documentation comment starting with a space followed by an upper-case letter.
-
 ./G021/G021.awl(39):
     Comments for declarations.
     Rule ID: G021
-    Declaration needs a documentation comment starting with a space followed by an upper-case letter.
-
-./G021/G021.awl(45):
-    Comments for declarations.
-    Rule ID: G021
-    Declaration needs a documentation comment starting with a space followed by an upper-case letter.
+    Comment "//When TRUE tub class is SBT" doesn't start with a space followed by an uppercase letter.
 
 ./G021/G021.awl(50):
     Comments for declarations.
     Rule ID: G021
-    Declaration needs a documentation comment starting with a space followed by an upper-case letter.
+    Comment "//Preference for Direction B" doesn't start with a space followed by an uppercase letter.
 
 ./G021/G021.awl(54):
     Comments for declarations.
     Rule ID: G021
-    Declaration needs a documentation comment starting with a space followed by an upper-case letter.
+    Variable 't_Direction' has no comment.
 
  ----- Rule G022 ------------------------------------
 

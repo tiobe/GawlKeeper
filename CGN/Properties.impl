@@ -270,6 +270,10 @@ IsRestoringAR2(instr : (Instruction, arg : (ArrayExpression, arg1: LocalVariable
 conditions instr.arg.arg1.vbl.id == "AR2"
 { return TRUE }
 
+IsRestoringAR2(instr : (Instruction, arg : (AnonymousArray, head: LocalVariable))): Bool
+conditions instr.arg.head.vbl.id == "AR2"
+{ return TRUE }
+
 IsRestoringAR2(instr : Instruction): Bool
 { return FALSE }
 

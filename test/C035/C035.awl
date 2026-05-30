@@ -30,6 +30,7 @@ NETWORK TITLE = "Violation"
       L     1;
       +I;
       T     counter;         
+      R[ AR2, P#0.0];
 
 NETWORK TITLE = "Violation"
       L     P##temp;
@@ -40,8 +41,8 @@ NETWORK TITLE = "Violation"
       T     s_Count;
 
 NETWORK TITLE = "Violation"
-      LAR2  #saveAR2;     
       AN    s_Enable;     
+      R[ AR2, P#0.0];
       LAR2;               
 
 NETWORK TITLE = "Violation"
@@ -74,13 +75,15 @@ NETWORK TITLE = "OK"
 NETWORK TITLE = "Violation"
       LAR2  #backup;
       L     W [s_Flag,P#0.0];   
-      LAR2;
+      R[ AR2, P#0.0];
 
 NETWORK TITLE = "Violation"
       LAR2;
       A     s_Flag;          
       L     B [AR2,P#1.0];   
       A     s_Flag;          
+      LAR2;
+      A     s_Flag;
 
 
 END_FUNCTION_BLOCK

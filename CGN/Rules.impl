@@ -186,42 +186,51 @@ CheckC034(instrs : (List(Instruction)), loaded : Bool, loc_candidates : List(Int
 
 Check(rule : String, loc : Int, me : FunctionBody)
 conditions rule == "C035"
-{ me.networks * CheckC035 $ (me.locals * GetName) }
-
-CheckC035(vars : List(String), me : Network)
-{ CheckC035(vars, me.instructions, FALSE, []) }
-
-CheckC035(vars : List(String), NIL : List(Instruction), in_mod : Bool, loc_candidates : List(Int))
 { 
-  [ { AddViolation("C035", loc, ["Local variables have been accessed without restoring the contents."]) } 
-  | loc : Int <- loc_candidates 
-  ]
+  in_mod : Bool := FALSE
+  loc_candidates : List(Int) := []
+  CheckC035(me.networks, me.locals * GetName, in_mod, loc_candidates) 
 }
 
-CheckC035(vars : List(String), instrs : (List(Instruction)), in_mod : Bool, loc_candidates : List(Int))
+CheckC035(NIL : List(Network), vars : List(String), var in_mod : Bool, var loc_candidates : List(Int))
+{}
+
+CheckC035(networks : (List(Network)), vars : List(String), var in_mod : Bool, var loc_candidates : List(Int))
+{
+  CheckC035(networks.head.instructions, vars, in_mod, loc_candidates)
+  CheckC035(networks.tail, vars, in_mod, loc_candidates)
+}
+
+CheckC035(NIL : List(Instruction), vars : List(String), var in_mod : Bool, var loc_candidates : List(Int))
+{ }
+
+CheckC035(instrs : (List(Instruction)), vars : List(String), var in_mod : Bool, var loc_candidates : List(Int))
 conditions IsModifyingAR2(instrs.head.instruction)
 { 
-  [ { AddViolation("C035", loc, ["Local variables have been accessed without restoring the contents."]) } 
-  | loc : Int <- loc_candidates 
-  ]
-  CheckC035(vars, instrs.tail, TRUE, []) 
+  in_mod := TRUE
+  loc_candidates := []
+  CheckC035(instrs.tail, vars, in_mod, loc_candidates) 
 }
 
-CheckC035(vars : List(String), instrs : (List(Instruction)), in_mod : Bool, loc_candidates : List(Int))
+CheckC035(instrs : (List(Instruction)), vars : List(String), var in_mod : Bool, var loc_candidates : List(Int))
 conditions in_mod & IsRestoringAR2(instrs.head)
 {
-  [ { AddViolation("C035", loc, ["Symbolic access happened between save and restore."]) } 
+  [ { AddViolation("C035", loc, []) } 
   | loc : Int <- loc_candidates 
   ]
-  CheckC035(vars, instrs.tail, FALSE, [])
+  in_mod := FALSE
+  loc_candidates := []
+  CheckC035(instrs.tail, vars, in_mod, loc_candidates)
 }
 
-CheckC035(vars : List(String), instrs : (List(Instruction)), in_mod : Bool, loc_candidates : List(Int))
+CheckC035(instrs : (List(Instruction)), vars : List(String), var in_mod : Bool, var loc_candidates : List(Int))
 conditions in_mod & IsAccessingAR2(vars, instrs.head)
-{ CheckC035(vars, instrs.tail, in_mod, loc_candidates + instrs.head.src_info.loc) } 
+{ 
+   loc_candidates := loc_candidates + instrs.head.src_info.loc
+   CheckC035(instrs.tail, vars, in_mod, loc_candidates) } 
 
-CheckC035(vars : List(String), instrs : (List(Instruction)), in_mod : Bool, loc_candidates : List(Int))
-{ CheckC035(vars, instrs.tail, in_mod, loc_candidates) } 
+CheckC035(instrs : (List(Instruction)), vars : List(String), var in_mod : Bool, var loc_candidates : List(Int))
+{ CheckC035(instrs.tail, vars, in_mod, loc_candidates) } 
 
 Check(rule : String, loc : Int, me : TimeLiteral)
 conditions rule == "C039"

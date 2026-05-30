@@ -108,7 +108,7 @@ GetRules() : [([String])]
     ],
     [ "C035",
       "When using AR2 in a FB; first save the contents and then restore them after use. In the meantime no symbolic access to the instance is allowed",
-      "\027"
+      "Symbolic access happened between save and restore."
     ],
     [ "C039",
       "Siemens Timers should never be used in relation with physical movements in a conveyor system that can be stopped.",

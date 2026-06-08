@@ -9,6 +9,7 @@ impl unit RuleViolation
 use
 
 FileStream. Create, Close
+QuickSort
 ScanIO. FindLocation
 SysStreams. sysOut
 TextIO. Flush, Write, NewLine
@@ -87,18 +88,16 @@ AddViolation(id : String, loc : Int, args : List(String), offset: Int)
 ShowViolations()
 {
   OpenOutFile()
-  Sort(VIOLATIONS) * ShowViolation
+  QuickSort.Sort(
+    VIOLATIONS,
+    function(v1 : Violation, v2 : Violation): Bool { return v1.line <= v2.line }
+  ) * ShowViolation
   if OUT_STREAM.is_file then
     Close(OUT_STREAM.stream)
   else
     Flush(OUT_STREAM.stream)
   fi
 }
-
-// determine order of output
-// simplest: just reverse
-Sort[X](list : List(X)): List(X)
-{ return Reverse(list) }
 
 ShowViolation(v : Violation)
 {

@@ -123,6 +123,7 @@ Check_FunctionBody(me : FunctionBody)
   Check_HeaderBlock(me.header)
   Rules.Check("C007", LOC, me)
   Rules.Check("C052", LOC, me)
+  Rules.Check("C076", LOC, me)
   Rules.Check("G040", LOC, me)
   [ { Check_LocalVarInputs(xxxinputs) }
   | xxxinputs : LocalVarInputs <- me.inputs

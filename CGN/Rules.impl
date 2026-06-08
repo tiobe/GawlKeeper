@@ -13,15 +13,16 @@ Properties. GetName, GetRawName, GetReferences, GetTitle, GetComments, GetLabel,
             GetNetwPrefix, GetGlobalVar, IsDatabaseAction, IsLoadInstruction, 
             IsOutputInstruction, IsUsed, IsAccessingAR2, IsModifyingAR2, IsRestoringAR2,
             GetBlockType, HasComment, IsLoadingAR1, IsUsingAR1, IsSymbolicReference,
-            GetFullComments
+            GetFullComments, IsConditionalJump, IsUnconditionalJump, Intersect
 RuleConfig. IsRuleEnabled
 RuleViolation. ', AddViolation
 ScanIO. FindFileName, FindLocation
+SetPrelude
 StringTokenizer. Split, Trim
 Syntactics. IsCommentWellFormatted, IsLabelWellFormed, IsNetwTitleWellFormed,
             IsExceptionNetwork, IsNewline, IsOperandChanging, FilterComments,
             TrimQuotes, GetAwlBaseFileName, GetLabelNumber, StartsWithCap,
-            StripSpaces, ToLower, ContainsSubString, GetLineNumber
+            StripSpaces, ToLower, ContainsSubString, GetLineNumber, Remove
 TextFile. Pair
 
 functions
@@ -375,6 +376,123 @@ Check(rule : String, loc : Int, me : HeaderBlock)
 conditions rule == "C066" & ContainsSubString(ToLower(StripSpaces(me.title)), "%version:q")
 { AddViolation(rule, loc, [me.title]) }
 
+typedef
+
+// Path consists of a label and a set of initialized variables. The label indicates that 
+// the path is inactive until its label occurs in the code, e.g. if JU CONTINUE occurs, 
+// the label is set to CONTINUE because the next lines don't hold for this path. If label 
+// is "" the path is active.
+
+Path = {
+  label : String
+  vars : Set(Ident)
+}
+
+global
+
+PATHS : List(Path) := []
+TEMPS : List(String) := []
+
+functions
+
+Check(rule : String, loc : Int, me : FunctionBody)
+conditions rule == "C076"
+{ 
+  PATHS := [Path("", NIL)]
+  TEMPS := me.temps * GetName
+  me.networks * Check76
+}
+
+Check76(me : Network)
+{ me.instructions * Check76Label }
+
+Check76Label(me : (Instruction, label # NIL))
+{  
+   // the path with the label that occurs in the code becomes active
+   [ { path.label := "" } | path : Path <- PATHS, (path.label == me.label.id) ]
+   Check76(me)
+}
+
+Check76Label(me : Instruction)
+{ Check76(me) }
+
+Check76(me : (Instruction, arg # NIL, instruction : LInstr))
+{
+  // fire if there is an active path for which the loaded variable is not initialized 
+  name : Ident = Ident(GetName(me.arg))
+  if name <- TEMPS 
+    [ 
+      { 
+        AddViolation("C076", me.src_info.loc, [name]) 
+        return // return because only one path should be reported per line
+      } 
+      | path : Path <- PATHS, (path.label == ""), (~(name <- path.vars))
+    ]
+  fi
+}
+
+Check76(me : (Instruction, instruction : (CallInstr, args : (FunctionCallParts, arguments # NIL))))
+{ me.instruction.args.arguments.args.args * Check76  }
+
+Check76(me : (Instruction, arg # NIL, instruction : TransfInstr))
+{ 
+  // add the transferred variable to the list of initialized variables of the active paths
+  name : Ident = Ident(GetName(me.arg))
+  if name <- TEMPS
+    [ { path.vars := path.vars + name } | path : Path <- PATHS, (path.label == "") ] 
+  fi
+}
+
+Check76(me : (Instruction, arg : LocalVariable))
+conditions IsUnconditionalJump(me.instruction)
+{ 
+  // make all active paths inactive until the label it jumps to occurs in the code
+  [ { path.label := me.arg.vbl.id }
+  | path : Path <- PATHS, (path.label == "") 
+  ] 
+}
+
+Check76(me : (Instruction, arg : LocalVariable))
+conditions IsConditionalJump(me.instruction)
+{ 
+  // if a conditional jump happens add the intersect of all active paths for the jump label
+  PATHS := 
+    PATHS + 
+    Path(
+      me.arg.vbl.id, 
+      Intersect([ path.vars | path : Path <- PATHS, (path.label == "")])
+    )
+}
+
+Check76(me : Instruction)
+{ }
+
+Check76(me : (ArgumentsAssignment, value : (Assignment, expr # NIL)))
+{
+  // call arguments should be treated as being initialized
+  name : Ident = Ident(GetName(me.value.expr)) 
+  if name # "" & name <- TEMPS 
+    [ { path.vars := path.vars + name } | path : Path <- PATHS, (path.label == "") ]
+  fi
+}
+
+Check76(me : ArgumentsAssignment)
+{ }
+
+/* For debugging checking rule C076
+Print76() 
+{
+  { "PAUL begin\n" } astype Message
+  [ { "PAUL path label = " path.label " vars = <EMPTY>\n" } astype Message    
+    | path : Path <- PATHS, (path.vars == NIL)
+  ]
+  [ { "PAUL path label = " path.label " vars = " v "\n" } astype Message    
+    | path : Path <- PATHS, v : Ident <- path.vars
+  ]
+  { "PAUL end\n" } astype Message
+}
+*/
+
 Check(rule : String, loc : Int, me : Instruction)
 conditions rule == "G028"
 {
@@ -382,7 +500,9 @@ conditions rule == "G028"
   comm_lst: [String] = FilterComments(GetComments(me), ignored)
   CheckG28(loc, comm_lst)
 }
+
 CheckG28(loc: Int, NIL: List(String))   { }  // no comment, no check
+
 CheckG28(loc: Int, lst: (List(String))) {
   if ~IsCommentWellFormatted(lst.head) then
     AddViolation("G028", loc, [], -1)

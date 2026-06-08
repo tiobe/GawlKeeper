@@ -63,4 +63,6 @@ ToLower(s : String): String
 
 // String contains a substring
 ContainsSubString(str : String, sub : String): Bool
-
+ 
+// Remove an element from a list of strings
+Remove(str : String, list : List(String)): List(String)

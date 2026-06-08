@@ -16,7 +16,7 @@ GetNetwPrefix(network: Network): String
 // Get all declared variables
 GetReferences(fb: FunctionBody): List(Reference)
 
-GetName(ref: Reference): String
+GetName(expr: InstrExpression): String
 GetName(fld: Field): String
 
 // Remove quotes if present
@@ -45,5 +45,9 @@ IsRestoringAR2(instr : Instruction): Bool
 IsLoadInstruction(instr: InstructionName): Bool
 IsOutputInstruction(instr: InstructionName): Bool
 
+IsConditionalJump(instr: InstructionName): Bool
+IsUnconditionalJump(instr: InstructionName): Bool
+
 IsUsed(ref : String, networks: List(Network)): Bool
 
+Intersect(idents : List(List(Ident))): List(Ident)

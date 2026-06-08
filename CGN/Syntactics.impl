@@ -158,3 +158,9 @@ ToLower(s : String): String
 ContainsSubString(str : String, sub : String): Bool
 { return Match(str, sub, TRUE) # -1 }
 
+Remove(str : String, list : List(String)): List(String)
+{
+   llist : List(String) := list
+   Delete(llist, llist > str, "") astype Discard
+   return llist
+}

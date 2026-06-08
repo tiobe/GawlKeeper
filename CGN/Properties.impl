@@ -5,6 +5,7 @@ use
 Comments. Flatten, GetComments
 FunctionPrelude. $, $$
 ScanIO. FindLocation
+SetPrelude
 StringTokenizer. IndexOf, Trim
 Syntactics. ContainsSubString, IndexOf, TrimQuotes, FilterComments
 
@@ -156,6 +157,12 @@ GetName(ref : LocalVariable): String
 	
 GetName(ref : GlobalVariable): String 
 { return ref.vbl.str }
+
+GetName(expr : ConstExpression): String
+{ return GetName(expr.expr) }
+
+GetName(expr : InstrExpression): String
+{ return "" }
 	
 GetRawName(ref : Reference): String
 { return TrimQuotes(GetName(ref)) }
@@ -291,6 +298,18 @@ IsOutputInstruction(instr : (AssignInstr | RInstr | SInstr | TransfInstr)) : Boo
 IsOutputInstruction(instr : InstructionName): Bool
 { return FALSE } 
 
+IsConditionalJump(instr : (JbiInstr | JcInstr | JcbInstr | JcnInstr | JlInstr | JmInstr | JnbiInstr | JoInstr | JpInstr | JpzInstr | JzInstr)): Bool
+{ return TRUE }
+
+IsConditionalJump(instr : InstructionName): Bool
+{ return FALSE } 
+
+IsUnconditionalJump(instr : JuInstr): Bool
+{ return TRUE }
+
+IsUnconditionalJump(instr : InstructionName): Bool
+{ return FALSE }
+
 IsUsed(ref: String, networks: List(Network)): Bool
 { return Any(IsUsed $ ref, networks) } 
 
@@ -375,4 +394,12 @@ GetArgumentName(expr: ArrayExpression): String
 GetArgumentName(expr: InstrExpression|NIL): String
 { return "" }
 
+Intersect(NIL : List(List(Ident))): List(Ident)
+{ return NIL }
+
+Intersect(me : (List(List(Ident)), tail = NIL)): List(Ident)
+{ return me.head }
+
+Intersect(me : (List(List(Ident)), tail # NIL)): List(Ident)
+{ return Intersect(me.head * me.tail.head + me.tail.tail) }
 

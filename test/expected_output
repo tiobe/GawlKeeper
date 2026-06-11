@@ -71,15 +71,15 @@
     Rule ID: C011
     A label with index '00' can only occur at the beginning of a network's code.
 
-./C011/C011.awl(43):
-    Jump labels.
-    Rule ID: C011
-    Label 'BCab' is wrongly formatted; it should start with 'BC' and continue with 2 digits.
-
 ./C011/C011.awl(38):
     Jump labels.
     Rule ID: C011
     Wrong label 'BC01' at network entry; it should have index '00'.
+
+./C011/C011.awl(43):
+    Jump labels.
+    Rule ID: C011
+    Label 'BCab' is wrongly formatted; it should start with 'BC' and continue with 2 digits.
 
 ./C011/C011.awl(73):
     Jump labels.
@@ -132,6 +132,11 @@
 
 ../GawlKeeper.linux64 --C014 ./C014/C014_db.awl
 
+./C014/C014_db.awl(1):
+    All Symbolic Operand Names are a concatenation of nouns, which each start with a Capital, connected by underscores.
+    Rule ID: C014
+    Name of block '"DB_PLT_Non_Trk_Tmp_T_this_is_a_pretty_long_title"' does not match the required pattern.
+
 ./C014/C014_db.awl(34):
     All Symbolic Operand Names are a concatenation of nouns, which each start with a Capital, connected by underscores.
     Rule ID: C014
@@ -152,11 +157,6 @@
     Rule ID: C014
     Name of local variable 'Item_at_Handover' does not match the required pattern.
 
-./C014/C014_db.awl(1):
-    All Symbolic Operand Names are a concatenation of nouns, which each start with a Capital, connected by underscores.
-    Rule ID: C014
-    Name of block '"DB_PLT_Non_Trk_Tmp_T_this_is_a_pretty_long_title"' does not match the required pattern.
-
 ../GawlKeeper.linux64 --C014 ./C014/C014_fb.awl
 
 ./C014/C014_fb.awl(1):
@@ -173,15 +173,15 @@
 
 ../GawlKeeper.linux64 --C014 ./C014/C014_type.awl
 
-./C014/C014_type.awl(28):
-    All Symbolic Operand Names are a concatenation of nouns, which each start with a Capital, connected by underscores.
-    Rule ID: C014
-    Name of local variable 'OBT_onto_HSZ' does not match the required pattern.
-
 ./C014/C014_type.awl(1):
     All Symbolic Operand Names are a concatenation of nouns, which each start with a Capital, connected by underscores.
     Rule ID: C014
     Name of block '"UDT_HSZ5x_Int_Prog_T_this_is_a_pretty_long_title"' does not match the required pattern.
+
+./C014/C014_type.awl(28):
+    All Symbolic Operand Names are a concatenation of nouns, which each start with a Capital, connected by underscores.
+    Rule ID: C014
+    Name of local variable 'OBT_onto_HSZ' does not match the required pattern.
 
  ----- Rule C015 ------------------------------------
 
@@ -355,54 +355,29 @@
 ./C035/C035.awl(29):
     When using AR2 in a FB; first save the contents and then restore them after use. In the meantime no symbolic access to the instance is allowed
     Rule ID: C035
-    Local variables have been accessed without restoring the contents.
+    Symbolic access happened between save and restore.
 
 ./C035/C035.awl(32):
     When using AR2 in a FB; first save the contents and then restore them after use. In the meantime no symbolic access to the instance is allowed
     Rule ID: C035
-    Local variables have been accessed without restoring the contents.
+    Symbolic access happened between save and restore.
 
-./C035/C035.awl(38):
+./C035/C035.awl(41):
     When using AR2 in a FB; first save the contents and then restore them after use. In the meantime no symbolic access to the instance is allowed
     Rule ID: C035
-    Local variables have been accessed without restoring the contents.
-
-./C035/C035.awl(40):
-    When using AR2 in a FB; first save the contents and then restore them after use. In the meantime no symbolic access to the instance is allowed
-    Rule ID: C035
-    Local variables have been accessed without restoring the contents.
+    Symbolic access happened between save and restore.
 
 ./C035/C035.awl(44):
     When using AR2 in a FB; first save the contents and then restore them after use. In the meantime no symbolic access to the instance is allowed
     Rule ID: C035
-    Local variables have been accessed without restoring the contents.
+    Symbolic access happened between save and restore.
 
-./C035/C035.awl(49):
+./C035/C035.awl(77):
     When using AR2 in a FB; first save the contents and then restore them after use. In the meantime no symbolic access to the instance is allowed
     Rule ID: C035
-    Local variables have been accessed without restoring the contents.
+    Symbolic access happened between save and restore.
 
-./C035/C035.awl(50):
-    When using AR2 in a FB; first save the contents and then restore them after use. In the meantime no symbolic access to the instance is allowed
-    Rule ID: C035
-    Local variables have been accessed without restoring the contents.
-
-./C035/C035.awl(55):
-    When using AR2 in a FB; first save the contents and then restore them after use. In the meantime no symbolic access to the instance is allowed
-    Rule ID: C035
-    Local variables have been accessed without restoring the contents.
-
-./C035/C035.awl(60):
-    When using AR2 in a FB; first save the contents and then restore them after use. In the meantime no symbolic access to the instance is allowed
-    Rule ID: C035
-    Local variables have been accessed without restoring the contents.
-
-./C035/C035.awl(76):
-    When using AR2 in a FB; first save the contents and then restore them after use. In the meantime no symbolic access to the instance is allowed
-    Rule ID: C035
-    Local variables have been accessed without restoring the contents.
-
-./C035/C035.awl(81):
+./C035/C035.awl(82):
     When using AR2 in a FB; first save the contents and then restore them after use. In the meantime no symbolic access to the instance is allowed
     Rule ID: C035
     Symbolic access happened between save and restore.
@@ -560,6 +535,27 @@
     Temporary modifications to a standard block due to an approved Problem Report or Change Request, in advance of the next release, need to be indicated as a Q-Version.
     Rule ID: C066
     The version number in the block title 'TITLE = "% VERSION:      Q       1.4 %" // Violation ' starts with the letter 'q'.
+
+ ----- Rule C076 ------------------------------------
+
+../GawlKeeper.linux64 --C076 ./C076/C076-BE.awl
+
+./C076/C076-BE.awl(40):
+    A temporary variable shall always be assigned a value before it is read.
+    Rule ID: C076
+    Temporary variable 'Wrong' is read before it is assigned to.
+
+../GawlKeeper.linux64 --C076 ./C076/C076.awl
+
+./C076/C076.awl(33):
+    A temporary variable shall always be assigned a value before it is read.
+    Rule ID: C076
+    Temporary variable 'TempValue' is read before it is assigned to.
+
+./C076/C076.awl(38):
+    A temporary variable shall always be assigned a value before it is read.
+    Rule ID: C076
+    Temporary variable 'Wrong' is read before it is assigned to.
 
  ----- Rule G003 ------------------------------------
 

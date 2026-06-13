@@ -13,7 +13,8 @@ Properties. GetName, GetRawName, GetReferences, GetTitle, GetComments, GetLabel,
             GetNetwPrefix, GetGlobalVar, IsDatabaseAction, IsLoadInstruction, 
             IsOutputInstruction, IsUsed, IsAccessingAR2, IsModifyingAR2, IsRestoringAR2,
             GetBlockType, HasComment, IsLoadingAR1, IsUsingAR1, IsSymbolicReference,
-            GetFullComments, IsConditionalJump, IsUnconditionalJump, Intersect
+            GetFullComments, IsConditionalJump, IsUnconditionalJump, Intersect,
+            GetFields
 RuleConfig. IsRuleEnabled
 RuleViolation. ', AddViolation
 ScanIO. FindFileName, FindLocation
@@ -37,9 +38,6 @@ Check(rule : String, loc : Int, me : Field)
 conditions ~IsRuleEnabled(rule) { }
 
 Check(rule : String, loc : Int, me : List(Field))      
-conditions ~IsRuleEnabled(rule) { }
-
-Check(rule : String, loc : Int, me : GawlKeeper)
 conditions ~IsRuleEnabled(rule) { }
 
 Check(rule : String, loc : Int, me : Network)  
@@ -111,10 +109,10 @@ conditions rule == "C014"
   fi
 }
 
-Check(rule : String, loc : Int, me : GawlKeeper)
+Check(rule : String, loc : Int, me : Block)
 conditions rule == "C015"
 {
-  title : String = TrimQuotes(GetName(me.block_type))
+  title : String = TrimQuotes(GetName(me))
   if #title > 20 then AddViolation(rule, loc, [title]) fi
 }
 
@@ -185,12 +183,12 @@ conditions loaded & IsSymbolicReference(instrs.head)
 CheckC034(instrs : (List(Instruction)), loaded : Bool, loc_candidates : List(Int))
 { CheckC034(instrs.tail, loaded, loc_candidates) } 
 
-Check(rule : String, loc : Int, me : FunctionBody)
+Check(rule : String, loc : Int, me : (FunctionBody, locals # NIL))
 conditions rule == "C035"
 { 
   in_mod : Bool := FALSE
   loc_candidates : List(Int) := []
-  CheckC035(me.networks, me.locals * GetName, in_mod, loc_candidates) 
+  CheckC035(me.networks, me.locals * GetFields * GetName, in_mod, loc_candidates) 
 }
 
 CheckC035(NIL : List(Network), vars : List(String), var in_mod : Bool, var loc_candidates : List(Int))
@@ -237,7 +235,7 @@ Check(rule : String, loc : Int, me : TimeLiteral)
 conditions rule == "C039"
 { AddViolation(rule, loc, [me.value]) }
 
-Check(rule : String, loc : Int, me : InstrExpression)
+Check(rule : String, loc : Int, me : InitExpression)
 conditions rule == "C040" 
 { 
   CheckC040(loc, me)
@@ -261,7 +259,7 @@ CheckC040(loc : Int, me : (PointerAccess, expr : PointerAccessHash))
 CheckC040(loc : Int, me : Reference) 
 { CheckC040(loc, GetName(me)) }
 
-CheckC040(loc : Int, me : InstrExpression) 
+CheckC040(loc : Int, me : InitExpression) 
 { }
 
 CheckC040(loc : Int, str : String)
@@ -695,9 +693,9 @@ conditions rule == "C020"
 
 CheckC20(me: FunctionBody)
 {
-  [CheckC20(inputs_block.inputs, 'i') | inputs_block: LocalVarInputs <- me.inputs] astype VOID
+  CheckC20(me.inputs * GetFields, 'i')
   CheckC20(me.outputs, 'o')
-  CheckC20(me.locals, 's')
+  CheckC20(me.locals * GetFields, 's')
   CheckC20(me.temps, 't')
 }
 CheckC20(NIL: [Field], prefix: Char) { }
@@ -720,10 +718,10 @@ conditions rule == "C042"
   if lower_bound # 0 then AddViolation(rule, loc, [GetName(me), lower_bound]) fi
 }
 
-Check(rule : String, loc : Int, me : GawlKeeper)
+Check(rule : String, loc : Int, me : Block)
 conditions rule == "G003"
 {
-  title : String = TrimQuotes(GetName(me.block_type))
+  title : String = TrimQuotes(GetName(me))
   filename : String = GetAwlBaseFileName(FindFileName(loc))
 
   if ~(title == filename) then
@@ -794,9 +792,8 @@ Check(rule : String, loc : Int, me : List(CalleeExpression)) { }
 Check(rule : String, loc : Int, me : Field) { }
 Check(rule : String, loc : Int, me : List(Field)) { }
 Check(rule : String, loc : Int, me : FunctionBody) { }
-Check(rule : String, loc : Int, me : GawlKeeper) { }
 Check(rule : String, loc : Int, me : HeaderBlock) { }
-Check(rule : String, loc : Int, me : InstrExpression) { }
+Check(rule : String, loc : Int, me : InitExpression) { }
 Check(rule : String, loc : Int, me : Instruction) { }
 Check(rule : String, loc : Int, me : Network) { }
 Check(rule : String, loc : Int, me : List(Network)) { }

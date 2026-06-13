@@ -16,7 +16,10 @@ GetNetwPrefix(network: Network): String
 // Get all declared variables
 GetReferences(fb: FunctionBody): List(Reference)
 
-GetName(expr: InstrExpression): String
+GetFields(inputs : LocalVarInputs|NIL): List(Field)
+GetFields(locals : LocalVars|NIL): List(Field)
+
+GetName(expr: InitExpression): String
 GetName(fld: Field): String
 
 // Remove quotes if present
@@ -30,7 +33,7 @@ GetFullComments(me : List(Field)): List(String)
 // empty string.
 GetLabel(inst: Instruction): String
 
-GetGlobalVar(arg: InstrExpression): GlobalVariable|NIL
+GetGlobalVar(arg: InstrExpression|NIL): GlobalVariable|NIL
 
 IsDatabaseAction(expr: InstrExpression): Bool
 

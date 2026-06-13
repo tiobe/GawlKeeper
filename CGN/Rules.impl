@@ -401,6 +401,12 @@ conditions rule == "C076"
   me.networks * Check76
 }
 
+IsActivePath(path : Path): Bool
+{ return path.label == "" }
+
+IsNonActivePath(path : Path): Bool
+{ return ~IsActivePath(path) }
+
 Check76(me : Network)
 { me.instructions * Check76Label }
 
@@ -414,6 +420,12 @@ Check76Label(me : (Instruction, label # NIL))
 Check76Label(me : Instruction)
 { Check76(me) }
 
+Check76(me : (Instruction, instruction : (BeInstr | BeuInstr)))
+{ PATHS := PATHS / IsNonActivePath }
+
+Check76(me : (Instruction, instruction : (CallInstr, args : (FunctionCallParts, arguments # NIL))))
+{ me.instruction.args.arguments.args.args * Check76  }
+
 Check76(me : (Instruction, arg # NIL, instruction : LInstr))
 {
   // fire if there is an active path for which the loaded variable is not initialized 
@@ -424,20 +436,17 @@ Check76(me : (Instruction, arg # NIL, instruction : LInstr))
         AddViolation("C076", me.src_info.loc, [name]) 
         return // return because only one path should be reported per line
       } 
-      | path : Path <- PATHS, (path.label == ""), (~(name <- path.vars))
+      | path : Path <- PATHS, (IsActivePath(path)), (~(name <- path.vars))
     ]
   fi
 }
-
-Check76(me : (Instruction, instruction : (CallInstr, args : (FunctionCallParts, arguments # NIL))))
-{ me.instruction.args.arguments.args.args * Check76  }
 
 Check76(me : (Instruction, arg # NIL, instruction : TransfInstr))
 { 
   // add the transferred variable to the list of initialized variables of the active paths
   name : Ident = Ident(GetName(me.arg))
   if name <- TEMPS
-    [ { path.vars := path.vars + name } | path : Path <- PATHS, (path.label == "") ] 
+    [ { path.vars := path.vars + name } | path : Path <- PATHS, (IsActivePath(path)) ] 
   fi
 }
 
@@ -446,7 +455,7 @@ conditions IsUnconditionalJump(me.instruction)
 { 
   // make all active paths inactive until the label it jumps to occurs in the code
   [ { path.label := me.arg.vbl.id }
-  | path : Path <- PATHS, (path.label == "") 
+  | path : Path <- PATHS, (IsActivePath(path)) 
   ] 
 }
 
@@ -458,7 +467,7 @@ conditions IsConditionalJump(me.instruction)
     PATHS + 
     Path(
       me.arg.vbl.id, 
-      Intersect([ path.vars | path : Path <- PATHS, (path.label == "")])
+      Intersect([ path.vars | path : Path <- PATHS, (IsActivePath(path))])
     )
 }
 
@@ -470,7 +479,7 @@ Check76(me : (ArgumentsAssignment, value : (Assignment, expr # NIL)))
   // call arguments should be treated as being initialized
   name : Ident = Ident(GetName(me.value.expr)) 
   if name # "" & name <- TEMPS 
-    [ { path.vars := path.vars + name } | path : Path <- PATHS, (path.label == "") ]
+    [ { path.vars := path.vars + name } | path : Path <- PATHS, (IsActivePath(path)) ]
   fi
 }
 

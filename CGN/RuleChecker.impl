@@ -21,12 +21,17 @@ Check_GawlKeeper(me : GawlKeeper)
   EvalComments()
   Check_Comment(me.src_info)
   margin := fix_margin()
-  Check_Block(me.block_type)
-  Rules.Check("C014", LOC, me.block_type)
-  Rules.Check("C015", LOC, me)
-  Rules.Check("C020", LOC, me.block_type)
-  Rules.Check("G003", LOC, me)
-  Rules.Check("G012", LOC, me.block_type)
+  [ 
+    { 
+      Check_Block(xxxblock) 
+      Rules.Check("C014", LOC, xxxblock)
+      Rules.Check("C015", LOC, xxxblock)
+      Rules.Check("C020", LOC, xxxblock)
+      Rules.Check("G003", LOC, xxxblock)
+      Rules.Check("G012", LOC, xxxblock)
+    }
+  | xxxblock : Block <- me.blocks
+  ]
   Check_Comment(me.src_info)
   set_margin(margin)
 }
@@ -125,9 +130,13 @@ Check_FunctionBody(me : FunctionBody)
   Rules.Check("C052", LOC, me)
   Rules.Check("C076", LOC, me)
   Rules.Check("G040", LOC, me)
-  [ { Check_LocalVarInputs(xxxinputs) }
-  | xxxinputs : LocalVarInputs <- me.inputs
-  ]
+  if me.inputs # NIL then
+    Check_String("VAR_INPUT")
+    [ { Check_LocalVarInputs(xxxinputs) }
+    | xxxinputs : LocalVarInputs <- me.inputs
+    ]
+    Check_String("END_VAR")
+  fi
   if me.outputs # NIL then
     Check_String("VAR_OUTPUT")
     Rules.Check("G021", LOC, me.outputs)
@@ -149,9 +158,8 @@ Check_FunctionBody(me : FunctionBody)
   fi
   if me.locals # NIL then
     Check_String("VAR")
-    Rules.Check("G021", LOC, me.locals)
-    [ { Check_Field(xxxlocals) }
-    | xxxlocals : Field <- me.locals
+    [ { Check_LocalVars(xxxlocals) }
+    | xxxlocals : LocalVars <- me.locals
     ]
     Check_String("END_VAR")
   fi
@@ -237,12 +245,29 @@ Check_ParamsInitListSemicolon(me : ParamsInitListSemicolon)
   set_margin(margin)
 }
 
+Check_LocalVars(me : LocalVars)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  Check_String("VAR")
+  if me.const then
+    Check_String("CONSTANT")
+  fi
+  Rules.Check("G021", LOC, me.locals)
+  [ { Check_Field(xxxinputs) }
+  | xxxinputs : Field <- me.locals
+  ]
+  Check_String("END_VAR")
+  Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
 Check_LocalVarInputs(me : LocalVarInputs)
 {
   margin : Int := 0
   Check_Comment(me.src_info)
   margin := fix_margin()
-  Check_String("VAR_INPUT")
   if me.dbSpecf then
     Check_String("DB_SPECIFIC")
   fi
@@ -250,7 +275,6 @@ Check_LocalVarInputs(me : LocalVarInputs)
   [ { Check_Field(xxxinputs) }
   | xxxinputs : Field <- me.inputs
   ]
-  Check_String("END_VAR")
   Check_Comment(me.src_info)
   set_margin(margin)
 }
@@ -270,11 +294,9 @@ Check_DataForBlock(me : DataBlockVars)
   margin : Int := 0
   Check_Comment(me.src_info)
   margin := fix_margin()
-  Check_String("VAR")
   [ { Check_Field(xxxvars) }
   | xxxvars : Field <- me.vars
   ]
-  Check_String("END_VAR")
   Check_Comment(me.src_info)
   set_margin(margin)
 }
@@ -354,7 +376,7 @@ Check_Assignment(me : Assignment)
   Check_String(":=")
   if me.expr # NIL then
     Rules.Check("C040", LOC, me.expr)
-    Check_InstrExpression(me.expr)
+    Check_InitExpression(me.expr)
   fi
   Check_Comment(me.src_info)
   set_margin(margin)
@@ -647,6 +669,12 @@ Check_Instruction(me : Instruction)
   set_margin(margin)
 }
 
+Check_InitExpression(me : InstrExpression)
+{ Check_InstrExpression(me) }
+
+Check_InitExpression(me : StructInit)
+{ }
+
 Check_InstrExpression(me : AnonymousArray)
 {
   margin : Int := 0
@@ -716,6 +744,17 @@ Check_InstrExpression(me : TimeLiteral)
   margin := fix_margin()
   Rules.Check("C039", LOC, me)
   Check_String(me.value)
+  Check_Comment(me.src_info)
+  set_margin(margin)
+}
+
+Check_InstrExpression(me : AnyField)
+{
+  margin : Int := 0
+  Check_Comment(me.src_info)
+  margin := fix_margin()
+  Rules.Check("C039", LOC, me)
+  Check_String(me.any)
   Check_Comment(me.src_info)
   set_margin(margin)
 }

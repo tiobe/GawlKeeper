@@ -4,7 +4,8 @@
 %% Copyright TIOBE Software BV, 2025
 
 GawlKeeper ::=
-  block_type : Block
+  %% in exceptional cases there are multiple blocks, assuming one block for now
+  blocks : { Block }+ 
   eof : EOF
 ;
 
@@ -25,31 +26,36 @@ DataBlock < Block ::=
   assignments: { ArgumentsAssignment ";" }
   "END_DATA_BLOCK"
 ;
+
 Function < Block ::=
   "FUNCTION" function_name: StringLiteral ":" return_type: Type
   body: FunctionBody
   "END_FUNCTION"
 ;
+
 FunctionBlock < Block ::=
   "FUNCTION_BLOCK" function_name: StringLiteral
   body: FunctionBody
   "END_FUNCTION_BLOCK"
 ;
+
 OrgBlock < Block ::=
   "ORGANIZATION_BLOCK" org_name: StringLiteral
   body: FunctionBody    %% only VAR_TEMP blocks and declarations start with "OB" or with "t_"
   "END_ORGANIZATION_BLOCK"
 ;
+
 FunctionBody ::=
   header: HeaderBlock
-  { inputs: LocalVarInputs }
+  { "VAR_INPUT" inputs: LocalVarInputs "END_VAR" }
   [ "VAR_OUTPUT" outputs: { Field }+ "END_VAR" ]
   [ "VAR_IN_OUT" in_outs: { Field }+ "END_VAR" ]
-  [ "VAR"        locals:  { Field }+ "END_VAR" ]
-  [ "VAR_TEMP"   temps:   { Field }+ "END_VAR" ]
+  { "VAR" locals: LocalVars "END_VAR" }
+  [ "VAR_TEMP" temps: { Field }+ "END_VAR" ]
   "BEGIN"
   networks: { Network }
 ;
+
 TypeBlock < Block ::=
   "TYPE" type_name: StringLiteral
   header: HeaderBlock
@@ -69,7 +75,11 @@ ParamsInitSemicolon ::= "{" params: ParamsInitListSemicolon "}" ;
 ParamsInitListSemicolon ::= args: ArgumentsAssignment // ";" ;
 
 LocalVarInputs ::=
-  "VAR_INPUT" [ dbSpecf: "DB_SPECIFIC" ] inputs: { Field }+ "END_VAR"
+  [ dbSpecf: "DB_SPECIFIC" ] inputs: { Field }+
+;
+
+LocalVars ::=
+  [ const: "CONSTANT" ] locals: { Field }+ 
 ;
 
 DataForBlock ::= <
@@ -98,14 +108,28 @@ BadArgIdentifier < ArgumentIdentifier ::= arg: InstructionName ;
 
 Assignment ::=
   ":=" NAME AssignOp
-  expr: [ Expression ]  %% This is optional only in a couple of cases, in CALLs
-                        %% arguments lists.
+  expr: [ InitExpression ]
 ;
 
+InitExpression ::= <
+  InstrExpression
+| StructInit
+> ;
+
+StructInit < InitExpression ::= "(" inits: InitList ")" ;
+
+InitList ::= inits: Init // "," ;
+
+Init ::= <
+  ConstInit ::= "[" const : AtomicExpression "]" 
+| EmptyInit ::= "(" inits: OptInitList ")" 
+> ;
+
+OptInitList ::= inits : [ InitList ] ;
 
 Type ::= < BasicType | ComplexType > ;
 BasicType < Type ::= <
-  AnyType ::= "Any"
+  AnyType ::= any : ANY
 | AnyDbType ::= "DB_ANY"
 | AnyHwType ::= "HW_ANY"
 | BoolType ::= "Bool"
@@ -150,7 +174,7 @@ Instruction ::=
   arg: [ InstrExpression ]
 ;
 
-InstrExpression ::= <
+InstrExpression < InitExpression ::= <
   Expression
 | AnonymousArray ::= "[" head: Expression  tail: { "," Expression } "]"
 > ;
@@ -293,13 +317,17 @@ AtomicExpression < Expression ::= <
 | BinaryLiteral ::= value: BIN_INT
 | RealLiteral ::= value: REAL
 | TimeLiteral ::= value: TIME
+| AnyField ::= any : ANY
 | Reference
 > ;
+
 Reference < AtomicExpression ::= <
   LocalVariable
 | GlobalVariable
 > ;
+
 LocalVariable  < Reference ::= vbl: Identifier ;
+
 GlobalVariable < Reference ::= vbl: StringLiteral ;
 
 Identifier ::= id: ID ;
@@ -323,9 +351,9 @@ LogicCompExpression < Expression ::= <
 
 FieldExpression < Expression ::= expr: Expression "." field: AtomicExpression ;
 ConstExpression < Expression ::= size: [ SIZE ] "#" expr: AtomicExpression ;
-MemoryAccess    < Expression ::= "%" id: AtomicExpression ;
-PointerAccess   < Expression ::= op: POINTER_OP expr: PointerReference ;
-SizeExpression  < Expression ::= size: SIZE ;
+MemoryAccess < Expression ::= "%" id: AtomicExpression ;
+PointerAccess < Expression ::= op: POINTER_OP expr: PointerReference ;
+SizeExpression < Expression ::= size: SIZE ;
 
 PointerReference ::= <
   PointerAccessHash ::= hash: ConstExpression
@@ -337,6 +365,8 @@ PointerReference ::= <
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%                            Terminals                             %%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+SCAN TYPE String ANY ::= "Any" ; %% this node is needed because Any is a type and an identifier
 
 SCAN TYPE String TITLE ::= "TITLE" { Space } "=" { AnyCharExceptNewline } ;
 SCAN Space = < SP | HT | VT | FF > ;

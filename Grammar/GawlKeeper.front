@@ -285,6 +285,7 @@ Expression < InstrExpression ::= <
 | MemoryAccess
 | PointerAccess
 | SizeExpression
+| StructInitialization
 > ;
 
 AtomicExpression < Expression ::= <
@@ -323,9 +324,10 @@ LogicCompExpression < Expression ::= <
 
 FieldExpression < Expression ::= expr: Expression "." field: AtomicExpression ;
 ConstExpression < Expression ::= size: [ SIZE ] "#" expr: AtomicExpression ;
-MemoryAccess    < Expression ::= "%" id: AtomicExpression ;
-PointerAccess   < Expression ::= op: POINTER_OP expr: PointerReference ;
-SizeExpression  < Expression ::= size: SIZE ;
+MemoryAccess < Expression ::= "%" id: AtomicExpression ;
+PointerAccess < Expression ::= op: POINTER_OP expr: PointerReference ;
+SizeExpression < Expression ::= size: SIZE ;
+StructInitialization < Expression ::= "(" "[" init : AtomicExpression "]" ")" ;
 
 PointerReference ::= <
   PointerAccessHash ::= hash: ConstExpression

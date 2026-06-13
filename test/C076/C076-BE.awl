@@ -1,0 +1,44 @@
+FUNCTION "FC12" : Int
+TITLE = %version: 5.09 % %Commit:  c3808b61 % CN: 33
+
+VAR
+    XYZ : Bool;
+END_VAR
+
+VAR_TEMP
+    TempValue : Int;
+    Extra : Int;
+    Extra2 : Int;
+    Wrong : Int;
+END_VAR
+
+BEGIN
+NETWORK TITLE = "test"
+
+
+      T     #Extra;
+      T     #Extra2;
+      A     #XYZ;
+      JC    ASSIGN;
+
+      JU    CONTINUE;
+
+ASSIGN: NOP 0;
+
+      L     5;
+      T     #TempValue;
+      JU    BLA;
+
+CONTINUE: NOP 0;
+      BE;
+
+BLA:  L     #TempValue;
+      T     #RET_VAL;
+
+NETWORK TITLE = "bla"
+
+      L     #Wrong;
+
+END_FUNCTION
+
+

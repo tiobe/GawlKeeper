@@ -45,6 +45,7 @@ IsAccessingAR2(locals : List(String), instr : Instruction): Bool
 IsModifyingAR2(instr : InstructionName): Bool
 IsRestoringAR2(instr : Instruction): Bool
 
+IsFlankInstruction(instr: InstructionName): Bool
 IsLoadInstruction(instr: InstructionName): Bool
 IsOutputInstruction(instr: InstructionName): Bool
 

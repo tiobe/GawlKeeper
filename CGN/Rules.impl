@@ -14,7 +14,7 @@ Properties. GetName, GetRawName, GetReferences, GetTitle, GetComments, GetLabel,
             IsOutputInstruction, IsUsed, IsAccessingAR2, IsModifyingAR2, IsRestoringAR2,
             GetBlockType, HasComment, IsLoadingAR1, IsUsingAR1, IsSymbolicReference,
             GetFullComments, IsConditionalJump, IsUnconditionalJump, Intersect,
-            GetFields
+            GetFields, IsFlankInstruction
 RuleConfig. IsRuleEnabled
 RuleViolation. ', AddViolation
 ScanIO. FindFileName, FindLocation
@@ -388,17 +388,18 @@ Path = {
 
 global
 
+LABELS : List(String) := [] // labels already encountered
 PATHS : List(Path) := []
 TEMPS : List(String) := []
 
 functions
 
 Check(rule : String, loc : Int, me : FunctionBody)
-conditions rule == "C076"
+conditions rule == "C076" | rule == "C078"
 { 
   PATHS := [Path("", NIL)]
   TEMPS := me.temps * GetName
-  me.networks * Check76
+  me.networks * CheckPathRule $ rule
 }
 
 IsActivePath(path : Path): Bool
@@ -407,33 +408,35 @@ IsActivePath(path : Path): Bool
 IsNonActivePath(path : Path): Bool
 { return ~IsActivePath(path) }
 
-Check76(me : Network)
-{ me.instructions * Check76Label }
+CheckPathRule(rule : String, me : Network)
+{ me.instructions * CheckPathLabel $ rule }
 
-Check76Label(me : (Instruction, label # NIL))
+CheckPathLabel(rule : String, me : (Instruction, label # NIL))
 {  
    // the path with the label that occurs in the code becomes active
    [ { path.label := "" } | path : Path <- PATHS, (path.label == me.label.id) ]
-   Check76(me)
+   LABELS := LABELS + me.label.id
+   CheckPathRule(rule, me)
 }
 
-Check76Label(me : Instruction)
-{ Check76(me) }
+CheckPathLabel(rule : String, me : Instruction)
+{ CheckPathRule(rule, me) }
 
-Check76(me : (Instruction, instruction : (BeInstr | BeuInstr)))
+CheckPathRule(rule : String, me : (Instruction, instruction : (BeInstr | BeuInstr)))
 { PATHS := PATHS / IsNonActivePath }
 
-Check76(me : (Instruction, instruction : (CallInstr, args : (FunctionCallParts, arguments # NIL))))
-{ me.instruction.args.arguments.args.args * Check76  }
+CheckPathRule(rule : String, me : (Instruction, instruction : (CallInstr, args : (FunctionCallParts, arguments # NIL))))
+{ me.instruction.args.arguments.args.args * CheckPathRule }
 
-Check76(me : (Instruction, arg # NIL, instruction : LInstr))
+CheckPathRule(rule : String, me : (Instruction, arg # NIL, instruction : LInstr))
+conditions rule == "C076"
 {
   // fire if there is an active path for which the loaded variable is not initialized 
   name : Ident = Ident(GetName(me.arg))
   if name <- TEMPS 
     [ 
       { 
-        AddViolation("C076", me.src_info.loc, [name]) 
+        AddViolation(rule, me.src_info.loc, [name]) 
         return // return because only one path should be reported per line
       } 
       | path : Path <- PATHS, (IsActivePath(path)), (~(name <- path.vars))
@@ -441,7 +444,7 @@ Check76(me : (Instruction, arg # NIL, instruction : LInstr))
   fi
 }
 
-Check76(me : (Instruction, arg # NIL, instruction : TransfInstr))
+CheckPathRule(rule : String, me : (Instruction, arg # NIL, instruction : TransfInstr))
 { 
   // add the transferred variable to the list of initialized variables of the active paths
   name : Ident = Ident(GetName(me.arg))
@@ -450,8 +453,9 @@ Check76(me : (Instruction, arg # NIL, instruction : TransfInstr))
   fi
 }
 
-Check76(me : (Instruction, arg : LocalVariable))
-conditions IsUnconditionalJump(me.instruction)
+CheckPathRule(rule : String, me : (Instruction, arg : LocalVariable))
+// only process forward jumps
+conditions IsUnconditionalJump(me.instruction) & ~(me.arg.vbl.id <- LABELS)
 { 
   // make all active paths inactive until the label it jumps to occurs in the code
   [ { path.label := me.arg.vbl.id }
@@ -459,8 +463,9 @@ conditions IsUnconditionalJump(me.instruction)
   ] 
 }
 
-Check76(me : (Instruction, arg : LocalVariable))
-conditions IsConditionalJump(me.instruction)
+CheckPathRule(rule : String, me : (Instruction, arg : LocalVariable))
+// only process forward jumps
+conditions IsConditionalJump(me.instruction) & ~(me.arg.vbl.id <- LABELS)
 { 
   // if a conditional jump happens add the intersect of all active paths for the jump label
   PATHS := 
@@ -471,10 +476,21 @@ conditions IsConditionalJump(me.instruction)
     )
 }
 
-Check76(me : Instruction)
+CheckPathRule(rule : String, me : Instruction)
+conditions rule == "C078" & IsFlankInstruction(me.instruction)
+{ 
+  [ 
+    { AddViolation(rule, me.src_info.loc, []) 
+      return    
+    } 
+  | path : Path <- PATHS, (path.label # "")
+  ]
+} 
+
+CheckPathRule(rule : String, me : Instruction)
 { }
 
-Check76(me : (ArgumentsAssignment, value : (Assignment, expr # NIL)))
+CheckPathRule(me : (ArgumentsAssignment, value : (Assignment, expr # NIL)))
 {
   // call arguments should be treated as being initialized
   name : Ident = Ident(GetName(me.value.expr)) 
@@ -483,11 +499,11 @@ Check76(me : (ArgumentsAssignment, value : (Assignment, expr # NIL)))
   fi
 }
 
-Check76(me : ArgumentsAssignment)
+CheckPathRule(me : ArgumentsAssignment)
 { }
 
-/* For debugging checking rule C076
-Print76() 
+/* For debugging checking path related rules
+PrintPaths() 
 {
   { "PAUL begin\n" } astype Message
   [ { "PAUL path label = " path.label " vars = <EMPTY>\n" } astype Message    

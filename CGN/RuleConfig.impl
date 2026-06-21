@@ -142,6 +142,10 @@ GetRules() : [([String])]
       "A temporary variable shall always be assigned a value before it is read.",
       "Temporary variable '\027' is read before it is assigned to."
     ],
+    [ "C078",
+      "Flank instructions shall always be executed unconditionally.",
+      "This flank instruction is executed conditionally."
+    ],
     [ "G003",
       "Block name is filename.",
       "File '\027' should be named '\027', like the block it contains."

@@ -293,9 +293,13 @@ conditions instr.arg.head.vbl.id == "AR2"
 IsRestoringAR2(instr : Instruction): Bool
 { return FALSE }
 
-IsLoadInstruction(
-  instr : (LInstr | LogicAndInstr | LogicAndNotInstr | LogicOrInstr | LogicOrNotInstr)
-): Bool
+IsFlankInstruction(instr : (FnInstr | FpInstr)): Bool
+{ return TRUE }
+
+IsFlankInstruction(instr : InstructionName): Bool
+{ return FALSE } 
+
+IsLoadInstruction(instr : (LInstr | LogicAndInstr | LogicAndNotInstr | LogicOrInstr | LogicOrNotInstr)): Bool
 { return TRUE }
 
 IsLoadInstruction(instr : InstructionName): Bool

@@ -1,0 +1,994 @@
+FUNCTION_BLOCK "FB_Win_Gen_T"
+TITLE = %version: 5.10 % %Commit:  c3808b61 % CN: 33
+{ S7_Optimized_Access := 'FALSE' }
+FAMILY : Tubtrax
+VERSION : 0.0
+//Function:
+//Tubtrax SBT-only and mixed flow window generator
+//
+//
+//SOURCE
+//%Project:      allcttt %
+//%Repo:         a_ttt %
+//%Commit:       c3808b61 %
+//%DateTimeUTC:  2023-12-11T14:59:55 %
+//
+//%HISTORY%
+//Issue:        Commit:  Date:      Version: Author:              Description:
+//------------- -------- ---------- -------- -------------------- ------------------------------------------------------------------------------
+//ALLCTTT-4059  c3808b61 2023-12-11 5.10     Pascal van Kempen    Added history table
+//ALLCTTT-4042  a864e0dd 2023-12-06 5.09     Harm Hopmans         Renamed folders that contained space character
+//ALLCTTT-4042  55fd833f 2023-12-05 5.08     Henri de Leijer      First step to remove the library files
+//ALLCTTT-1767  f782131d 2022-02-02 5.07     Shilpa Das           Generating windows when upstream section is operational
+//ALLCTTT-272   544e4e84 2020-12-10 5.06     Pascal van Kempen    removed keywords
+//ALLCTTT-272   9d531fbf 2020-12-10 5.05     Pascal van Kempen    Revert corrected checkin sequence for determining version information properly
+//ALLCTTT-272   ae3fa862 2020-12-10 5.04     Pascal van Kempen    corrected checkin sequence for determining version information properly
+//ALLCTTT-272   5a1edb78 2020-12-10 5.03     Pascal van Kempen    Revert keywords updates
+//ALLCTTT-272   8d62c219 2020-12-10 5.02     Pascal van Kempen    keywords updates
+//ALLCTTT-272   31a64871 2020-12-10 5.01     Pascal van Kempen    initial import
+//
+//Modification History:                                 By:      Date:     Rev:
+//----------------------------------------------------  -------  --------  -----
+//ra#38316: OBT window not generated in FB_Win_Gen_T    nljmol   14-09-20   2.02
+//ra#31964: Based on 2.15.0.0 version 1.03              nlhhop   14-01-19   2.01
+//
+//Description:
+//This FB generates empty and/or reserved windows with a specific window-length 
+//for inducting on a loop. 
+//
+//Each time the insert area is free of code an reservation code is written in the 
+//PLT at the insert-position corrected with the displacement. When the 
+//reservation FIFO is empty or not used an empty window code is written in 
+//tracking when no upstream window generator is active.
+   VAR_INPUT 
+      i_CFG_Induct_Pos : Int;   // CFG: [cm] Position of the induct
+      i_CFG_Window_Length : Int;   // CFG: [cm] Length of the generated window
+      i_DB_PLT_Induct_Upstr : DB_ANY := DB1;   // Data Structure: DB PLT induct upstream
+      i_DB_Reservation : DB_ANY := DB1;   // Data Structure: DB reservation
+      i_DB_Event : DB_ANY := DB1;   // Data Structure: DB event
+   END_VAR
+
+   VAR 
+      s_Entry_Pointer : DWord;   // Entry pointer to next SBT
+      s_Upstr_Displacement : Int;   // Section displacement
+      s_Reservation_Code : Int;   // Reservation-code = - (Induct-number  * 100)
+      s_Reservation_Entries : Int;   // Number of reservation entries
+      s_Header_length_Res_DB : Int;   // Header length of DB Reservation. Value = 14
+      s_Win_Insert_PLT_DB_Num : Int;   // DB PLT to insert windows
+      s_Win_Insert_Position : Int;   // Position to insert windows
+      s_OBT_ReservationCounter : Int;   // Entry counter amount of OBT before an SBT
+      s_Window_Counter : Int;   // Displacement counter before new window
+      s_SBT_Reservation : Bool;   // Next item in DB_Resevation is SBT
+      s_OBT_Reservation : Bool;   // Next item in DB_Resevation is OBT
+      s_Item_At_Window_Pos : Bool;   // Item at the insert point window
+      s_OBT_Detected : Bool;   // OBT at the insert point window
+      s_SBT_Detected : Bool;   // SBT at the insert point window
+      s_OBT_In_TIR : Bool;   // OBT status TRUE in TIR
+      s_SBT_In_TIR : Bool;   // SBT status TRUE in TIR
+      s_Unknown_Carrier_Kind : Bool;   // Unknown carrier kind at insert point
+   END_VAR
+
+   VAR_TEMP 
+      t_DB_Event_Num : Int;   // Number of DB event
+      t_DB_PLT_Num_SBT : Int;   // Number of DB PLT for SBT
+      t_Induct_Position_SBT : Int;   // [cm] Induct Position for SBT
+      t_DB_PLT_Num_OBT : Int;   // Number of DB PLT for OBT
+      t_Induct_Position_OBT : Int;   // [cm] Induct Position for OBT
+      t_Upstr_DB_PLT_Num : Int;   // Upstream DB PLT number
+      t_Upstr_Section_Length : Int;   // [cm] Section length
+      t_Upstr_Operational : Bool;   // Upstream section operational
+      t_Dist_To_Upstr : Int;   // [cm] Distance of induct position to the upstream
+      t_TIC : Int;   // TIC number
+      t_Not_Used_Int : Int;   // Not used integer
+      t_Win_Gen_Position : Int;   // [cm] Windows generation position
+      t_Remaining_Position : Int;   // [cm] Remaining position
+      t_Fnd_Link : Int;   // Link number found in DB PLT within the search window
+      t_FIFO_Last_Record : Int;   // Last record in DB reservation
+      t_Fnd_Num_Items_Upstr : Int;   // Number of items found in DB PLT within search window
+      t_Fnd_Num_Items_Dwnstr : Int;   // Number of items found in DB PLT within search window
+      t_Fnd_Num_Items_Trailing : Int;   // Number of trailing edge items found in DB PLT within the search window
+      t_Fnd_Num_Items : Int;   // Number of items found
+      t_OBT_Window : Int;   // Window of an OBT
+      t_Request_Windows : Bool;   // Windows are requested
+      t_SBT_Only_Configured : Bool;   // OBT length is not configured which means SBT only system is configured
+   END_VAR
+
+
+BEGIN
+NETWORK
+TITLE = AA: Determine Initial variables
+      NOP 0;
+
+// Load DB Event number
+      OPN #i_DB_Event;
+      L DBNO;
+      T #t_DB_Event_Num;
+
+// Load data from FIFO DB on temps
+      OPN #i_DB_Reservation;
+      L %DBW0;
+      T #s_Reservation_Entries;
+
+// Offset to first FIFO record in reservation DB
+      L 14;
+      T #s_Header_length_Res_DB;
+
+// Clear the entry counter
+      L 0;
+      T #s_OBT_ReservationCounter;
+
+      A %DBX12.0;
+      = #t_Request_Windows;
+
+// Load DB number induct upstr
+      OPN #i_DB_PLT_Induct_Upstr;
+
+      L DBNO;
+      T #t_Upstr_DB_PLT_Num;
+
+      A %DBX10.5;
+      = #t_Upstr_Operational;
+
+// Check if it is an SBT (standard size carrier) only system
+      L "DB_Setting".Common_TTT.OBT_Length;
+      L 0;
+      ==I;
+      = #t_SBT_Only_Configured;
+
+// Calculate OBT window length (2 times SBT window length)
+      L #i_CFG_Window_Length;
+      L #i_CFG_Window_Length;
+      +I;
+      T #t_OBT_Window;
+
+NETWORK
+TITLE = BA: Determine PLT for window code
+//Loop through the PLT DB to determines the DB PLT, and the respective positions 
+//that contains the induct position SBT and induct position OBT. This is either 
+//the DB PLT upstream of the inducting TRS, or the upstream of that TRS. The 
+//'induct position SBT' is the windows generation point, lying 10cm before the 
+//induct position. Induct position OBT lies 1 window length upstream of the SBT 
+//position
+//
+// _______________________________
+//   
+//                                      
+//           |<--SBT Window -->|
+// __________|_________________|___
+//          /|\               /|\ 
+//           |                 | 
+//           |                 |  
+//Induct Pos OBT    Induct Pos SBT
+      NOP 0;
+
+// Determine the window generation point, 10 cm upstream of the induct position.
+      L #i_CFG_Induct_Pos;
+      L 10;
+      +I;
+      T #t_Win_Gen_Position;
+
+// Initialize help variables
+      L #t_Win_Gen_Position;
+      T #t_Remaining_Position;
+
+// Start of loop: Determine the DB PLT of the SBT window generation point
+BA01:      NOP 0;
+
+      OPN DB[ #t_Upstr_DB_PLT_Num];
+
+// Get displacement PLT induct
+      L %DBW2;
+      T #s_Upstr_Displacement;
+
+// Determine the distance of induct position to the upstream TRS
+      L %DBW12;
+      T #t_Upstr_Section_Length;
+      L #t_Remaining_Position;
+      -I;
+      T #t_Dist_To_Upstr;
+
+// Check that the window generation point is in the current PLT
+      L #t_Dist_To_Upstr;
+      L 0;
+      >=I;
+      JCN BA02;
+
+// Transfer the position and PLT DB number
+      L #t_Remaining_Position;
+      T #t_Induct_Position_SBT;
+
+      L #t_Upstr_DB_PLT_Num;
+      T #t_DB_PLT_Num_SBT;
+
+      JU BA03;
+
+// Go to the next upstream PLT
+BA02:      NOP 0;
+// Check if there is an upstream found, and get the DB number
+      L 1;
+      L %DBW6;
+      <I;
+      JCN BA06;
+      T #t_Upstr_DB_PLT_Num;
+
+// Update remaining position
+      L #t_Remaining_Position;
+      L #t_Upstr_Section_Length;
+      -I;
+      T #t_Remaining_Position;
+
+// Loop
+      JU BA01;
+
+// Check OBT position and DB PLT
+BA03:      NOP 0;
+
+// Check that it is not an SBT-Only configuration
+      AN #t_SBT_Only_Configured;
+      JCN BA99;
+
+// Determine position, 1 window length upstream of windows generation point
+      L #t_Induct_Position_SBT;
+      L #i_CFG_Window_Length;
+      +I;
+      T #t_Remaining_Position;
+
+BA04:      NOP 0;
+
+      OPN DB[ #t_Upstr_DB_PLT_Num];
+
+// Determine the distance of induct position to the upstream TRS
+      L %DBW12;
+      T #t_Upstr_Section_Length;
+      L #t_Remaining_Position;
+      -I;
+      T #t_Dist_To_Upstr;
+
+// Check that position is in currect the current PLT
+      L #t_Dist_To_Upstr;
+      L 0;
+      >=I;
+      JCN BA05;
+
+// Transfer the position and DB number
+      L #t_Upstr_DB_PLT_Num;
+      T #t_DB_PLT_Num_OBT;
+
+// Transfer the DB number
+      L #t_Remaining_Position;
+      T #t_Induct_Position_OBT;
+
+      JU BA99;
+
+// Goto upstream PLT
+BA05:      NOP 0;
+      L 1;
+      L %DBW6;
+      <I;
+      JCN BA06;
+      T #t_Upstr_DB_PLT_Num;
+
+// Update remaining positon
+      L #t_Remaining_Position;
+      L #t_Upstr_Section_Length;
+      -I;
+      T #t_Remaining_Position;
+
+// Loop
+      JU BA04;
+
+// Failure no upstream found
+BA06:      NOP 0;
+      CALL "FC_Write_Event"
+      (  i_Message_ID                := 3450 , // 3xxx Failure no PLT DB for window generator
+         i_Event_value               := #t_Upstr_DB_PLT_Num , 
+         i_DB_Event_Num              := #t_DB_Event_Num , 
+         o_Return_Value              := #t_Not_Used_Int
+      );
+
+// End of this function
+      JU GA99;
+
+BA99:      NOP 0;
+
+NETWORK
+TITLE = CA: Windows counter for generating windows
+//The windows counter is a displacement counter which is initially the size of a 
+//window and counts down with the displacement. 
+//    
+//           <-- window --> <-------- 2 window's ---------->
+// _____________________________________________ ____________
+//|    ____________________                     |
+//|   |                    |                    |
+//|   |      "Not SBT"     |                    |
+//|   |____________________|                    |
+//|_____________________________________________|____________
+//          /|\           /|\ Start Timer "OBT_At_Window_Pos"
+//           |             |  Wait for 2 window's 
+//           |             |  than make new window's
+//Induct Pos OBT    Induct Pos SBT
+      NOP 0;
+
+// Preset SBT detected when SBT only system configured
+      A #t_SBT_Only_Configured;
+      JCN CA01;
+
+      SET;
+      S #s_SBT_Detected;
+      R #s_OBT_Detected;
+      R #s_Unknown_Carrier_Kind;
+
+      JU CA02;
+
+CA01:      CALL "FC_PLT_Srch_Inf_Up"
+      (  i_DB_PLT_Num                := #t_DB_PLT_Num_SBT , 
+         i_Position                  := #t_Induct_Position_SBT , 
+         i_Window                    := 10 , 
+         i_Info                      := 1 , 
+         o_Position                  := #t_Not_Used_Int , 
+         o_Info                      := #t_Not_Used_Int , 
+         o_LNK                       := #t_Fnd_Link , 
+         o_DB_PLT_Num                := #t_Not_Used_Int , 
+         o_Number_Items_Found        := #t_Fnd_Num_Items_Upstr
+      );
+
+      L #t_Fnd_Num_Items_Upstr;
+      L 0;
+      >I;
+      = #s_Item_At_Window_Pos;
+
+// Check if there is an leading edge at the induct position
+      A #s_Item_At_Window_Pos;
+      JCN CA03;
+
+// Check TIC record of carrier
+      CALL "FC_Read_Int_Record"
+      (  i_Record_Number             := #t_Fnd_Link , 
+         i_P_INT_Record              := "DB_UDT_LNK_Record".TIC , 
+         i_DB                        := "DB_LNK_List" , 
+         i_DB_Event_Num              := #t_DB_Event_Num , 
+         o_INT                       := #t_TIC
+      );
+
+// Read carrier kind from TIR
+      CALL "FC_Read_Bool_Record"
+      (  i_Record_Number             := #t_TIC , 
+         i_P_BOOL_Record             := "DB_UDT_TIC_Record".TIR.Class_SBT , 
+         i_DB                        := "DB_TIC_List" , 
+         i_DB_Event_Num              := #t_DB_Event_Num , 
+         o_BOOL                      := #s_SBT_In_TIR
+      );
+
+      CALL "FC_Read_Bool_Record"
+      (  i_Record_Number             := #t_TIC , 
+         i_P_BOOL_Record             := "DB_UDT_TIC_Record".TIR.Class_OBT , 
+         i_DB                        := "DB_TIC_List" , 
+         i_DB_Event_Num              := #t_DB_Event_Num , 
+         o_BOOL                      := #s_OBT_In_TIR
+      );
+
+// Determine read carrier kind:
+// SET SBT At induct position
+      A #s_SBT_In_TIR;
+      AN #s_OBT_In_TIR;
+      = #s_SBT_Detected;
+
+// SET OBT At induct position
+      AN #s_SBT_In_TIR;
+      A #s_OBT_In_TIR;
+      = #s_OBT_Detected;
+
+// SET Unknown at induct position
+      AN #s_SBT_Detected;
+      AN #s_OBT_Detected;
+      = #s_Unknown_Carrier_Kind;
+
+// Unknown == OBT
+      A #s_Unknown_Carrier_Kind;
+      S #s_OBT_Detected;
+
+// Check if carrier is OBT
+      A #s_OBT_Detected;
+      JCN CA02;
+
+// Set larger window counter (equal to 2 normal windows), for OBT
+//           |<-- window --><-- window -->|
+// _____________________________________________
+//|                   ____________________
+//|                  |                    |
+//|                  |      OBT           |
+//|                  |____________________|
+//|_____________________________________________
+//          /|\
+//           |
+//           |
+//Induct Pos OBT
+
+      L #t_OBT_Window;
+      T #s_Window_Counter;
+      JU CA03;
+
+// If SBT-Only
+CA02:      SET;
+      S #s_SBT_Detected;
+      R #s_OBT_Detected;
+
+// Count down the window counter:
+// If (window counter - displacement) < 0,
+// otherwise reset the counter
+// otherwise count down the window counter by the displacement,
+CA03:      L #s_Window_Counter;
+      L #s_Upstr_Displacement;
+      -I;
+      JPZ CA04;
+      L 0;
+CA04:      T #s_Window_Counter;
+
+// Reset OBT detected when window counter is zero
+      L #s_Window_Counter;
+      L 0;
+      ==I;
+      R #s_OBT_Detected;
+
+NETWORK
+TITLE = DA: Check Reservation DB for SBT or OBT Reservation_code
+//Example:
+//
+//Reservation_code in side DB_Reservation
+//
+//DB_Reservation       DB_Reservation       DB_Reservation
+// _____________       _____________        _____________
+//|____-102 ____|     |____-101 ____|      |____ 0   ____|
+//|____-101 ____|     |____-101 ____|      |____ 0   ____|
+//|____ 0   ____|     |____-103 ____|      |____ 0   ____|
+//|____ 0   ____|     |____ 0   ____|      |____ 0   ____|
+//|____ 0   ____|     |____ 0   ____|      |____ 0   ____|
+//|____ 0   ____|     |____ 0   ____|      |____ 0   ____|
+//
+//- 1 SBT at infeed 2  - 1 OBT at infeed 1  - No SBT or OBT waiting             
+//- 1 SBT at infeed 1  - 1 SBT at infeed 3
+      NOP 0;
+
+      L -100;
+      T #s_Reservation_Code;
+
+// Initialize carrier type bools for first carrier in DB Reservation
+      SET;
+      S #s_SBT_Reservation;
+      R #s_OBT_Reservation;
+
+// Check if there are any reservations waiting in DB_Reservations
+      L #s_Reservation_Entries;
+      L 0;
+      >I;
+      JCN DA99;
+
+// Make reservation in FIFO. Open DB_Reservation and look for existing reservation
+      OPN #i_DB_Reservation;
+
+// Initialize pointer to word adress
+      L #s_Header_length_Res_DB;
+      SLW 3;
+      LAR1;
+      T #s_Entry_Pointer;
+
+// Load entry and transfer to reservation code.
+      L DBW[ AR1, P#0.0];
+      T #s_Reservation_Code;
+
+// Check if OBT in reservation (if next entry is the same)
+      L DBW[ AR1, P#2.0];
+      L #s_Reservation_Code;
+      ==I;
+      AN #t_SBT_Only_Configured;
+      JCN DA99;
+
+      S #s_OBT_Reservation;
+      R #s_SBT_Reservation;
+
+DA99:      NOP 0;
+
+NETWORK
+TITLE = EA: OBT window reservation
+//         Start   _____________
+//        ________| Data in DB  |______________________________
+//       |        | Reservation | no                           |
+//      /|\       |_____________|                              |
+//       |               | yes                                 |
+// ______|______   ______V______                               |
+//| Go to Next  | |  OBT in DB  |___________                   |
+//| Reservation | | Reservation | no        |                  |
+//|_____SBT_____| |_____________|           |                  |
+//       |               | yes              |                  |
+//      /|\        ______V______            |                  |
+//       |________|Empty window |           |                  |
+//            no  |  For a OBT  |          \|/                \|/
+//                |_____________|           |                  |
+//                       | yes              |                  |
+//                _______V________   _______|________   _______|________
+//               |Copy reservation| |Copy reservation| |Copy empty Code |
+//               |OBT into Window | |SBT into Window | |-100 into Window|
+//               |________________| |________________| |________________|
+      NOP 0;
+
+// Check that there is a window request for OBT
+      A #s_OBT_Reservation;
+      A #t_Request_Windows;
+      JCN EA99;
+
+// Set the insert PLT DB number equal to
+      L #t_DB_PLT_Num_SBT;
+      T #s_Win_Insert_PLT_DB_Num;
+
+      L #t_Induct_Position_SBT;
+      T #s_Win_Insert_Position;
+
+// Reset variables
+      L 0;
+      T #t_Fnd_Num_Items;
+      T #t_Fnd_Num_Items_Upstr;
+      T #t_Fnd_Num_Items_Dwnstr;
+      T #t_Fnd_Num_Items_Trailing;
+
+// Search in tracking for code present in the inserting area
+      CALL "FC_PLT_Srch_Win_Up"
+      (  i_DB_PLT_Num                := #s_Win_Insert_PLT_DB_Num , 
+         i_Position                  := #s_Win_Insert_Position , 
+         i_Window                    := #t_OBT_Window , 
+         o_Position                  := #t_Not_Used_Int , 
+         o_Info                      := #t_Not_Used_Int , 
+         o_LNK                       := #t_Not_Used_Int , 
+         o_DB_PLT_Num                := #t_Not_Used_Int , 
+         o_Number_Items_Found        := #t_Fnd_Num_Items_Upstr
+      );
+
+      A #s_OBT_Detected;
+      JCN EA01;
+
+      CALL "FC_PLT_Srch_Win_Dwn"
+      (  i_DB_PLT_Num                := #s_Win_Insert_PLT_DB_Num , 
+         i_Position                  := #s_Win_Insert_Position , 
+         i_Window                    := #t_OBT_Window , 
+         o_Position                  := #t_Not_Used_Int , 
+         o_Info                      := #t_Not_Used_Int , 
+         o_LNK                       := #t_Not_Used_Int , 
+         o_DB_PLT_Num                := #t_Not_Used_Int , 
+         o_Number_Items_Found        := #t_Fnd_Num_Items_Dwnstr
+      );
+
+      JU EA02;
+
+EA01:      CALL "FC_PLT_Srch_Win_Dwn"
+      (  i_DB_PLT_Num                := #s_Win_Insert_PLT_DB_Num , 
+         i_Position                  := #s_Win_Insert_Position , 
+         i_Window                    := #i_CFG_Window_Length , 
+         o_Position                  := #t_Not_Used_Int , 
+         o_Info                      := #t_Not_Used_Int , 
+         o_LNK                       := #t_Not_Used_Int , 
+         o_DB_PLT_Num                := #t_Not_Used_Int , 
+         o_Number_Items_Found        := #t_Fnd_Num_Items_Dwnstr
+      );
+
+EA02:      L #t_Fnd_Num_Items_Upstr;
+      L #t_Fnd_Num_Items_Dwnstr;
+      +I;
+      T #t_Fnd_Num_Items;
+
+// Subtract the number of trailing edge's (2)
+      CALL "FC_PLT_Srch_Inf_Dwn"
+      (  i_DB_PLT_Num                := #s_Win_Insert_PLT_DB_Num , 
+         i_Position                  := #s_Win_Insert_Position , 
+         i_Window                    := #i_CFG_Window_Length , 
+         i_Info                      := 2 , 
+         o_Position                  := #t_Not_Used_Int , 
+         o_Info                      := #t_Not_Used_Int , 
+         o_LNK                       := #t_Not_Used_Int , 
+         o_DB_PLT_Num                := #t_Not_Used_Int , 
+         o_Number_Items_Found        := #t_Fnd_Num_Items_Trailing
+      );
+
+// Empty window for a OBT
+      L #t_Fnd_Num_Items;
+      L #t_Fnd_Num_Items_Trailing;
+      -I;
+      T #t_Fnd_Num_Items;
+      L 0;
+      ==I;
+      A #t_Upstr_Operational;
+      JCN EA99;
+
+// Copy Reservation OBT in to PLT window
+      CALL "FC_PLT_Write"
+      (  i_DB_PLT_Num                := #s_Win_Insert_PLT_DB_Num , 
+         i_Position                  := #s_Win_Insert_Position , 
+         i_Info_State                := WORD#16#0000 , 
+         i_Info_Physical             := #s_Reservation_Code , 
+         i_LNK                       := 0 , 
+         i_DB_Event_Num              := #t_DB_Event_Num
+      );
+
+      CALL "FC_PLT_Write"
+      (  i_DB_PLT_Num                := #t_DB_PLT_Num_OBT , 
+         i_Position                  := #t_Induct_Position_OBT , 
+         i_Info_State                := WORD#16#0000 , 
+         i_Info_Physical             := #s_Reservation_Code , 
+         i_LNK                       := 0 , 
+         i_DB_Event_Num              := #t_DB_Event_Num
+      );
+
+// Remove record from reservation DB after the insert request:
+// Open FIFO-DB
+      OPN #i_DB_Reservation;
+
+// Determine FIFO address of last record
+      L #s_Reservation_Entries;
+      L 2;
+      -I;
+      T #t_FIFO_Last_Record;
+
+// Initialize pointer to Word adress. Load next entry and transfer to the pointer entry
+      L #s_Header_length_Res_DB;
+      SLW 3;
+      LAR1;
+EA03:      L DBW[ AR1, P#4.0];
+      T DBW[ AR1, P#0.0];
+
+// Read Entry pointer of address-register and then set pointer to next record 2 Bytes
+      TAR1;
+      L P#2.0;
+      +D;
+      LAR1;
+
+      L #t_FIFO_Last_Record;
+      L 1;
+      -I;
+      T #t_FIFO_Last_Record;
+      JMZ EA04;
+
+// Continue loop
+      JU EA03;
+
+// Create pointer to word adress:
+//   Byte number = entries *2
+//   Clear last 2 enteries (4 bytes)
+//   Shift resulting word 3 bits to the left
+EA04:      L #s_Reservation_Entries;
+      L 2;
+      *I;
+      L #s_Header_length_Res_DB;
+      +I;
+      L 4;
+      -I;
+      SLW 3;
+      LAR1;
+
+// Clear the last 2 entries
+      L 0;
+      T DBW[ AR1, P#0.0];
+      T DBW[ AR1, P#2.0];
+
+// Decrement Number of entries in FIFO-DB
+      L #s_Reservation_Entries;
+      L 2;
+      -I;
+      T #s_Reservation_Entries;
+
+// OBT Resevation is done
+      SET;
+      S #s_OBT_Detected;
+      R #s_OBT_Reservation;
+
+// Load an OBT size window to the window counter
+      L #t_OBT_Window;
+      T #s_Window_Counter;
+
+EA99:      NOP 0;
+
+NETWORK
+TITLE = FA: Go to next SBT reservation in DB_Reservation
+//When an OBT is next in the FIFO, but there is no OBT window, 
+//look for next SBT in the reservation DB
+//
+//Example:
+//
+//DB_Reservation  DB_Reservation  DB_Reservation  DB_Reservation
+// _____________   _____________   _____________   _____________
+//|____-102 ____| |____-101 ____| |____-103 ____| |____-102 ____|
+//|____-102 ____| |____-101 ____| |____-103 ____| |____-102 ____|
+//|____-101 ____| |____-103 ____| |____ 0   ____| |____-103 ____|
+//|____-103 ____| |____-103 ____| |____ 0   ____| |____-103 ____|
+//|____ 0   ____| |____-102 ____| |____ 0   ____| |____-101 ____|
+//|____ 0   ____| |____ 0   ____| |____ 0   ____| |____-101 ____|
+//
+//Reservation_    Reservation_    Reservation_    Reservation_
+//Code  -101      Code  -102      Code  -100      Code  -100
+      NOP 0;
+
+      A #s_OBT_Reservation;
+      A #t_Request_Windows;
+      JCN FA99;
+
+// Go to next SBT reservation in FIFO:
+// Count amount for OBT in Resevation DB
+      L 2;
+      T #s_OBT_ReservationCounter;
+
+// Open FIFO-DB to make reservation and look for existing reservation
+      OPN #i_DB_Reservation;
+      NOP 0;
+
+// Initialize pointer to Word-address
+      L #s_Header_length_Res_DB;
+      SLW 3;
+      LAR1;
+
+// Set pointer to next record 4 Bytes, and load entry 4
+      TAR1;
+      L P#4.0;
+      +D;
+      LAR1;
+
+// Start up loop through entries in DB reservation
+FA01:      T #s_Entry_Pointer;
+
+// Load 1st entry transfer to reservation code
+      L DBW[ AR1, P#0.0];
+      T #s_Reservation_Code;
+
+// Check that the reservation code is a negative value
+      L 0;
+      L #s_Reservation_Code;
+      >I;
+      JCN FA97;
+
+// Check if entry is an OBT reservation (when the next entry is the same)
+      L DBW[ AR1, P#2.0];
+      L #s_Reservation_Code;
+      ==I;
+      JCN FA98;
+
+// Increment OBT reservation counter
+      L #s_OBT_ReservationCounter;
+      L 2;
+      +I;
+      T #s_OBT_ReservationCounter;
+
+// Over load reservation DB protection and protect for Stop PLC
+      L #s_OBT_ReservationCounter;
+      L #s_Reservation_Entries;
+      <I;
+      JCN FA97;
+
+// Set pointer to next record 4 Bytes
+      TAR1;
+      L P#4.0;
+      +D;
+      LAR1;
+
+// LOOP until Next SBT in reservation DB
+      JU FA01;
+
+// Make Empty code window
+FA97:      L -100;
+      T #s_Reservation_Code;
+
+// SBT from the reservation DB
+FA98:      S #s_SBT_Reservation;
+      R #s_OBT_Reservation;
+
+FA99:      NOP 0;
+
+NETWORK
+TITLE = GA: SBT or Empty window Reservation
+      NOP 0;
+
+      A #s_SBT_Reservation;
+      AN #s_OBT_Detected;
+      A #t_Request_Windows;
+      JCN GA99;
+
+// Copy Reservation OBT or empty window in to PLT window
+      L #t_DB_PLT_Num_SBT;
+      T #s_Win_Insert_PLT_DB_Num;
+
+      L #t_Induct_Position_SBT;
+      T #s_Win_Insert_Position;
+
+      L 0;
+      T #t_Fnd_Num_Items;
+      T #t_Fnd_Num_Items_Upstr;
+      T #t_Fnd_Num_Items_Dwnstr;
+      T #t_Fnd_Num_Items_Trailing;
+
+// Search in tracking for code present in the inserting area
+      CALL "FC_PLT_Srch_Win_Up"
+      (  i_DB_PLT_Num                := #s_Win_Insert_PLT_DB_Num , 
+         i_Position                  := #s_Win_Insert_Position , 
+         i_Window                    := #i_CFG_Window_Length , 
+         o_Position                  := #t_Not_Used_Int , 
+         o_Info                      := #t_Not_Used_Int , 
+         o_LNK                       := #t_Not_Used_Int , 
+         o_DB_PLT_Num                := #t_Not_Used_Int , 
+         o_Number_Items_Found        := #t_Fnd_Num_Items_Upstr
+      );
+
+      A #s_OBT_Detected;
+      JCN GA01;
+
+      CALL "FC_PLT_Srch_Win_Dwn"
+      (  i_DB_PLT_Num                := #s_Win_Insert_PLT_DB_Num , 
+         i_Position                  := #s_Win_Insert_Position , 
+         i_Window                    := #t_OBT_Window , 
+         o_Position                  := #t_Not_Used_Int , 
+         o_Info                      := #t_Not_Used_Int , 
+         o_LNK                       := #t_Not_Used_Int , 
+         o_DB_PLT_Num                := #t_Not_Used_Int , 
+         o_Number_Items_Found        := #t_Fnd_Num_Items_Dwnstr
+      );
+
+      JU GA02;
+
+GA01:      CALL "FC_PLT_Srch_Win_Dwn"
+      (  i_DB_PLT_Num                := #s_Win_Insert_PLT_DB_Num , 
+         i_Position                  := #s_Win_Insert_Position , 
+         i_Window                    := #i_CFG_Window_Length , 
+         o_Position                  := #t_Not_Used_Int , 
+         o_Info                      := #t_Not_Used_Int , 
+         o_LNK                       := #t_Not_Used_Int , 
+         o_DB_PLT_Num                := #t_Not_Used_Int , 
+         o_Number_Items_Found        := #t_Fnd_Num_Items_Dwnstr
+      );
+
+GA02:      L #t_Fnd_Num_Items_Upstr;
+      L #t_Fnd_Num_Items_Dwnstr;
+      +I;
+      T #t_Fnd_Num_Items;
+
+// Minus the number of trailing edge's (2)
+      CALL "FC_PLT_Srch_Inf_Dwn"
+      (  i_DB_PLT_Num                := #s_Win_Insert_PLT_DB_Num , 
+         i_Position                  := #s_Win_Insert_Position , 
+         i_Window                    := #i_CFG_Window_Length , 
+         i_Info                      := 2 , 
+         o_Position                  := #t_Not_Used_Int , 
+         o_Info                      := #t_Not_Used_Int , 
+         o_LNK                       := #t_Not_Used_Int , 
+         o_DB_PLT_Num                := #t_Not_Used_Int , 
+         o_Number_Items_Found        := #t_Fnd_Num_Items_Trailing
+      );
+
+// Empty window for a SBT
+      L #t_Fnd_Num_Items;
+      L #t_Fnd_Num_Items_Trailing;
+      -I;
+      T #t_Fnd_Num_Items;
+      L 0;
+      ==I;
+      A #t_Upstr_Operational;
+      JCN GA99;
+
+      CALL "FC_PLT_Write"
+      (  i_DB_PLT_Num                := #s_Win_Insert_PLT_DB_Num , 
+         i_Position                  := #s_Win_Insert_Position , 
+         i_Info_State                := WORD#16#0000 , 
+         i_Info_Physical             := #s_Reservation_Code , 
+         i_LNK                       := 0 , 
+         i_DB_Event_Num              := #t_DB_Event_Num
+      );
+
+      L #s_Reservation_Code;
+      L -100;
+      <>I;
+      JCN GA99;
+
+// Remove SBT from reservation DB after the insert the request:
+// Open FIFO-DB, store the position of the SBT in FIFO_Last_Record
+      OPN #i_DB_Reservation;
+      L #s_Reservation_Entries;
+      L 1;
+      -I;
+      L #s_OBT_ReservationCounter;
+      -I;
+      T #t_FIFO_Last_Record;
+
+      L #s_Entry_Pointer;
+      LAR1;
+
+// Loop: Move contents after the entry up
+GA03:      L DBW[ AR1, P#2.0];
+      T DBW[ AR1, P#0.0];
+
+// Read Entry pointer of address-register and then set pointer to next record 2 bytes
+      TAR1;
+      L P#2.0;
+      +D;
+      LAR1;
+
+// Subtract 1 from FIFO_Last_Record. Break out of loop when this becomes negative
+      L #t_FIFO_Last_Record;
+      L 1;
+      -I;
+      T #t_FIFO_Last_Record;
+      JMZ GA04;
+
+// Continue loop
+      JU GA03;
+
+// Creat pointer to the last record in FIFO:
+// Byte number = entries *2 + offset for header - last entery.
+// Shift word 3 bits to the left
+GA04:      L #s_Reservation_Entries;
+      L 2;
+      *I;
+      L #s_Header_length_Res_DB;
+      +I;
+      L 2;
+      -I;
+      SLW 3;
+      LAR1;
+
+// Clear for last record in FIFO
+      L 0;
+      T DBW[ AR1, P#0.0];
+
+// Decrement Number of entries in FIFO-DB
+      L #s_Reservation_Entries;
+      L 1;
+      -I;
+      T #s_Reservation_Entries;
+
+GA99:      NOP 0;
+
+NETWORK
+TITLE = HA: Copy shared data to FIFO DB
+      NOP 0;
+
+// Copy data to FIFO DB
+      OPN #i_DB_Reservation;
+      L #s_Reservation_Entries;
+      T %DBW0;
+
+// Check that the maximum number of entries in FIFO is zero
+      L %DBW2;
+      L 0;
+      ==I;
+      JCN HA01;
+
+// Set maximum number of entries of FIFO (DBW 2), equal to
+// it's byte size, minus the header size, devided by two:
+      L DBLG;
+      L #s_Header_length_Res_DB;
+      -I;
+      L 2;
+      /I;
+      T %DBW2;
+
+// Update the window length (DBW 4)
+HA01:      L #i_CFG_Window_Length;
+      T %DBW4;
+
+// Update the PLT DB for inserting windows (DBW 6)
+      L #s_Win_Insert_PLT_DB_Num;
+      T %DBW6;
+
+// Update the Win_Insert_Position (DBW 8)
+      L #s_Win_Insert_Position;
+      T %DBW8;
+
+// Set Len_To_Most_Upstr_WGen to zero (DBW 10)
+      L 0;
+      T %DBW10;
+
+// Clear request window bit for this window generator
+      CLR;
+      = %DBX12.0;
+
+// Write windows are generated for upstream window generator and induct functions.
+      SET;
+      = %DBX12.1;
+
+// Write merge area is running reversed
+      CLR;
+      = %DBX12.2;
+
+END_FUNCTION_BLOCK

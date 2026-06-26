@@ -545,6 +545,8 @@
     Rule ID: C076
     Temporary variable 'Wrong' is read before it is assigned to.
 
+../GawlKeeper.linux64 --C076 ./C076/C076-BackJump.awl
+
 ../GawlKeeper.linux64 --C076 ./C076/C076.awl
 
 ./C076/C076.awl(33):

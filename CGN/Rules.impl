@@ -397,6 +397,7 @@ functions
 Check(rule : String, loc : Int, me : FunctionBody)
 conditions rule == "C076" | rule == "C078"
 { 
+  LABELS := []
   PATHS := [Path("", NIL)]
   TEMPS := me.temps * GetName
   me.networks * CheckPathRule $ rule
@@ -454,13 +455,21 @@ CheckPathRule(rule : String, me : (Instruction, arg # NIL, instruction : TransfI
 }
 
 CheckPathRule(rule : String, me : (Instruction, arg : LocalVariable))
-// only process forward jumps
+// process forward jumps
 conditions IsUnconditionalJump(me.instruction) & ~(me.arg.vbl.id <- LABELS)
 { 
   // make all active paths inactive until the label it jumps to occurs in the code
   [ { path.label := me.arg.vbl.id }
   | path : Path <- PATHS, (IsActivePath(path)) 
   ] 
+}
+
+CheckPathRule(rule : String, me : (Instruction, arg : LocalVariable))
+// process backward jumps
+conditions IsUnconditionalJump(me.instruction) & me.arg.vbl.id <- LABELS
+{ 
+  // remove the active paths because the path will not continue from here
+  PATHS := PATHS / IsNonActivePath 
 }
 
 CheckPathRule(rule : String, me : (Instruction, arg : LocalVariable))

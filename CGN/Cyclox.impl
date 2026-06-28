@@ -1,0 +1,53 @@
+//
+// (c) 2026  Tiobe Software BV -- All rights reserved
+//
+
+impl unit Cyclox
+
+use
+
+Properties. IsConditionalJump
+
+global
+
+IS_ENABLED : Bool := FALSE
+
+functions
+
+Cyclox(me : GawlKeeper): Output
+{ CycloxMeasure(me) "\n" }
+
+CycloxMeasure(me : GawlKeeper): Int
+{ return [ /(\+, 0) CycloxMeasure(b) | b : Block <- me.blocks ] }
+
+CycloxMeasure(me : Function): Int
+{ return 1 + CycloxMeasure(me.body) }
+
+CycloxMeasure(me : FunctionBlock): Int
+{ return 1 + CycloxMeasure(me.body) }
+
+CycloxMeasure(me : OrgBlock): Int
+{ return 1 + CycloxMeasure(me.body) }
+
+CycloxMeasure(me : Block): Int
+{ return 0 }
+
+CycloxMeasure(me : FunctionBody): Int
+{ return [ /(\+, 0) CycloxMeasure(n) | n : Network <- me.networks ] }
+
+CycloxMeasure(me : Network): Int
+{ return [ /(\+, 0) CycloxMeasure(i.instruction) | i : Instruction <- me.instructions ] }
+
+CycloxMeasure(me : InstructionName): Int
+conditions IsConditionalJump(me)
+{ return 1 }
+
+CycloxMeasure(me : InstructionName): Int
+{ return 0 }
+
+
+
+
+
+ 
+

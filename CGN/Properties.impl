@@ -311,7 +311,7 @@ IsOutputInstruction(instr : (AssignInstr | RInstr | SInstr | TransfInstr)) : Boo
 IsOutputInstruction(instr : InstructionName): Bool
 { return FALSE } 
 
-IsConditionalJump(instr : (JbiInstr | JcInstr | JcbInstr | JcnInstr | JlInstr | JmInstr | JnbiInstr | JoInstr | JpInstr | JpzInstr | JzInstr)): Bool
+IsConditionalJump(instr : (JbiInstr | JcInstr | JcbInstr | JcnInstr | JlInstr | JmInstr | JmzInstr | JnbiInstr | JoInstr | JpInstr | JpzInstr | JzInstr)): Bool
 { return TRUE }
 
 IsConditionalJump(instr : InstructionName): Bool

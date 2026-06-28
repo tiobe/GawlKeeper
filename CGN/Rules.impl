@@ -514,14 +514,14 @@ CheckPathRule(me : ArgumentsAssignment)
 /* For debugging checking path related rules
 PrintPaths() 
 {
-  { "PAUL begin\n" } astype Message
-  [ { "PAUL path label = " path.label " vars = <EMPTY>\n" } astype Message    
+  { "DEBUG begin\n" } astype Message
+  [ { "DEBUG path label = " path.label " vars = <EMPTY>\n" } astype Message    
     | path : Path <- PATHS, (path.vars == NIL)
   ]
-  [ { "PAUL path label = " path.label " vars = " v "\n" } astype Message    
+  [ { "DEBUG path label = " path.label " vars = " v "\n" } astype Message    
     | path : Path <- PATHS, v : Ident <- path.vars
   ]
-  { "PAUL end\n" } astype Message
+  { "DEBUG end\n" } astype Message
 }
 */
 

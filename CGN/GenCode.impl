@@ -7,6 +7,7 @@ UnixProcess. Exit, Failure, Success
 
 import
 
+Cyclox
 GawlKeeper0
 RuleChecker
 RuleViolation
@@ -28,6 +29,10 @@ Start()
 
 Eval(x : GawlKeeper) 
 {
-  RuleChecker.Check_GawlKeeper(x)
-  RuleViolation.ShowViolations()
+  if RuleChecker.IS_ENABLED then
+    RuleChecker.Check_GawlKeeper(x)
+    RuleViolation.ShowViolations()
+  elsif Cyclox.IS_ENABLED then
+    Cyclox.Cyclox(x)
+  fi
 }

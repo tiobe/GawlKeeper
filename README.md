@@ -17,7 +17,7 @@ GawlKeeper [<option>|<rule>]... <file>
 
 `<file>` is an AWL file.
 
-# Rules
+## Rules
 
 | Rule | Description |
 |------|-------------|

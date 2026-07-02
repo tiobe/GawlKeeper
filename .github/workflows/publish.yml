@@ -9,4 +9,4 @@ jobs:
     runs-on: [self-hosted, linux]
     steps:
       - name: Trigger Jenkins job
-        run: curl -u ${{secrets.JENKINS_API_TOKEN}} "${{secrets.JENKINS_URL}}/job/GawlKeeper/buildWithParameters?token=3704e717-a11a-4d5a-8dd5-89a0a18869d0&BRANCH=main&RELEASE_TAG=${{github.event.release.tag_name}}"
+        run: curl -u ${{secrets.JENKINS_API_TOKEN}} "${{secrets.JENKINS_URL}}/job/GawlKeeper/buildWithParameters?token=${{secrets.JENKINS_TOKEN}}&BRANCH=main&RELEASE_TAG=${{github.event.release.tag_name}}"

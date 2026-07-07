@@ -40,6 +40,7 @@ GawlKeeper [<option>|<rule>]... <file>
 | **C052** | Outputs should only be written once and preferably in the last network of a block. An exception can be made if the condition is very simple. |
 | **C066** | Temporary modifications to a standard block due to an approved Problem Report or Change Request, prior to the next release, must be indicated as a **Q-Version**. |
 | **C076** | A temporary variable shall always be assigned a value before it is read. |
+| **C077** | An output variable of a Function (FC) shall always have a value assigned. |
 | **C078** | Flank instructions shall always be executed unconditionally. |
 | **G003** | Block name is filename. |
 | **G012** | An explanation of the variables and/or parameters must be given in the comment area of the Variable Declaration list. |

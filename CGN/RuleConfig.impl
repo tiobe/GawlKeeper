@@ -142,6 +142,10 @@ GetRules() : [([String])]
       "A temporary variable shall always be assigned a value before it is read.",
       "Temporary variable '\027' is read before it is assigned to."
     ],
+    [ "C077",
+      "An output variable of a Function (FC) shall always have a value assigned.",
+      "No value has been assigned to output variable '\027'."
+    ],
     [ "C078",
       "Flank instructions shall always be executed unconditionally.",
       "This flank instruction is executed conditionally."

@@ -6,7 +6,7 @@ on:
 
 jobs:
   publish:
-    runs-on: [self-hosted, linux]
+    runs-on: ubuntu-latest
     steps:
       - name: Trigger Jenkins job
         run: curl -u ${{secrets.JENKINS_API_TOKEN}} "${{secrets.JENKINS_URL}}/job/GawlKeeper/buildWithParameters?token=${{secrets.JENKINS_TOKEN}}&BRANCH=main&RELEASE_TAG=${{github.event.release.tag_name}}"

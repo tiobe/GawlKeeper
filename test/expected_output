@@ -559,6 +559,20 @@
     Rule ID: C076
     Temporary variable 'Wrong' is read before it is assigned to.
 
+ ----- Rule C077 ------------------------------------
+
+../GawlKeeper.linux64 --C077 ./C077/C077.awl
+
+./C077/C077.awl(35):
+    An output variable of a Function (FC) shall always have a value assigned.
+    Rule ID: C077
+    No value has been assigned to output variable 'TempValue'.
+
+./C077/C077.awl(35):
+    An output variable of a Function (FC) shall always have a value assigned.
+    Rule ID: C077
+    No value has been assigned to output variable 'Wrong'.
+
  ----- Rule C078 ------------------------------------
 
 ../GawlKeeper.linux64 --C078 ./C078/C078.awl

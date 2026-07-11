@@ -419,10 +419,10 @@ CheckPathRule(rule : String, me : Network)
 
 CheckPathLabel(rule : String, me : (Instruction, label # NIL))
 {  
-   // the path with the label that occurs in the code becomes active
-   [ { path.label := "" } | path : Path <- PATHS, (path.label == me.label.id) ]
-   LABELS := LABELS + me.label.id
-   CheckPathRule(rule, me)
+  // the path with the label that occurs in the code becomes active
+  [ { path.label := "" } | path : Path <- PATHS, (path.label == me.label.id) ]
+  LABELS := LABELS + me.label.id
+  CheckPathRule(rule, me)
 }
 
 CheckPathLabel(rule : String, me : Instruction)
@@ -459,8 +459,7 @@ conditions rule == "C076"
 CheckPathRule(rule : String, me : (Instruction, arg # NIL, instruction : TransfInstr))
 { 
   // add the transferred variable to the list of initialized variables of the active paths
-  name : Ident = Ident(GetName(me.arg))
-  [ { path.vars := path.vars + name } | path : Path <- PATHS, (IsActivePath(path)) ] 
+  AddVarToActivePath(Ident(GetName(me.arg)))
 }
 
 CheckPathRule(rule : String, me : (Instruction, arg : LocalVariable))
@@ -511,14 +510,23 @@ CheckPathRule(rule : String, me : Instruction)
 CheckPathRule(me : (ArgumentsAssignment, value : (Assignment, expr # NIL)))
 {
   // call arguments should be treated as being initialized
-  name : Ident = Ident(GetName(me.value.expr)) 
-  if name # ""
-    [ { path.vars := path.vars + name } | path : Path <- PATHS, (IsActivePath(path)) ]
-  fi
+  AddVarToActivePath(Ident(GetName(me.value.expr))) 
 }
 
 CheckPathRule(me : ArgumentsAssignment)
 { }
+
+AddVarToActivePath(name : Ident) 
+{
+  if name # ""
+    [ { path.vars := path.vars + name }
+    | path : Path <- PATHS,
+      (IsActivePath(path)),
+      (~(name <- path.vars)),
+      (name <- OUTPUTVARS | name <- TEMPVARS)
+    ]
+  fi
+}
 
 CheckC77(rule : String)
 conditions rule == "C077"
@@ -548,7 +556,7 @@ PrintPaths()
   [ { "DEBUG path label = " path.label " vars = " v "\n" } astype Message    
     | path : Path <- PATHS, v : Ident <- path.vars
   ]
-  { "DEBUG end\n" } astype Message
+  { "DEBUG end LOC = " String(GetLineNumber(LOC)) "\n" } astype Message
 }
 */
 

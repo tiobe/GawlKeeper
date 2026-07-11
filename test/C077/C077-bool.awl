@@ -1,0 +1,31 @@
+FUNCTION "FC12" : Int
+TITLE = %version: 5.09 % %Commit:  c3808b61 % CN: 33
+
+VAR_OUTPUT
+    Boolvar : Bool;
+END_VAR
+
+BEGIN
+NETWORK TITLE = "test"
+
+
+      A     #XYZ;
+      JC    ASSIGN;
+
+      JU    CONTINUE;
+
+ASSIGN: NOP 0;
+
+      L     5;
+
+CONTINUE: NOP 0;
+
+      T     #RET_VAL;
+
+NETWORK TITLE = "bla"
+
+      =     #Boolvar;
+      BE;
+END_FUNCTION
+
+

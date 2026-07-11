@@ -561,6 +561,8 @@
 
  ----- Rule C077 ------------------------------------
 
+../GawlKeeper.linux64 --C077 ./C077/C077-bool.awl
+
 ../GawlKeeper.linux64 --C077 ./C077/C077.awl
 
 ./C077/C077.awl(35):

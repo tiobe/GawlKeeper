@@ -456,7 +456,10 @@ conditions rule == "C076"
   fi
 }
 
-CheckPathRule(rule : String, me : (Instruction, arg # NIL, instruction : TransfInstr))
+CheckPathRule(
+  rule : String, 
+  me : (Instruction, arg # NIL, instruction : (AssignInstr | TransfInstr))
+)
 { 
   // add the transferred variable to the list of initialized variables of the active paths
   AddVarToActivePath(Ident(GetName(me.arg)))

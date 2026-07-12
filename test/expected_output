@@ -584,16 +584,6 @@
     Rule ID: C078
     This flank instruction is executed conditionally.
 
-./C078/C078.awl(827):
-    Flank instructions shall always be executed unconditionally.
-    Rule ID: C078
-    This flank instruction is executed conditionally.
-
-./C078/C078.awl(831):
-    Flank instructions shall always be executed unconditionally.
-    Rule ID: C078
-    This flank instruction is executed conditionally.
-
  ----- Rule G003 ------------------------------------
 
 ../GawlKeeper.linux64 --G003 ./G003/db/G003.awl

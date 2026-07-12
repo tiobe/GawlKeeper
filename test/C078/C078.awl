@@ -823,15 +823,17 @@ FA01:      NOP 0;
       FP #s_FP_Dest_13_Avail;
       R #o_Carrier_Assigned_13;
 
+CONTINUE:
+      JCN AA99;
       A #i_Dest_14_Available;
       FP #s_FP_Dest_14_Avail;
       R #o_Carrier_Assigned_14;
 
       A #i_Dest_15_Available;
       FP #s_FP_Dest_15_Avail;
-CONTINUE:
       R #o_Carrier_Assigned_15;
-     
+AA99:
+      NOP 0;     
 
 NETWORK
 TITLE = GA: Write section events

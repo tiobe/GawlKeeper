@@ -503,7 +503,8 @@ conditions rule == "C078" & IsFlankInstruction(me.instruction)
     { AddViolation(rule, me.src_info.loc, []) 
       return    
     } 
-  | path : Path <- PATHS, (path.label # "")
+  | path : Path <- PATHS, 
+    (~(path.label == "" | GetLabelNumber(path.label) == "99"))
   ]
 } 
 
@@ -521,7 +522,7 @@ CheckPathRule(me : ArgumentsAssignment)
 
 AddVarToActivePath(name : Ident) 
 {
-  if name # ""
+  if ~(name == "")
     [ { path.vars := path.vars + name }
     | path : Path <- PATHS,
       (IsActivePath(path)),

@@ -8,11 +8,8 @@ on:
 
 env:
   ARCH: linux64
-  # TODO(#38576): switch back to main once the SDK build/CI fixes land there.
-  ELEGANT_SDK_REF: 38576-fix_build_system_and_ci
-  # TODO(#38576): switch back to main once the SCM-independent version
-  # changes land there.
-  ELEGANT_COMMON_REF: cr-38576-version-scm-independent
+  ELEGANT_SDK_REF: main
+  ELEGANT_COMMON_REF: main
 
 jobs:
   build:

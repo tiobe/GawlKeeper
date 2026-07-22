@@ -161,7 +161,7 @@ realclean: clean
 	$(MAKE) ARCH=$(ARCH) ELEGANTROOT=$(ELEGANTROOT) -C $(ELEGANTCOMMON) clean
 
 test:
-	./testall
+	cd test && ./all.sh
 
 # replace the .front by .arch if you do not want to use Front
 include ${ELEGANTROOT}/lib/include/makefile.front

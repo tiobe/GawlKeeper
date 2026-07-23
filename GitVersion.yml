@@ -1,0 +1,8 @@
+# GitVersion config (see ~/tiobe/elegant-automation.md for the wider
+# release-automation plan this is part of).
+# Mainline mode: every commit reaching main is releasable and bumps
+# patch by default; a `+semver: major|minor` commit-message marker
+# overrides that. tag-prefix continues the existing v1.0.x sequence
+# (makefile:15 currently derives SEMVER from the latest such tag).
+mode: Mainline
+tag-prefix: 'v'

@@ -1,0 +1,128 @@
+name: Build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+env:
+  ARCH: linux64
+  ELEGANT_SDK_REF: main
+  ELEGANT_COMMON_REF: main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install build dependencies
+        run: sudo apt-get update && sudo apt-get install -y csh tcsh xsltproc jq gdb
+
+      - name: Point /bin/csh at tcsh (ubuntu-latest's bsd-csh segfaults on elegant-sdk's Update)
+        run: |
+          # elegant-sdk's bin/Update (#!/bin/csh) crashes ubuntu-latest's csh
+          # package (20230828-1) with a SIGSEGV inside csh itself while
+          # glob-expanding CGN/*.{c,h} -- confirmed via core dump + gdb
+          # backtrace for TICSc's build, which uses the same Update script.
+          # A local build with csh 20240808-2 doesn't crash, and swapping in
+          # tcsh here (a compatible, actively maintained csh) avoids it too,
+          # so this is CI's workaround for what looks like a bug already
+          # fixed upstream in later bsd-csh releases. Update itself is
+          # untouched -- see the comment at its top.
+          sudo ln -sf "$(command -v tcsh)" /bin/csh
+
+      - name: Enable core dumps
+        run: |
+          # ubuntu-latest routes core dumps through apport by default, which
+          # swallows them instead of leaving a file we can inspect. Write
+          # plain core.<pid> files in the crashing process's cwd instead.
+          echo 'core.%p' | sudo tee /proc/sys/kernel/core_pattern
+
+      - name: Set up deploy keys for tiobe/elegant-sdk and tiobe/elegant-common
+        run: |
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          umask 077
+          echo "${{ secrets.ELEGANT_SDK_DEPLOY_KEY }}" > ~/.ssh/elegant_sdk_key
+          echo "${{ secrets.ELEGANT_COMMON_DEPLOY_KEY }}" > ~/.ssh/elegant_common_key
+          ssh-keyscan -H github.com >> ~/.ssh/known_hosts
+
+          # Each deploy key only grants access to a single repo, so a shared
+          # ssh-agent can't be used for both clones (whichever key
+          # authenticates first would be used for both, and GitHub reports
+          # "Repository not found" for the other). Give each key its own
+          # host alias with IdentitiesOnly instead.
+          cat >> ~/.ssh/config <<'SSHCONFIG'
+          Host elegant-sdk.github.com
+            HostName github.com
+            User git
+            IdentityFile ~/.ssh/elegant_sdk_key
+            IdentitiesOnly yes
+          Host elegant-common.github.com
+            HostName github.com
+            User git
+            IdentityFile ~/.ssh/elegant_common_key
+            IdentitiesOnly yes
+          SSHCONFIG
+
+      - name: Clone elegant-sdk and elegant-common
+        run: |
+          git clone --depth 1 --branch "$ELEGANT_SDK_REF" \
+            git@elegant-sdk.github.com:tiobe/elegant-sdk.git "$HOME/elegant-sdk"
+          git clone --depth 1 --branch "$ELEGANT_COMMON_REF" \
+            git@elegant-common.github.com:tiobe/elegant-common.git "$HOME/elegant-common"
+
+      - name: Build GawlKeeper
+        run: |
+          # The Elegant-generated build-time tools (e.g. GenCode, run as
+          # part of the build itself) need more than the default 8MB stack.
+          ulimit -s 65536
+          ulimit -c unlimited
+          make ARCH=${{ env.ARCH }} \
+            ELEGANTROOT="$HOME/elegant-sdk" \
+            ELEGANTCOMMON="$HOME/elegant-common"
+
+      - name: Analyze crash (core dump backtrace)
+        if: failure()
+        run: |
+          mapfile -t cores < <(find "$GITHUB_WORKSPACE" "$HOME/elegant-sdk" "$HOME/elegant-common" \
+            -maxdepth 3 -name 'core.*' 2>/dev/null)
+          if [ ${#cores[@]} -eq 0 ]; then
+            echo "No core dump found."
+            exit 0
+          fi
+          for core in "${cores[@]}"; do
+            echo "::group::Backtrace for $core"
+            gdb -q -batch -ex "bt full" -ex "info registers" -c "$core" || true
+            echo "::endgroup::"
+          done
+
+      - name: Report which binary was built
+        run: |
+          if [ -x "GawlKeeper.${{ env.ARCH }}" ]; then
+            echo "OK      GawlKeeper.${{ env.ARCH }}"
+          else
+            echo "MISSING GawlKeeper.${{ env.ARCH }} (failed to build)"
+            exit 1
+          fi
+
+      - name: Run GawlKeeper (smoke test)
+        run: |
+          code=0
+          ./GawlKeeper.${{ env.ARCH }} </dev/null >/tmp/GawlKeeper.out 2>&1 || code=$?
+          cat /tmp/GawlKeeper.out
+          if [ $code -ge 128 ]; then
+            echo "::error::GawlKeeper crashed (exit $code)"
+            exit 1
+          fi
+          echo "GawlKeeper ran without crashing (exit $code)"
+
+      - name: Run test suite
+        run: |
+          export ARCH=${{ env.ARCH }}
+          make ARCH=$ARCH \
+            ELEGANTROOT="$HOME/elegant-sdk" \
+            ELEGANTCOMMON="$HOME/elegant-common" \
+            test

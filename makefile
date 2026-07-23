@@ -21,8 +21,17 @@ else
 FILESUFFIX =
 endif
 
-## Root of the elegant release:
-ELEGANTROOT=/home/elegant/7.2g
+## Root of the elegant release; usually already set in the environment,
+## but can be overridden on the command line, e.g.:
+##   make ELEGANTROOT=/path/to/elegant-sdk
+
+ELEGANTROOT ?= $(CURDIR)/../elegant-sdk
+
+## Root of the elegant-common checkout (provides the common/version/resources
+## CGN libraries); can be overridden on the command line, e.g.:
+##   make ELEGANTCOMMON=/path/to/elegant-common
+
+ELEGANTCOMMON ?= $(CURDIR)/../elegant-common
 
 ## Switches for tools:
 STATICSEMANTICS = StaticSemantics
@@ -95,19 +104,19 @@ endif
 ##
 GENERIC = ${ELEGANTROOT}/lib/generic
 
-VERSIONCGNLIB := $(CURDIR)/../version
+VERSIONCGNLIB := $(ELEGANTCOMMON)/version
 VERSIONCLIB := $(VERSIONCGNLIB)/Generated
 
-COMMONCGNLIB := $(CURDIR)/../common
+COMMONCGNLIB := $(ELEGANTCOMMON)/common
 COMMONCLIB := $(COMMONCGNLIB)/Generated
 
 USERCGNLIB = "${GENERIC}":$(VERSIONCGNLIB):$(COMMONCGNLIB)
 USERCLIB   = "${GENERIC}":$(VERSIONCLIB):$(COMMONCLIB)
 ifeq ($(ARCH),win64)
-RESOURCEDIR = $(CURDIR)/../resources/tiobe
+RESOURCEDIR = $(ELEGANTCOMMON)/resources/tiobe
 LDRESOURCE = -ld $(RESOURCEDIR)/tiobe.o
 else ifeq ($(ARCH),win32)
-RESOURCEDIR = $(CURDIR)/../resources/tiobe
+RESOURCEDIR = $(ELEGANTCOMMON)/resources/tiobe
 LDRESOURCE = -ld $(RESOURCEDIR)/tiobe.o
 else
 LDRESOURCE =
@@ -131,29 +140,28 @@ BUILDCFG := optimize
 
 default: version common resources txc
 
+## common/version/resources build order and configuration are owned by
+## elegant-common's own top-level makefile; delegate to it instead of
+## reaching into its subdirectories and duplicating that logic here.
+
 version:
-	$(MAKE) ARCH=$(ARCH) -C $(VERSIONCGNLIB) lib$(BUILDCFG)
+	$(MAKE) ARCH=$(ARCH) ELEGANTROOT=$(ELEGANTROOT) BUILDCFG=$(BUILDCFG) -C $(ELEGANTCOMMON) version
 
 common:
-	$(MAKE) ARCH=$(ARCH) -C $(COMMONCGNLIB) lib$(BUILDCFG)
+	$(MAKE) ARCH=$(ARCH) ELEGANTROOT=$(ELEGANTROOT) BUILDCFG=$(BUILDCFG) -C $(ELEGANTCOMMON) common
 
 resources:
-ifeq ($(ARCH),win64)
-	$(MAKE) ARCH=$(ARCH) -C $(RESOURCEDIR)
-else ifeq ($(ARCH),win32)
-	$(MAKE) ARCH=$(ARCH) -C $(RESOURCEDIR)
-endif
+	$(MAKE) ARCH=$(ARCH) ELEGANTROOT=$(ELEGANTROOT) -C $(ELEGANTCOMMON) resources
 
 txc: $(FRONTFILES) from_front patch_scanfile patch_scanner $(BUILDCFG)
 
 realclean: clean
 	rm -f CGN/$(STATICSEMANTICS).{impl,spec}
 	rm -f Grammar/GawlKeeper.{agdl,scan}
-	$(MAKE) ARCH=$(ARCH) -C $(COMMONCGNLIB) clean
-	$(MAKE) ARCH=$(ARCH) -C $(VERSIONCGNLIB) clean
+	$(MAKE) ARCH=$(ARCH) ELEGANTROOT=$(ELEGANTROOT) -C $(ELEGANTCOMMON) clean
 
 test:
-	./testall
+	cd test && ./all.sh
 
 # replace the .front by .arch if you do not want to use Front
 include ${ELEGANTROOT}/lib/include/makefile.front
@@ -169,7 +177,7 @@ Grammar/%.front:: %.front.patch
 # 	-diff -Naur $(GENERATED)/$(TARGET).scan Grammar/$(TARGET).scan > $(TARGET).scan.patch
 
 info:
-	sed -E -n 's|^\s*\#define\s*Versions_date\s*\(.*\"(.*)\"\)$$|\1|p' ../version/Generated/$(ARCH)/O/Versions.h | jq -R "{date:.}|.revision=\"$(SEMVER)\"|.version=\"r$(SEMVER)  (\(.date))\"|.compatible[0]=\"2021.2.1.43807\"|.compatible[1]=\"2021.3\"" > info.json
+	sed -E -n 's|^\s*\#define\s*Versions_date\s*\(.*\"(.*)\"\)$$|\1|p' $(ELEGANTCOMMON)/version/Generated/$(ARCH)/O/Versions.h | jq -R "{date:.}|.revision=\"$(SEMVER)\"|.version=\"r$(SEMVER)  (\(.date))\"|.compatible[0]=\"2021.2.1.43807\"|.compatible[1]=\"2021.3\"" > info.json
 
 clean_info:
 	rm -f info.json

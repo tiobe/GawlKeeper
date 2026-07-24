@@ -53,4 +53,10 @@ jobs:
       - name: Attach release artifacts
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release upload "${{ github.event.release.tag_name }}" GawlKeeper-*.zip --clobber
+        run: |
+          # This job never runs actions/checkout (it only downloads a
+          # build artifact), so there's no .git directory for `gh` to
+          # infer the target repo from -- without --repo it fails with
+          # "fatal: not a git repository (or any of the parent
+          # directories): .git" before even attempting the upload.
+          gh release upload "${{ github.event.release.tag_name }}" GawlKeeper-*.zip --clobber --repo ${{ github.repository }}

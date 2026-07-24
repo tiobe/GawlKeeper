@@ -12,10 +12,12 @@ TARGET = GawlKeeper
 ADDITIONALTARGETS = 
 AGDLS = $(TARGET) $(ADDITIONALTARGETS)
 FRONTFILES = $(addprefix Grammar/,$(addsuffix .front,$(ADDITIONALTARGETS)))
-## Prefers a SEMVER already supplied by the environment (CI sets this from
-## GitVersion, see .github/workflows/build.yml), falling back to the
-## latest tag for local/manual builds.
-SEMVER ?= $(shell git tag | sort -V -r | head -1 | grep -oP "^v\K.*" || echo "0.1")
+## SEMVER must be supplied by the environment (CI sets this from GitVersion,
+## see .github/workflows/build.yml); no fallback -- the build fails rather
+## than silently computing a version another way.
+ifeq ($(SEMVER),)
+$(error SEMVER is not set -- run via CI (GitVersion) or pass SEMVER=x.y.z explicitly)
+endif
 
 ## If not main branch, add suffix
 ifneq  ($(BRANCH),main)

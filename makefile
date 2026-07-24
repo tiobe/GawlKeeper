@@ -12,7 +12,12 @@ TARGET = GawlKeeper
 ADDITIONALTARGETS = 
 AGDLS = $(TARGET) $(ADDITIONALTARGETS)
 FRONTFILES = $(addprefix Grammar/,$(addsuffix .front,$(ADDITIONALTARGETS)))
-SEMVER := $(shell git tag | sort -V -r | head -1 | grep -oP "^v\K.*" || echo "0.1")
+## SEMVER must be supplied by the environment (CI sets this from GitVersion,
+## see .github/workflows/build.yml); no fallback -- the build fails rather
+## than silently computing a version another way.
+ifeq ($(SEMVER),)
+$(error SEMVER is not set -- run via CI (GitVersion) or pass SEMVER=x.y.z explicitly)
+endif
 
 ## If not main branch, add suffix
 ifneq  ($(BRANCH),main)
@@ -135,8 +140,7 @@ BUILDCFG := optimize
 
 .PHONY: default version common txc realclean patch_scanfile patch_scanner \
         make_scanfile_patch make_scanner_patch make_frontfile_patch test \
-        resources info clean_info package clean_package relnotes \
-        clean_relnotes publish
+        resources info clean_info package clean_package
 
 default: version common resources txc
 
@@ -191,18 +195,3 @@ package: clean_package realclean default info
 
 clean_package:
 	rm -rf $(TARGET)
-
-# The SVN repository number from which revisions onwards one must
-# collect release notes.
-STARTREV := 1793
-
-#relnotes:
-#	svn log --xml -r $(SEMVER):$(STARTREV) | xsltproc -o $(TARGET)-relnotes.html svn-log.xslt -
-
-clean_relnotes:
-	rm -f $(TARGET)-relnotes.html
-
-DEST = absolem:/home/wilde/ticsweb/pub/codecheckers/$(TARGET)
-publish: package
-	scp $(TARGET)-$(SEMVER)-$(ARCH)$(FILESUFFIX).zip $(DEST)
-	curl --fail -u "$(ARTIFACT_USER)":"$(ARTIFACT_PASS)" --upload-file $(TARGET)-$(SEMVER)-$(ARCH)$(FILESUFFIX).zip https://artifacts.tiobe.com/repository/checkers/$(TARGET)/$(SEMVER)/$(TARGET)-$(SEMVER)-$(ARCH)$(FILESUFFIX).zip

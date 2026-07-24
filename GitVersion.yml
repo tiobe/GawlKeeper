@@ -1,0 +1,9 @@
+# GitVersion config. tag-prefix continues the existing v1.0.x
+# sequence (makefile:15 derives SEMVER from the latest such tag).
+# No explicit `mode`/`workflow` override: GitVersion 6.x's default
+# (Continuous Delivery) already bumps patch per commit since the
+# last tag on main, which is the behavior we want. The GitVersion
+# 5.x `mode: Mainline` value used in an earlier version of this file
+# doesn't exist in 6.x and crashes the tool if set -- confirmed via
+# `docker run gittools/gitversion:6.8.2`.
+tag-prefix: 'v'

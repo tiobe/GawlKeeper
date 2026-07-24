@@ -5,20 +5,52 @@ on:
     branches: [main]
   pull_request:
   workflow_dispatch:
+  workflow_call:
+    inputs:
+      ref:
+        description: Git ref to check out (defaults to the ref that triggered this run)
+        type: string
+        default: ''
+      package:
+        description: Also run `make package` and upload the result as a workflow artifact named GawlKeeper-package
+        type: boolean
+        default: false
+    outputs:
+      semver:
+        value: ${{ jobs.build.outputs.semver }}
 
 env:
-  ARCH: linux64
   ELEGANT_SDK_REF: main
   ELEGANT_COMMON_REF: main
 
 jobs:
+  gitversion:
+    uses: ./.github/workflows/gitversion.yml
+    with:
+      ref: ${{ inputs.ref || github.ref }}
+
   build:
+    needs: gitversion
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [linux64, win64]
     runs-on: ubuntu-latest
+    outputs:
+      semver: ${{ needs.gitversion.outputs.semVer }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref || github.ref }}
+
+      - name: Export SEMVER
+        run: echo "SEMVER=${{ needs.gitversion.outputs.semVer }}" >> "$GITHUB_ENV"
 
       - name: Install build dependencies
-        run: sudo apt-get update && sudo apt-get install -y csh tcsh xsltproc jq gdb
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y csh tcsh xsltproc jq gdb zip \
+            gcc-mingw-w64-x86-64 binutils-mingw-w64-x86-64
 
       - name: Point /bin/csh at tcsh (ubuntu-latest's bsd-csh segfaults on elegant-sdk's Update)
         run: |
@@ -80,7 +112,7 @@ jobs:
           # part of the build itself) need more than the default 8MB stack.
           ulimit -s 65536
           ulimit -c unlimited
-          make ARCH=${{ env.ARCH }} \
+          make ARCH=${{ matrix.arch }} \
             ELEGANTROOT="$HOME/elegant-sdk" \
             ELEGANTCOMMON="$HOME/elegant-common"
 
@@ -101,17 +133,31 @@ jobs:
 
       - name: Report which binary was built
         run: |
-          if [ -x "GawlKeeper.${{ env.ARCH }}" ]; then
-            echo "OK      GawlKeeper.${{ env.ARCH }}"
+          if [ -x "GawlKeeper.${{ matrix.arch }}" ]; then
+            echo "OK      GawlKeeper.${{ matrix.arch }}"
           else
-            echo "MISSING GawlKeeper.${{ env.ARCH }} (failed to build)"
+            echo "MISSING GawlKeeper.${{ matrix.arch }} (failed to build)"
             exit 1
           fi
 
+      # NB @wener-tiobe: the win64 leg is cross-compiled here (mingw-w64,
+      # see ccompiler.win64 in elegant-sdk) rather than built on a real
+      # Windows machine, so the resulting GawlKeeper.win64 is an actual
+      # Windows PE binary -- it can't be executed on this ubuntu-latest
+      # runner, and neither can `make test` (test/all.sh shells out to the
+      # compiled binary directly, and is hardcoded to the linux64 name
+      # besides). There's no existing precedent anywhere in this repo
+      # family for testing a cross-compiled Windows build (checked -- no
+      # Wine usage, nothing). For now this just builds+packages the win64
+      # leg without running the smoke test or test suite against it. Open
+      # to suggestions on how you'd rather handle this -- Wine, a
+      # dedicated Windows runner just for the test step, or is
+      # build+package-only fine for win64 for now?
       - name: Run GawlKeeper (smoke test)
+        if: matrix.arch == 'linux64'
         run: |
           code=0
-          ./GawlKeeper.${{ env.ARCH }} </dev/null >/tmp/GawlKeeper.out 2>&1 || code=$?
+          ./GawlKeeper.${{ matrix.arch }} </dev/null >/tmp/GawlKeeper.out 2>&1 || code=$?
           cat /tmp/GawlKeeper.out
           if [ $code -ge 128 ]; then
             echo "::error::GawlKeeper crashed (exit $code)"
@@ -120,9 +166,25 @@ jobs:
           echo "GawlKeeper ran without crashing (exit $code)"
 
       - name: Run test suite
+        if: matrix.arch == 'linux64'
         run: |
-          export ARCH=${{ env.ARCH }}
+          export ARCH=${{ matrix.arch }}
           make ARCH=$ARCH \
             ELEGANTROOT="$HOME/elegant-sdk" \
             ELEGANTCOMMON="$HOME/elegant-common" \
             test
+
+      - name: Package
+        if: inputs.package
+        run: |
+          make ARCH=${{ matrix.arch }} \
+            ELEGANTROOT="$HOME/elegant-sdk" \
+            ELEGANTCOMMON="$HOME/elegant-common" \
+            package
+
+      - name: Upload package artifact
+        if: inputs.package
+        uses: actions/upload-artifact@v4
+        with:
+          name: GawlKeeper-package-${{ matrix.arch }}
+          path: GawlKeeper-*.zip

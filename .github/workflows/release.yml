@@ -1,0 +1,40 @@
+name: Release
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    uses: ./.github/workflows/build.yml
+    with:
+      ref: ${{ github.event.release.tag_name }}
+      package: true
+    secrets: inherit
+
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download package artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: GawlKeeper-package-*
+          merge-multiple: true
+
+      - name: Upload package to Nexus
+        uses: tiobe/upload-artifacts-action/upload@v2
+        with:
+          repo: checkers
+          targetdir: GawlKeeper/${{ needs.build.outputs.semver }}
+          files: GawlKeeper-*.zip
+          username: ${{ secrets.PRIVATE_NEXUS_USERNAME }}
+          password: ${{ secrets.PRIVATE_NEXUS_PASSWORD }}
+
+      - name: Attach release artifacts
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload "${{ github.event.release.tag_name }}" GawlKeeper-*.zip --clobber

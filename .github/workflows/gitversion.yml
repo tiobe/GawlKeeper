@@ -1,0 +1,32 @@
+name: GitVersion
+
+on:
+  workflow_call:
+    inputs:
+      ref:
+        description: Git ref to check out (defaults to the ref that triggered this run)
+        type: string
+        default: ''
+    outputs:
+      semVer:
+        value: ${{ jobs.gitversion.outputs.semVer }}
+
+jobs:
+  gitversion:
+    runs-on: ubuntu-latest
+    outputs:
+      semVer: ${{ steps.gitversion.outputs.semVer }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ inputs.ref || github.ref }}
+
+      - name: Install GitVersion
+        uses: gittools/actions/gitversion/setup@v3
+        with:
+          versionSpec: '6.x'
+
+      - name: Determine version
+        id: gitversion
+        uses: gittools/actions/gitversion/execute@v3

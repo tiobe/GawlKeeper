@@ -1,0 +1,78 @@
+name: Check elegant-common release
+
+on:
+  schedule:
+    - cron: '0 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up deploy key for tiobe/elegant-common
+        run: |
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          umask 077
+          echo "${{ secrets.ELEGANT_COMMON_DEPLOY_KEY }}" > ~/.ssh/elegant_common_key
+          ssh-keyscan -H github.com >> ~/.ssh/known_hosts
+          cat >> ~/.ssh/config <<'SSHCONFIG'
+          Host elegant-common.github.com
+            HostName github.com
+            User git
+            IdentityFile ~/.ssh/elegant_common_key
+            IdentitiesOnly yes
+          SSHCONFIG
+
+      - name: Find latest elegant-common release tag
+        id: latest
+        run: |
+          tag=$(git ls-remote --tags git@elegant-common.github.com:tiobe/elegant-common.git \
+            | awk '{print $2}' | sed -e 's#refs/tags/##' \
+            | grep -v '\^{}$' | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' \
+            | sort -V | tail -1)
+          if [ -z "$tag" ]; then
+            echo "::error::No plain-semver tag found on elegant-common"
+            exit 1
+          fi
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+
+      - name: Compare against pinned version
+        id: compare
+        run: |
+          current=$(cat .elegant-common-version 2>/dev/null || true)
+          if [ "$current" = "${{ steps.latest.outputs.tag }}" ]; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Open bump PR
+        if: steps.compare.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.latest.outputs.tag }}
+        run: |
+          branch="elegant-common-bump/$TAG"
+          if git ls-remote --exit-code --heads origin "$branch" >/dev/null 2>&1; then
+            echo "Branch $branch already exists -- an open PR presumably already covers this tag."
+            exit 0
+          fi
+          git config user.name "elegant-common-release-bot"
+          git config user.email "actions@tiobe.com"
+          git checkout -b "$branch"
+          echo "$TAG" > .elegant-common-version
+          git add .elegant-common-version
+          git commit -m "#38576: Pick up elegant-common $TAG"
+          git push origin "$branch"
+          gh pr create \
+            --title "#38576: Pick up elegant-common $TAG" \
+            --body "elegant-common released [$TAG](https://github.com/tiobe/elegant-common/releases/tag/$TAG). Merging this PR gives GitVersion a new commit on main to bump the patch version from, and triggers this repo's own release the same way any other commit to main would." \
+            --head "$branch" \
+            --base main

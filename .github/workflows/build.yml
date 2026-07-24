@@ -5,6 +5,19 @@ on:
     branches: [main]
   pull_request:
   workflow_dispatch:
+  workflow_call:
+    inputs:
+      ref:
+        description: Git ref to check out (defaults to the ref that triggered this run)
+        type: string
+        default: ''
+      package:
+        description: Also run `make package` and upload the result as a workflow artifact named GawlKeeper-package
+        type: boolean
+        default: false
+    outputs:
+      semver:
+        value: ${{ jobs.build.outputs.semver }}
 
 env:
   ARCH: linux64
@@ -14,18 +27,24 @@ env:
 jobs:
   gitversion:
     uses: ./.github/workflows/gitversion.yml
+    with:
+      ref: ${{ inputs.ref || github.ref }}
 
   build:
     needs: gitversion
     runs-on: ubuntu-latest
+    outputs:
+      semver: ${{ needs.gitversion.outputs.semVer }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref || github.ref }}
 
       - name: Export SEMVER
         run: echo "SEMVER=${{ needs.gitversion.outputs.semVer }}" >> "$GITHUB_ENV"
 
       - name: Install build dependencies
-        run: sudo apt-get update && sudo apt-get install -y csh tcsh xsltproc jq gdb
+        run: sudo apt-get update && sudo apt-get install -y csh tcsh xsltproc jq gdb zip
 
       - name: Point /bin/csh at tcsh (ubuntu-latest's bsd-csh segfaults on elegant-sdk's Update)
         run: |
@@ -133,3 +152,18 @@ jobs:
             ELEGANTROOT="$HOME/elegant-sdk" \
             ELEGANTCOMMON="$HOME/elegant-common" \
             test
+
+      - name: Package
+        if: inputs.package
+        run: |
+          make ARCH=${{ env.ARCH }} \
+            ELEGANTROOT="$HOME/elegant-sdk" \
+            ELEGANTCOMMON="$HOME/elegant-common" \
+            package
+
+      - name: Upload package artifact
+        if: inputs.package
+        uses: actions/upload-artifact@v4
+        with:
+          name: GawlKeeper-package
+          path: GawlKeeper-*.zip

@@ -140,7 +140,7 @@ BUILDCFG := optimize
 
 .PHONY: default version common txc realclean patch_scanfile patch_scanner \
         make_scanfile_patch make_scanner_patch make_frontfile_patch test \
-        resources info clean_info package clean_package publish
+        resources info clean_info package clean_package
 
 default: version common resources txc
 
@@ -195,6 +195,3 @@ package: clean_package realclean default info
 
 clean_package:
 	rm -rf $(TARGET)
-
-publish: package
-	curl --fail -u "$(ARTIFACT_USER)":"$(ARTIFACT_PASS)" --upload-file $(TARGET)-$(SEMVER)-$(ARCH)$(FILESUFFIX).zip https://artifacts.tiobe.com/repository/checkers/$(TARGET)/$(SEMVER)/$(TARGET)-$(SEMVER)-$(ARCH)$(FILESUFFIX).zip

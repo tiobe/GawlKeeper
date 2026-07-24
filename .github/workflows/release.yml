@@ -25,12 +25,28 @@ jobs:
           pattern: GawlKeeper-package-*
           merge-multiple: true
 
+      - name: List package files
+        id: files
+        run: |
+          # tiobe/upload-artifacts-action's `files` input takes literal,
+          # newline-separated filenames -- it does not expand shell globs
+          # itself (confirmed the hard way: `files: TICSc-*.zip` failed
+          # with "ENOENT ... lstat 'TICSc-*.zip'", the literal string).
+          # Resolving the glob here, in a real shell, and passing the
+          # expanded list through works for however many per-arch zips
+          # actually exist.
+          {
+            echo 'list<<PKGFILES_EOF'
+            ls GawlKeeper-*.zip
+            echo 'PKGFILES_EOF'
+          } >> "$GITHUB_OUTPUT"
+
       - name: Upload package to Nexus
         uses: tiobe/upload-artifacts-action/upload@v2
         with:
           repo: checkers
           targetdir: GawlKeeper/${{ needs.build.outputs.semver }}
-          files: GawlKeeper-*.zip
+          files: ${{ steps.files.outputs.list }}
           username: ${{ secrets.PRIVATE_NEXUS_USERNAME }}
           password: ${{ secrets.PRIVATE_NEXUS_PASSWORD }}
 

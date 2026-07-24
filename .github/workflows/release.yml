@@ -19,10 +19,11 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     steps:
-      - name: Download package artifact
+      - name: Download package artifacts
         uses: actions/download-artifact@v4
         with:
-          name: GawlKeeper-package
+          pattern: GawlKeeper-package-*
+          merge-multiple: true
 
       - name: Upload package to Nexus
         uses: tiobe/upload-artifacts-action/upload@v2

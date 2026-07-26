@@ -34,6 +34,7 @@ GawlKeeper [<option>|<rule>]... <file>
 | **C035** | When using AR2 in an FB, first save the contents and then restore them after use. In the meantime, no symbolic access to the instance is allowed. |
 | **C039** | Siemens Timers should never be used in relation to physical movements in a conveyor system that can be stopped. |
 | **C040** | Writing to instance blocks is, in principle, forbidden. |
+| **C041** | The DEC (Decrement) and INC (Increment) instructions may only be used on variables of data type BYTE. |
 | **C042** | All arrays must start from zero. |
 | **C048** | Reading global data from global DBs must be done in the first network (`AA`). |
 | **C049** | Writing global data into global DBs must be done in the last network (`ZA`). |

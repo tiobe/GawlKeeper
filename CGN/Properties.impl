@@ -9,7 +9,96 @@ SetPrelude
 StringTokenizer. IndexOf, Trim
 Syntactics. ContainsSubString, IndexOf, TrimQuotes, FilterComments
 
+global
+
+INPUTVARS : List(Variable) := []
+OUTPUTVARS : List(Variable) := []
+INPUTOUTPUTVARS : List(Variable) := []
+VARS : List(Variable) := []
+TEMPVARS : List(Variable) := []
+
 functions
+
+CollectVariables(me : FunctionBody)
+{
+  INPUTVARS := me.inputs * GetFields * GetVariable
+  OUTPUTVARS := me.outputs * GetVariable
+  INPUTOUTPUTVARS := me.in_outs * GetVariable
+  VARS := me.locals * GetFields * GetVariable
+  TEMPVARS := me.temps * GetVariable
+}
+
+GetVariable(me : Field): Variable
+{ return Variable(GetName(me.name), me.type) }
+
+GetVariable(name : String): Variable|NIL
+{
+  [ { return v } | v : Variable <- INPUTVARS, (v.name == name) ]
+  [ { return v } | v : Variable <- OUTPUTVARS, (v.name == name) ]
+  [ { return v } | v : Variable <- INPUTOUTPUTVARS, (v.name == name) ]
+  [ { return v } | v : Variable <- VARS, (v.name == name) ]
+  [ { return v } | v : Variable <- TEMPVARS, (v.name == name) ]
+  return NIL
+}
+
+GetType(name : String): Type|NIL
+{
+  switch GetVariable(name) {
+    case v : Variable return v.type
+    else return NIL 
+  }
+} 
+
+<- (name : String, vars : List(Variable)): Bool
+{
+  [ { return TRUE } |  v : Variable <- vars, (v.name == name) ]
+  return FALSE
+}
+
+GetName(t : AnyType): String
+{ return "ANY" }
+
+GetName(t : AnyDbType): String
+{ return "DB_ANY" }
+
+GetName(t : AnyHwType): String
+{ return "HW_ANY" }
+
+GetName(t : BoolType): String
+{ return "Bool" }
+
+GetName(t : ByteType): String
+{ return "BYTE" }
+
+GetName(t : DWordType): String
+{ return "DWord" }
+
+GetName(t : IntegerType): String
+{ return "Int" }
+
+GetName(t : DIntegerType): String
+{ return "DInt" }
+
+GetName(t : RealType): String
+{ return "Real" }
+
+GetName(t : StringType): String
+{ return "String" }
+
+GetName(t : StrLitAsType): String
+{ return GetName(t.type) }
+
+GetName(t : VoidType): String
+{ return "Void" }
+
+GetName(t : WordType): String
+{ return "Word" }
+
+GetName(t : WStringType): String
+{ return "WString" }
+
+GetName(t : ComplexType): String
+{ return "Complex Type" }
 
 GetBlockType(block : DataBlock): String 
 { return "DATA_BLOCK" }

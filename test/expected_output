@@ -450,6 +450,20 @@
     Rule ID: C040
     Variable 'DI_3' starts with 'DI_', which is not allowed.
 
+ ----- Rule C041 ------------------------------------
+
+../GawlKeeper.linux64 --C041 ./C041/C041.awl
+
+./C041/C041.awl(29):
+    The DEC (Decrement) and INC (Increment) instructions may only be used on variables of data type BYTE.
+    Rule ID: C041
+    Variable 's_bla' should of type 'BYTE', but is of type 'INT'.
+
+./C041/C041.awl(31):
+    The DEC (Decrement) and INC (Increment) instructions may only be used on variables of data type BYTE.
+    Rule ID: C041
+    Variable 'counter' should of type 'BYTE', but is of type 'INT'.
+
  ----- Rule C042 ------------------------------------
 
 ../GawlKeeper.linux64 --C042 ./C042/C042.awl

@@ -3,7 +3,27 @@ spec unit Properties
 use
 Comments. Comment
 
+typedef
+
+Variable = {
+  name : String
+  type : Type
+} 
+
+global
+
+INPUTVARS : List(Variable)
+OUTPUTVARS : List(Variable)
+INPUTOUTPUTVARS : List(Variable)
+VARS : List(Variable)
+TEMPVARS : List(Variable)
+
 functions
+
+CollectVariables(me : FunctionBody)
+GetType(name : String): Type|NIL
+<- (name : String, vars : List(Variable)): Bool
+GetName(type : Type): String
 
 GetBlockType(block : Block): String
 GetName(block : Block): String

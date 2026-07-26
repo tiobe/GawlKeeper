@@ -1,0 +1,95 @@
+FUNCTION_BLOCK "Test"
+
+TITLE = "Test"
+VAR_OUTPUT
+    s_bla : INT;
+END_VAR
+VAR
+    s_Motor_Run : BOOL; 
+    s_Enable : BOOL;
+    s_Count : INT;
+    s_Value : INT;
+    counter : INT;
+    s_A : BOOL;
+    s_B : Byte;
+    s_Flag : BOOL;
+END_VAR
+
+BEGIN
+NETWORK TITLE = "Violation"
+      +AR2  #tempAR2;     
+      A     s_Motor_Run; 
+      L     P##temp;
+      LAR2;               
+
+NETWORK TITLE = "Violation"
+      L     P##counter;     
+      LAR2;                  
+      L     s_bla;
+      INC   3;
+      L     counter;         
+      DEC   1;
+      L     1;
+      +I;
+      T     counter;         
+      R[ AR2, P#0.0];
+
+NETWORK TITLE = "Violation"
+      L     P##temp;
+      LAR2;               
+      L     5;
+      T     s_Count;      
+      LAR2  #backup;      
+      T     s_Count;
+
+NETWORK TITLE = "Violation"
+      AN    s_Enable;     
+      R[ AR2, P#0.0];
+      LAR2;               
+
+NETWORK TITLE = "Violation"
+      LAR2  #tmp;
+      A     s_A;          
+      O     s_B;          
+      LAR2;               
+
+NETWORK TITLE = "Violation"
+      LAR2  #tmp;
+      L     s_Value;      
+      L     s_B;
+      INC 2;
+      LAR2;
+
+NETWORK TITLE = "Violation"
+      LAR2;               
+      S     s_Flag;       
+      TAR2  #backup;      
+
+NETWORK TITLE = "OK"
+      +AR2  #tmp;
+      L     5;            
+      DEC   1;
+      +I;
+      LAR2;
+
+NETWORK TITLE = "OK"
+      LAR2  #backup;
+      L     W [AR2,P#0.0];   
+      LAR2;
+
+NETWORK TITLE = "Violation"
+      LAR2  #backup;
+      L     W [s_Flag,P#0.0];   
+      R[ AR2, P#0.0];
+
+NETWORK TITLE = "Violation"
+      LAR2;
+      A     s_Flag;          
+      L     B [AR2,P#1.0];   
+      INC   1;
+      A     s_Flag;          
+      LAR2;
+      A     s_Flag;
+
+
+END_FUNCTION_BLOCK

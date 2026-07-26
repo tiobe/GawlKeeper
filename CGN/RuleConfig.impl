@@ -118,6 +118,10 @@ GetRules() : [([String])]
       "Writing in instance blocks is in principle forbidden.",
       "Variable '\027' starts with 'DI_', which is not allowed." 
     ],
+    [ "C041",
+      "The DEC (Decrement) and INC (Increment) instructions may only be used on variables of data type BYTE.",
+      "Variable '\027' should of type 'BYTE', but is of type '\027'." 
+    ],
     [ "C042",
       "All arrays must start from zero.",
       "Array '\027' must start at 0 instead of \027. Adjust the upper bound accordingly."

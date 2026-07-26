@@ -14,7 +14,7 @@ Properties. GetName, GetRawName, GetReferences, GetTitle, GetComments, GetLabel,
             IsOutputInstruction, IsUsed, IsAccessingAR2, IsModifyingAR2, IsRestoringAR2,
             GetBlockType, HasComment, IsLoadingAR1, IsUsingAR1, IsSymbolicReference,
             GetFullComments, IsConditionalJump, IsUnconditionalJump, Intersect,
-            GetFields, IsFlankInstruction
+            GetFields, IsFlankInstruction, OUTPUTVARS, TEMPVARS, GetType, <-, Variable
 RuleConfig. IsRuleEnabled
 RuleViolation. ', AddViolation
 ScanIO. FindFileName, FindLocation
@@ -96,6 +96,7 @@ CheckBlockC14(loc: Int, name: StringLiteral)
     AddViolation("C014", loc, ["block", name.str])
   fi
 }
+
 CheckC14(loc: Int, name: String): Bool
 { return All(StartsWithCap, Split(name, '_')) }
 
@@ -390,9 +391,7 @@ global
 
 LABELS : List(String) := [] // labels already encountered
 LOC : Int := 0
-OUTPUTVARS : List(String) := []
 PATHS : List(Path) := []
-TEMPVARS : List(String) := []
 
 functions
 
@@ -402,8 +401,6 @@ conditions rule == "C076" | rule == "C077" | rule == "C078"
   LABELS := []
   LOC := me.src_info.loc
   PATHS := [Path("", NIL)]
-  OUTPUTVARS := me.outputs * GetName
-  TEMPVARS := me.temps * GetName
   me.networks * CheckPathRule $ rule
   CheckC77(rule) 
 }
@@ -539,14 +536,14 @@ conditions rule == "C077"
 CheckC77(rule : String)
 {}
 
-CheckC77(rule : String, id : String) 
+CheckC77(rule : String, v : Variable) 
 {
   [
     {
-      AddViolation(rule, LOC, [id])
+      AddViolation(rule, LOC, [v.name])
       return
     }
-  | path : Path <- PATHS, (~(Ident(id) <- path.vars))
+  | path : Path <- PATHS, (~(Ident(v.name) <- path.vars))
   ]
 }
 
@@ -774,6 +771,37 @@ CheckC20(me: Field, prefix: Char)
     AddViolation("C020", me.src_info.loc, [field, prefix])
   fi
 }
+
+Check(rule : String, loc : Int, me : Network)
+conditions rule == "C041"
+{ CheckC41(me.instructions, "") }
+
+CheckC41(NIL : List(Instruction), load : String) {}
+
+CheckC41(
+  me : (List(Instruction), 
+    head : (Instruction, arg # NIL, instruction : LInstr)), 
+  load : String)
+{ CheckC41(me.tail, GetName(me.head.arg)) }
+
+CheckC41(
+  me : (List(Instruction), 
+    head : (Instruction, 
+      arg # NIL, 
+      instruction : (AccuDecInstr | AccuIncInstr))),
+  load : String)
+{
+   switch GetType(load) {
+     case b : ByteType 
+     case t : Type  
+       AddViolation("C041", me.head.src_info.loc, [load, GetName(t)])
+     else
+   }
+   CheckC41(me.tail, "")
+}
+
+CheckC41(me : (List(Instruction)), load : String)
+{ CheckC41(me.tail, load) }
 
 Check(rule : String, loc: Int, me: (Field, type: ArrayRangeType))
 conditions rule == "C042"

@@ -5,6 +5,7 @@ use
 print_support
 
 Comments. Comment, GetComments
+Properties
 Rules
 Syntactics. IsComment
 
@@ -124,6 +125,7 @@ Check_Block(me : TypeBlock)
 Check_FunctionBody(me : FunctionBody)
 {
   margin : Int := 0
+  Properties.CollectVariables(me)
   Check_Comment(me.src_info)
   margin := fix_margin()
   Check_HeaderBlock(me.header)
@@ -628,6 +630,7 @@ Check_Network(me : Network)
   Rules.Check("C006", LOC, me)
   Rules.Check("C011", LOC, me)
   Rules.Check("C030", LOC, me)
+  Rules.Check("C041", LOC, me)
   Rules.Check("G026", LOC, me)
   Rules.Check("G043", LOC, me)
   [

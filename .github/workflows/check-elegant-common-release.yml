@@ -11,5 +11,5 @@ permissions:
 
 jobs:
   check:
-    uses: tiobe/workflows/.github/workflows/elegant-checkers-check-elegant-common-release.yml@vN
+    uses: tiobe/workflows/.github/workflows/elegant-checkers-check-elegant-common-release.yml@v1.0.1
     secrets: inherit

@@ -112,9 +112,17 @@ jobs:
           # part of the build itself) need more than the default 8MB stack.
           ulimit -s 65536
           ulimit -c unlimited
+          # A release build here requests `package` as an extra target.
+          # package's own prerequisites (clean_package realclean default
+          # info) already do a full build themselves, so asking for it
+          # here -- rather than a plain `make` now and a separate `make
+          # package` later -- avoids compiling GawlKeeper twice per
+          # release: package's realclean wipes and rebuilds from scratch
+          # regardless of what a prior plain build already did.
           make ARCH=${{ matrix.arch }} \
             ELEGANTROOT="$HOME/elegant-sdk" \
-            ELEGANTCOMMON="$HOME/elegant-common"
+            ELEGANTCOMMON="$HOME/elegant-common" \
+            ${{ inputs.package && 'package' || '' }}
 
       - name: Analyze crash (core dump backtrace)
         if: failure()
@@ -173,14 +181,6 @@ jobs:
             ELEGANTROOT="$HOME/elegant-sdk" \
             ELEGANTCOMMON="$HOME/elegant-common" \
             test
-
-      - name: Package
-        if: inputs.package
-        run: |
-          make ARCH=${{ matrix.arch }} \
-            ELEGANTROOT="$HOME/elegant-sdk" \
-            ELEGANTCOMMON="$HOME/elegant-common" \
-            package
 
       - name: Upload package artifact
         if: inputs.package

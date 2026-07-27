@@ -30,8 +30,8 @@ jobs:
         run: |
           # tiobe/upload-artifacts-action's `files` input takes literal,
           # newline-separated filenames -- it does not expand shell globs
-          # itself (confirmed the hard way: `files: TICSc-*.zip` failed
-          # with "ENOENT ... lstat 'TICSc-*.zip'", the literal string).
+          # itself (confirmed the hard way: `files: GawlKeeper-*.zip` failed
+          # with "ENOENT ... lstat 'GawlKeeper-*.zip'", the literal string).
           # Resolving the glob here, in a real shell, and passing the
           # expanded list through works for however many per-arch zips
           # actually exist.

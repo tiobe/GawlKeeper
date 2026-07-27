@@ -25,7 +25,7 @@ env:
 
 jobs:
   gitversion:
-    uses: ./.github/workflows/gitversion.yml
+    uses: tiobe/workflows/.github/workflows/elegant-checkers-gitversion.yml@vN
     with:
       ref: ${{ inputs.ref || github.ref }}
 

@@ -12,11 +12,21 @@ TARGET = GawlKeeper
 ADDITIONALTARGETS = 
 AGDLS = $(TARGET) $(ADDITIONALTARGETS)
 FRONTFILES = $(addprefix Grammar/,$(addsuffix .front,$(ADDITIONALTARGETS)))
-## SEMVER must be supplied by the environment (CI sets this from GitVersion,
-## see .github/workflows/build.yml); no fallback -- the build fails rather
-## than silently computing a version another way.
+## SEMVER is normally supplied by the environment (CI sets this from
+## GitVersion, see .github/workflows/build.yml). For local builds where
+## nothing sets it, fall back to a lightweight approximation of GitVersion's
+## own scheme: the latest reachable tag (same 'v' prefix as GitVersion.yml),
+## plus a "-<n>" suffix for the number of commits since that tag (omitted
+## when building the tag commit itself, i.e. n=0). No commit SHA is included.
+## This is only ever a local-dev convenience -- CI always overrides it via
+## the environment.
 ifeq ($(SEMVER),)
-$(error SEMVER is not set -- run via CI (GitVersion) or pass SEMVER=x.y.z explicitly)
+GITDESCRIBE := $(shell git describe --tags --match 'v*' --long 2>/dev/null)
+ifneq ($(GITDESCRIBE),)
+SEMVER := $(shell echo '$(GITDESCRIBE)' | sed -E 's/^v([^-]+)-0-g[0-9a-fA-F]+$$/\1/; t; s/^v(.+)-([0-9]+)-g[0-9a-fA-F]+$$/\1-\2/')
+else
+SEMVER := 0.0.0-0
+endif
 endif
 
 ## If not main branch, add suffix
@@ -140,9 +150,25 @@ BUILDCFG := optimize
 
 .PHONY: default version common txc realclean patch_scanfile patch_scanner \
         make_scanfile_patch make_scanner_patch make_frontfile_patch test \
-        resources info clean_info package clean_package
+        resources info clean_info package clean_package build_version
 
-default: version common resources txc
+default: version common resources build_version txc
+
+## Bake SEMVER into the binary as a CGN unit (see elegant-common's
+## BuildVersion.spec) instead of the old approach of reading it from the
+## process environment at runtime -- which meant `-version` reported
+## whatever SEMVER happened to be set in the caller's shell, not what was
+## actually built. Always regenerated (.PHONY) so a changed SEMVER is
+## picked up without requiring `make clean`.
+build_version:
+	printf '%s\n' \
+	  'impl unit BuildVersion' \
+	  '' \
+	  'functions' \
+	  '' \
+	  'Get(): String' \
+	  '{ return "$(SEMVER)" }' \
+	  > CGN/BuildVersion.impl
 
 ## common/version/resources build order and configuration are owned by
 ## elegant-common's own top-level makefile; delegate to it instead of

@@ -1,0 +1,46 @@
+impl unit Paths
+
+global 
+
+PATHS : List(Path) := []
+
+functions
+
+/ (paths : List(Path), label : String): Path|NIL
+{ 
+  [ { return path } | path : Path <- paths, (path.label == label) ] 
+  return NIL
+}
+
+/~ (paths : List(Path), label : String): List(Path)
+{ return [ path | path : Path <- paths, (~(path.label == label)) ] }
+
+Intersect(label1 : Ident, label2 : Ident)
+{
+   label1vars : Set(Ident) = GetVars(PATHS / label1)
+   label2vars : Set(Ident) = GetVars(PATHS / label2)
+   SetVars(label1, Intersect(label1vars, label2vars))
+   PATHS := PATHS /~ label2
+}
+
+Intersect(NIL : Set(Ident), l2 : Set(Ident)): Set(Ident)
+{ return NIL }
+
+Intersect(l1 : (Set(Ident)), l2 : Set(Ident)): Set(Ident)
+conditions l1.head <- l2
+{ return l1.head + Intersect(l1.tail, l2) }
+
+Intersect(l1 : (Set(Ident)), l2 : Set(Ident)): Set(Ident)
+{ return Intersect(l1.tail, l2) }
+
+SetLabel(label1 : String, label2 : String)
+{ [ { p.label := label2 } | p : Path <- PATHS, (p.label == label1) ] }
+
+GetVars(NIL : Path) : Set(Ident)
+{ return NIL }
+
+GetVars(p : Path) : Set(Ident)
+{ return p.vars }
+
+SetVars(label : String, vars : Set(Ident))
+{ [ { p.vars := vars } | p : Path <- PATHS, (p.label == label) ] }

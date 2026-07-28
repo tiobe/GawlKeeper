@@ -591,6 +591,8 @@
 
  ----- Rule C078 ------------------------------------
 
+../GawlKeeper.linux64 --C078 ./C078/C078-slow.awl
+
 ../GawlKeeper.linux64 --C078 ./C078/C078.awl
 
 ./C078/C078.awl(823):

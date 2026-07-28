@@ -495,13 +495,3 @@ GetArgumentName(expr: ArrayExpression): String
 
 GetArgumentName(expr: InstrExpression|NIL): String
 { return "" }
-
-Intersect(NIL : List(List(Ident))): List(Ident)
-{ return NIL }
-
-Intersect(me : (List(List(Ident)), tail = NIL)): List(Ident)
-{ return me.head }
-
-Intersect(me : (List(List(Ident)), tail # NIL)): List(Ident)
-{ return Intersect(me.head * me.tail.head + me.tail.tail) }
-

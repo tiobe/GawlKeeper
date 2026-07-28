@@ -17,46 +17,8 @@ jobs:
 
   publish:
     needs: build
-    runs-on: ubuntu-latest
-    steps:
-      - name: Download package artifacts
-        uses: actions/download-artifact@v4
-        with:
-          pattern: GawlKeeper-package-*
-          merge-multiple: true
-
-      - name: List package files
-        id: files
-        run: |
-          # tiobe/upload-artifacts-action's `files` input takes literal,
-          # newline-separated filenames -- it does not expand shell globs
-          # itself (confirmed the hard way: `files: GawlKeeper-*.zip` failed
-          # with "ENOENT ... lstat 'GawlKeeper-*.zip'", the literal string).
-          # Resolving the glob here, in a real shell, and passing the
-          # expanded list through works for however many per-arch zips
-          # actually exist.
-          {
-            echo 'list<<PKGFILES_EOF'
-            ls GawlKeeper-*.zip
-            echo 'PKGFILES_EOF'
-          } >> "$GITHUB_OUTPUT"
-
-      - name: Upload package to Nexus
-        uses: tiobe/upload-artifacts-action/upload@v2
-        with:
-          repo: checkers
-          targetdir: GawlKeeper/${{ needs.build.outputs.semver }}
-          files: ${{ steps.files.outputs.list }}
-          username: ${{ secrets.PRIVATE_NEXUS_USERNAME }}
-          password: ${{ secrets.PRIVATE_NEXUS_PASSWORD }}
-
-      - name: Attach release artifacts
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          # This job never runs actions/checkout (it only downloads a
-          # build artifact), so there's no .git directory for `gh` to
-          # infer the target repo from -- without --repo it fails with
-          # "fatal: not a git repository (or any of the parent
-          # directories): .git" before even attempting the upload.
-          gh release upload "${{ github.event.release.tag_name }}" GawlKeeper-*.zip --clobber --repo ${{ github.repository }}
+    uses: tiobe/public-workflows/.github/workflows/release-publish.yml@cdf48792866f0f69c0743041b1558522e3228408 # v1.0.0
+    with:
+      product-name: GawlKeeper
+      semver: ${{ needs.build.outputs.semver }}
+    secrets: inherit

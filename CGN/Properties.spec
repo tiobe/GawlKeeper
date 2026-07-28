@@ -73,5 +73,3 @@ IsConditionalJump(instr: InstructionName): Bool
 IsUnconditionalJump(instr: InstructionName): Bool
 
 IsUsed(ref : String, networks: List(Network)): Bool
-
-Intersect(idents : List(List(Ident))): List(Ident)

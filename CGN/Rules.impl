@@ -9,16 +9,16 @@ impl unit Rules
 use
 
 FunctionPrelude. $ 
+Paths. /, /~, Intersect, Path, PATHS, GetVars, SetLabel
 Properties. GetName, GetRawName, GetReferences, GetTitle, GetComments, GetLabel, 
             GetNetwPrefix, GetGlobalVar, IsDatabaseAction, IsLoadInstruction, 
             IsOutputInstruction, IsUsed, IsAccessingAR2, IsModifyingAR2, IsRestoringAR2,
             GetBlockType, HasComment, IsLoadingAR1, IsUsingAR1, IsSymbolicReference,
-            GetFullComments, IsConditionalJump, IsUnconditionalJump, Intersect,
-            GetFields, IsFlankInstruction, OUTPUTVARS, TEMPVARS, GetType, <-, Variable
+            GetFullComments, IsConditionalJump, IsUnconditionalJump, GetFields, 
+            IsFlankInstruction, OUTPUTVARS, TEMPVARS, GetType, <-, Variable
 RuleConfig. IsRuleEnabled
 RuleViolation. ', AddViolation
 ScanIO. FindFileName, FindLocation
-SetPrelude
 StringTokenizer. Split, Trim
 Syntactics. IsCommentWellFormatted, IsLabelWellFormed, IsNetwTitleWellFormed,
             IsExceptionNetwork, IsNewline, IsOperandChanging, FilterComments,
@@ -375,23 +375,10 @@ Check(rule : String, loc : Int, me : HeaderBlock)
 conditions rule == "C066" & ContainsSubString(ToLower(StripSpaces(me.title)), "%version:q")
 { AddViolation(rule, loc, [me.title]) }
 
-typedef
-
-// Path consists of a label and a set of initialized variables. The label indicates that 
-// the path is inactive until its label occurs in the code, e.g. if JU CONTINUE occurs, 
-// the label is set to CONTINUE because the next lines don't hold for this path. If label 
-// is "" the path is active.
-
-Path = {
-  label : String
-  vars : Set(Ident)
-}
-
 global
 
 LABELS : List(String) := [] // labels already encountered
 LOC : Int := 0
-PATHS : List(Path) := []
 
 functions
 
@@ -408,22 +395,42 @@ conditions rule == "C076" | rule == "C077" | rule == "C078"
 IsActivePath(path : Path): Bool
 { return path.label == "" }
 
-IsNonActivePath(path : Path): Bool
-{ return ~IsActivePath(path) }
-
 CheckPathRule(rule : String, me : Network)
 { me.instructions * CheckPathLabel $ rule }
 
 CheckPathLabel(rule : String, me : (Instruction, label # NIL))
+// if there is no active path, just copy the label path
+conditions (PATHS / "") = NIL
+{
+  // PrintPaths()
+  SetLabel(me.label.id, "")
+  LABELS := LABELS + me.label.id
+  CheckPathRule(rule, me)
+}
+
+CheckPathLabel(rule : String, me : (Instruction, label # NIL))
+// if there is no label path, continue without changing anything
+// this happens if you have a label nobody has jumped to yet
+conditions (PATHS / me.label.id) = NIL
+{ 
+  // PrintPaths()
+  LABELS := LABELS + me.label.id
+  CheckPathRule(rule, me) 
+}
+
+CheckPathLabel(rule : String, me : (Instruction, label # NIL))
 {  
+  // PrintPaths()
   // the path with the label that occurs in the code becomes active
-  [ { path.label := "" } | path : Path <- PATHS, (path.label == me.label.id) ]
+  // intersect it with the existing active code
+  Intersect(Ident(""), me.label.id)
   LABELS := LABELS + me.label.id
   CheckPathRule(rule, me)
 }
 
 CheckPathLabel(rule : String, me : Instruction)
 { 
+  // PrintPaths()
   LOC := me.src_info.loc
   CheckPathRule(rule, me) 
 }
@@ -431,7 +438,7 @@ CheckPathLabel(rule : String, me : Instruction)
 CheckPathRule(rule : String, me : (Instruction, instruction : (BeInstr | BeuInstr)))
 { 
   CheckC77(rule)
-  PATHS := PATHS / IsNonActivePath 
+  PATHS := PATHS /~ ""
 }
 
 CheckPathRule(rule : String, me : (Instruction, instruction : (CallInstr, args : (FunctionCallParts, arguments # NIL))))
@@ -476,21 +483,23 @@ CheckPathRule(rule : String, me : (Instruction, arg : LocalVariable))
 // process backward jumps
 conditions IsUnconditionalJump(me.instruction) & me.arg.vbl.id <- LABELS
 { 
-  // remove the active paths because the path will not continue from here
-  PATHS := PATHS / IsNonActivePath 
+  // remove the active path because the path will not continue from here
+  PATHS := PATHS /~ ""
 }
 
 CheckPathRule(rule : String, me : (Instruction, arg : LocalVariable))
-// only process forward jumps
+// process forward jumps
 conditions IsConditionalJump(me.instruction) & ~(me.arg.vbl.id <- LABELS)
 { 
   // if a conditional jump happens add the intersect of all active paths for the jump label
-  PATHS := 
-    PATHS + 
-    Path(
-      me.arg.vbl.id, 
-      Intersect([ path.vars | path : Path <- PATHS, (IsActivePath(path))])
-    )
+  PATHS := PATHS + Path(me.arg.vbl.id, GetVars(PATHS / ""))
+}
+
+CheckPathRule(rule : String, me : (Instruction, arg : LocalVariable))
+// process backward jumps
+conditions IsConditionalJump(me.instruction) & me.arg.vbl.id <- LABELS
+{ 
+  // if a conditional backward jump happens treat it as if nothing happened
 }
 
 CheckPathRule(rule : String, me : Instruction)
@@ -520,6 +529,10 @@ CheckPathRule(me : ArgumentsAssignment)
 AddVarToActivePath(name : Ident) 
 {
   if ~(name == "")
+    // if there is no active path, create it
+    if ~Any(IsActivePath, PATHS)
+      PATHS := PATHS + Path("", NIL)
+    fi
     [ { path.vars := path.vars + name }
     | path : Path <- PATHS,
       (IsActivePath(path)),
@@ -550,7 +563,7 @@ CheckC77(rule : String, v : Variable)
 /* For debugging checking path related rules
 PrintPaths() 
 {
-  { "DEBUG begin\n" } astype Message
+  { "DEBUG begin #PATHS = " String(#PATHS) "\n" } astype Message
   [ { "DEBUG path label = " path.label " vars = <EMPTY>\n" } astype Message    
     | path : Path <- PATHS, (path.vars == NIL)
   ]

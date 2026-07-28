@@ -17,7 +17,7 @@ jobs:
 
   publish:
     needs: build
-    uses: tiobe/workflows/.github/workflows/release-publish.yml@v1.0.1
+    uses: tiobe/public-workflows/.github/workflows/release-publish.yml@v1.0.0
     with:
       product-name: GawlKeeper
       semver: ${{ needs.build.outputs.semver }}

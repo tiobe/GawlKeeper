@@ -1,0 +1,161 @@
+FUNCTION "FC_4_CHARs_To_INT" : Void
+TITLE = %version: 5.07 % %Commit:  c3748fd5 % CN: 30
+{ S7_Optimized_Access := 'FALSE' }
+FAMILY : General
+VERSION : 0.0
+//Function:  
+//Converts 4 CHARs to one INT. 
+//
+//
+//SOURCE
+//%Project:      allcgen %
+//%Repo:         a_gen %
+//%Commit:       c3748fd5 %
+//%DateTimeUTC:  2023-12-07T14:34:55 %
+//
+//%HISTORY%
+//Issue:        Commit:  Date:      Version: Author:              Description:
+//------------- -------- ---------- -------- -------------------- -----------------------------------------------------------------------
+//ALLCGEN-2405  c3748fd5 2023-12-07 5.07     Pascal van Kempen    Added history table
+//ALLCGEN-2403  29e28446 2023-12-06 5.06     Harm Hopmans         Renamed folders that contained space character
+//ALLCGEN-2403  f68af768 2023-12-05 5.05     Henri de Leijer      First step to remove the library files
+//ALLCGEN-316   c7d0bd38 2020-11-12 5.04     Pascal van Kempen    updated xml and awl files to prepare for insertion of metadata from git
+//ALLCGEN-253   47d2c95f 2020-10-16 5.03     Pascal van Kempen    removed GIT from keywords
+//ALLCGEN-1     b32156af 2020-08-06 5.02     Pascal van Kempen    added keywords to awl files
+//ALLCGEN-1     d19e536e 2020-08-05 5.01     Pascal van Kempen    initial import + adding gradle build
+//
+//Modification History:                                   By:    Date:     Rev:
+//----------------------------------------------------  -------  --------  -----
+//ra#34205: Resolved parallel version in Synergy        nlhhop   25-07-19   4.02
+//ra#31766: Update sources TIA with export function     nlHdL    11-12-18   4.01
+//ra#29092: Update VI_GEN TIA to VI_GEN 1.9             nlHdL    14-09-18   2.03
+//ina#10491: Restore AR1 in 4chars to int               nlHdL    20-06-18   
+//ra#29092: Update the UDT sources for VI_GEN TIA       nlHdL    03-09-18   2.02
+//ra#9751: Add source files ECS-P to VI_RAW             nlHdL    14-12-15   0.02
+//ra#9751: Add source files ECS-P to VI_RAW             nlHdL    07-12-15   0.02
+//7324: ECS-P General from the RD to RA for platform    nlHdL    06-07-15   0.02
+//15807: Block consistency update IO symbols, comment   nlHdL    18-09-13   0.02
+//Initial revision                                      nlMvGi   18-08-10   0.01
+//
+//Description:
+//When called, this function converts 4 CHARs to one INT.
+//All four CHARs must be a digit: A number within the range '0' to '9'.
+//If not no conversion takes place and '-1' will be returned as INT result.
+//                                                                     
+   VAR_INPUT 
+      i_CHAR_1 : Char;   // 1st. CHAR, ['0' to '9']
+      i_CHAR_2 : Char;   // 2nd. CHAR, ['0' to '9']
+      i_CHAR_3 : Char;   // 3th. CHAR, ['0' to '9']
+      i_CHAR_4 : Char;   // 4th. CHAR, ['0' to '9']
+   END_VAR
+
+   VAR_OUTPUT 
+      o_INT : Int;   // Output of the INT, (Error -1: Not all CHARs were a digit)
+   END_VAR
+
+   VAR_TEMP 
+      t_AR1_Store : DWord;   // Store for AR1
+      t_4_CHAR : DWord;   // 4 CHARs put together on a DWORD
+      t_Event_Data : Int;   // Temp even data
+   END_VAR
+
+
+BEGIN
+NETWORK
+TITLE = AA: Store address registers
+//In this network the address registers are stored to be remembered.
+      TAR1;//Store AR1
+      T #t_AR1_Store;
+
+NETWORK
+TITLE = BA: Convert from 4 CHARs to INT
+//Check input i_ASCII_number on range. 
+//Range of the digits must be '0' to '9' (30 to 39 hex.) or digit must be null.
+//When digits are out of range the result INT will contain -1.
+      A(;// IF (char 1 >= 30)
+      L #i_CHAR_1;
+      L W#16#30;
+      >=I;
+      );
+      A(;// AND (char 1 <= 39)
+      L #i_CHAR_1;
+      L W#16#39;
+      <=I;
+      );
+      A(;// IF (char 2 >= 30)
+      L #i_CHAR_2;
+      L W#16#30;
+      >=I;
+      );
+      A(;// AND (char 2 <= 39)
+      L #i_CHAR_2;
+      L W#16#39;
+      <=I;
+      );
+      A(;// IF (char 3 >= 30)
+      L #i_CHAR_3;
+      L W#16#30;
+      >=I;
+      );
+      A(;// AND (char 3 <= 39)
+      L #i_CHAR_3;
+      L W#16#39;
+      <=I;
+      );
+      A(;// IF (char 4 >= 30)
+      L #i_CHAR_4;
+      L W#16#30;
+      >=I;
+      );
+      A(;// AND (char 4 <= 39)
+      L #i_CHAR_4;
+      L W#16#39;
+      <=I;
+      );
+      JC BA01;// THEN all input characters in correct range (digit '0' to '9' )
+
+      L 0;
+      T #t_Event_Data;
+
+      L -1;// Error: -1: 'Not all 4 CHARs are digits'
+      T #o_INT;
+      BEU;
+
+BA01:      L P##t_4_CHAR;// Load all 4 CHARs into t_4_CHAR
+      LAR1;
+      L #i_CHAR_1;
+      T LB[ AR1, P#0.0];
+      L #i_CHAR_2;
+      T LB[ AR1, P#1.0];
+      L #i_CHAR_3;
+      T LB[ AR1, P#2.0];
+      L #i_CHAR_4;
+      T LB[ AR1, P#3.0];
+
+      L #t_4_CHAR;//Filter out the digits
+      L DW#16#F0F0F0F;
+      AD;
+      T #t_4_CHAR;
+
+      L LB[ AR1, P#0.0];//Multiply each digit with its weight
+      L 10;//1st digit: *10*10*10
+      *I;//2nd digit: *10*10
+      L LB[ AR1, P#1.0];//3th digit: *10
+      +I;//4th digit: *1
+      L 10;//and all add up to result INT
+      *I;
+      L LB[ AR1, P#2.0];
+      +I;
+      L 10;
+      *I;
+      L LB[ AR1, P#3.0];
+      +I;
+      T #o_INT;
+
+NETWORK
+TITLE = CA: Restore stored address registers
+//The stored adderss registers are restored in this network.
+      L #t_AR1_Store;
+      LAR1;
+
+END_FUNCTION

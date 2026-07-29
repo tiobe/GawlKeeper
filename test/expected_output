@@ -575,6 +575,25 @@
 
  ----- Rule C077 ------------------------------------
 
+../GawlKeeper.linux64 --C077 ./C077/C077-PR38623-1.awl
+
+./C077/C077-PR38623-1.awl(168):
+    An output variable of a Function (FC) shall always have a value assigned.
+    Rule ID: C077
+    We are leaving the function while no value has been assigned to output variable 'o_ST_Capacity_2Low'.
+
+./C077/C077-PR38623-1.awl(168):
+    An output variable of a Function (FC) shall always have a value assigned.
+    Rule ID: C077
+    We are leaving the function while no value has been assigned to output variable 'o_Current_Capacity'.
+
+./C077/C077-PR38623-1.awl(168):
+    An output variable of a Function (FC) shall always have a value assigned.
+    Rule ID: C077
+    We are leaving the function while no value has been assigned to output variable 'o_ST_Capacity_2High'.
+
+../GawlKeeper.linux64 --C077 ./C077/C077-PR38623.awl
+
 ../GawlKeeper.linux64 --C077 ./C077/C077-bool.awl
 
 ../GawlKeeper.linux64 --C077 ./C077/C077.awl
@@ -582,12 +601,12 @@
 ./C077/C077.awl(35):
     An output variable of a Function (FC) shall always have a value assigned.
     Rule ID: C077
-    No value has been assigned to output variable 'TempValue'.
+    We are leaving the function while no value has been assigned to output variable 'TempValue'.
 
 ./C077/C077.awl(35):
     An output variable of a Function (FC) shall always have a value assigned.
     Rule ID: C077
-    No value has been assigned to output variable 'Wrong'.
+    We are leaving the function while no value has been assigned to output variable 'Wrong'.
 
  ----- Rule C078 ------------------------------------
 

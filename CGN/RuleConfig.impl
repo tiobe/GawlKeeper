@@ -148,7 +148,7 @@ GetRules() : [([String])]
     ],
     [ "C077",
       "An output variable of a Function (FC) shall always have a value assigned.",
-      "No value has been assigned to output variable '\027'."
+      "We are leaving the function while no value has been assigned to output variable '\027'."
     ],
     [ "C078",
       "Flank instructions shall always be executed unconditionally.",

@@ -378,7 +378,7 @@ conditions rule == "C066" & ContainsSubString(ToLower(StripSpaces(me.title)), "%
 global
 
 LABELS : List(String) := [] // labels already encountered
-LOC : Int := 0
+INSTRLOC : Int := 0
 
 functions
 
@@ -386,10 +386,10 @@ Check(rule : String, loc : Int, me : FunctionBody)
 conditions rule == "C076" | rule == "C077" | rule == "C078"
 { 
   LABELS := []
-  LOC := me.src_info.loc
+  INSTRLOC := me.src_info.loc
   PATHS := [Path("", NIL)]
   me.networks * CheckPathRule $ rule
-  CheckC77(rule) 
+  CheckC77(rule, INSTRLOC) 
 }
 
 IsActivePath(path : Path): Bool
@@ -426,18 +426,19 @@ CheckPathLabel(rule : String, me : (Instruction, label # NIL))
   Intersect(Ident(""), me.label.id)
   LABELS := LABELS + me.label.id
   CheckPathRule(rule, me)
+  INSTRLOC := me.src_info.loc
 }
 
 CheckPathLabel(rule : String, me : Instruction)
 { 
   // PrintPaths()
-  LOC := me.src_info.loc
+  INSTRLOC := me.src_info.loc
   CheckPathRule(rule, me) 
 }
 
 CheckPathRule(rule : String, me : (Instruction, instruction : (BeInstr | BeuInstr)))
 { 
-  CheckC77(rule)
+  CheckC77(rule, me.src_info.loc)
   PATHS := PATHS /~ ""
 }
 
@@ -542,21 +543,21 @@ AddVarToActivePath(name : Ident)
   fi
 }
 
-CheckC77(rule : String)
+CheckC77(rule : String, loc : Int)
 conditions rule == "C077"
-{ OUTPUTVARS * CheckC77 $ rule }
+{ OUTPUTVARS * CheckC77 $ loc }
 
-CheckC77(rule : String)
+CheckC77(rule : String, loc : Int)
 {}
 
-CheckC77(rule : String, v : Variable) 
+CheckC77(loc : Int, v : Variable) 
 {
   [
     {
-      AddViolation(rule, LOC, [v.name])
+      AddViolation("C077", loc, [v.name])
       return
     }
-  | path : Path <- PATHS, (~(Ident(v.name) <- path.vars))
+  | path : Path <- PATHS, (path.label == ""), (~(Ident(v.name) <- path.vars))
   ]
 }
 
@@ -570,7 +571,7 @@ PrintPaths()
   [ { "DEBUG path label = " path.label " vars = " v "\n" } astype Message    
     | path : Path <- PATHS, v : Ident <- path.vars
   ]
-  { "DEBUG end LOC = " String(GetLineNumber(LOC)) "\n" } astype Message
+  { "DEBUG end LOC = " String(GetLineNumber(INSTRLOC)) "\n" } astype Message
 }
 */
 

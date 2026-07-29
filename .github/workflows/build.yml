@@ -24,7 +24,7 @@ env:
 
 jobs:
   gitversion:
-    uses: tiobe/public-workflows/.github/workflows/elegant-checkers-gitversion.yml@cdf48792866f0f69c0743041b1558522e3228408 # v1.0.0
+    uses: tiobe/public-workflows/.github/workflows/elegant-checkers-gitversion.yml@28cb26db8204b09de47e8c0d1c98507662f9daa3 # v1.0.1
     with:
       ref: ${{ inputs.ref || github.ref }}
 

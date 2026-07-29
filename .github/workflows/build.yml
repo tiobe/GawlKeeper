@@ -21,11 +21,10 @@ on:
 
 env:
   ELEGANT_SDK_REF: main
-  ELEGANT_COMMON_REF: main
 
 jobs:
   gitversion:
-    uses: tiobe/public-workflows/.github/workflows/elegant-checkers-gitversion.yml@cdf48792866f0f69c0743041b1558522e3228408 # v1.0.0
+    uses: tiobe/public-workflows/.github/workflows/elegant-checkers-gitversion.yml@28cb26db8204b09de47e8c0d1c98507662f9daa3 # v1.0.1
     with:
       ref: ${{ inputs.ref || github.ref }}
 
@@ -103,7 +102,7 @@ jobs:
         run: |
           git clone --depth 1 --branch "$ELEGANT_SDK_REF" \
             git@elegant-sdk.github.com:tiobe/elegant-sdk.git "$HOME/elegant-sdk"
-          git clone --depth 1 --branch "$ELEGANT_COMMON_REF" \
+          git clone --depth 1 --branch "$(cat .elegant-common-version)" \
             git@elegant-common.github.com:tiobe/elegant-common.git "$HOME/elegant-common"
 
       - name: Build GawlKeeper

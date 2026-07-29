@@ -1,0 +1,169 @@
+FUNCTION "FC_Calc_H2H_Distance" : Void
+TITLE = %version: 5.04 % %Commit:  4d9a60bd % CN: 30
+{ S7_Optimized_Access := 'FALSE' }
+FAMILY : RAW
+VERSION : 0.0
+//Function:
+//- Calculate H2H distance
+//
+//
+//SOURCE
+//%Project:      allcraw %
+//%Repo:         a_raw %
+//%Commit:       4d9a60bd %
+//%DateTimeUTC:  2023-12-08T15:13:16 %
+//
+//%HISTORY%
+//Issue:        Commit:  Date:      Version: Author:              Description:
+//------------- -------- ---------- -------- -------------------- ------------------------------------------------------------
+//ALLCRAW-3368  4d9a60bd 2023-12-08 5.04     Pascal van Kempen    Added history table
+//ALLCRAW-3355  ec1e69c4 2023-12-05 5.03     Henri de Leijer      First step to remove the library files
+//ALLCRAW-1714  1822e371 2023-08-11 5.02     Swapnil Mahajan      Location of the block "FC_Calc_H2H_Distance.AWL" is changed.
+//ALLCRAW-1     7b4eb4ed 2020-12-02 5.01     Pascal van Kempen    import+adjustments for build and keyword infusion
+//
+//Modification History:                                   By:    Date:     Rev:
+//----------------------------------------------------  -------  --------  -----
+//ra#29057: Minimum capacity logic updated              inpmah   25-11-19   3.02
+//ra#31886: Update source file TIA RAW with export TIA  nlHdL    17-12-18   3.01
+//ra#29943: Update the UDT sources for VI_RAW TIA       nlHdL    11-09-18   2.11
+//ra#10427: RAW: Make UQZ configurable according        nlHdL    02-05-16   0.10
+//ra#10427: RAW: Make UQZ configurable according        nlHdL    02-05-16   0.10
+//7324: ECS-P General from the RD to RA for platform    nlHdL    06-07-15   0.10
+//24690: Mod-His lined up                               nlwwij   25-09-13   0.10
+//15807: Block consistency update IO symbols, comment   nlHdL    18-09-13   0.09
+//CR19512 Update sources according S7 Manager           nlHdL    07-03-13   0.08
+//PR5923 Adding output Capacity                         nlple    05-04-11   0.07
+//Modified Input & output name                          nlHEb    16-09-10   0.06
+//Version & History not updated                         inpna    24-08-10   0.05
+//Modified the logic all JC to JU                       inpna    17-08-10   0.04
+//PR5424: FB changed to FC "FC_CALC_H2H_Distance"       inpna    10-08-10   0.03
+//Family is 'General' and not GEN                       nlMRe    21-07-10   0.02
+//Initial Release                                       nlHEb    09-07-10   0.01
+//
+//Description:                                  
+//This block calculates the minimum head to head length based on the actual speed 
+//and the capacity.
+//If the calculated head to head length is not positive the head to head length 
+//will be set to 0.
+//If the capacity is 0 items/hour then head to head length is 0 and the 
+//zone is disabled.
+//If the capacity is not 0 and lower then the minimum capacity an error is 
+//generated that the capacity is too low. The capacity will be set to the minimum 
+//capacity.
+//If the capacity is not 0 and higher then the maximum capacity an error is 
+//generated that the capacity is too high. The capacity will be set to the maximum
+//capacity.
+   VAR_INPUT 
+      i_CFG_Conveyor_Speed : Int;   // CFG: [mm/sec] Conveyor Speed
+      i_CFG_Capacity : Int;   // CFG: [items per hour] Capacity
+      i_CFG_Minimum_Capacity : Int;   // CFG: [items per hour] Minimum capacity
+      i_CFG_Maximum_Capacity : Int;   // CFG: [items per hour] Maximum capacity
+   END_VAR
+
+   VAR_OUTPUT 
+      o_H2H_Length : Int;   // [cm] Calculated head to head length
+      o_Current_Capacity : Int;   // The current capacity
+      o_ST_Capacity_2Low : Bool;   // ST: Selected capacity is too low
+      o_ST_Capacity_2High : Bool;   // ST: Selected capacity is too high 
+   END_VAR
+
+   VAR_TEMP 
+      t_Calc_Conv_Speed : DInt;   // Calculated conveyor speed
+      t_Capacity : Int;   // Capacity in items/hour
+      t_Min_Capacity_Positive : Bool;   // Minimum capacity is positive
+      t_Max_Capacity_Positive : Bool;   // Maximum capacity is positive
+      t_Conv_Speed_Positive : Bool;   // Conveyor speed is positive
+   END_VAR
+
+
+BEGIN
+NETWORK
+TITLE = AA: Copy input to static
+
+      L #i_CFG_Capacity;
+      T #t_Capacity;
+NETWORK
+TITLE = BA: Check if speed and CFG parameters are positive
+
+      L #i_CFG_Minimum_Capacity;// IF minimum capacity is not positive
+      L 0;
+      >I;
+      = #t_Min_Capacity_Positive;
+
+      L #i_CFG_Maximum_Capacity;// IF maximum capacity is not positive
+      L 0;
+      >I;
+      = #t_Max_Capacity_Positive;
+
+      L #i_CFG_Conveyor_Speed;// IF Conveyor speed is not positive
+      L 0;
+      >I;
+      = #t_Conv_Speed_Positive;
+
+      A #t_Min_Capacity_Positive;
+      A #t_Max_Capacity_Positive;
+      A #t_Conv_Speed_Positive;
+      JCN EA01;// THEN H2H distance is 0 [cm]
+NETWORK
+TITLE = CA: Determine capacity too low
+
+      L #t_Capacity;// IF capacity is lower then the minimum capacity
+      L #i_CFG_Minimum_Capacity;
+      <I;
+      JCN CA01;
+
+      L #i_CFG_Minimum_Capacity;// THEN capacity is set to minimum capacity
+      T #t_Capacity;
+
+      SET;
+      = #o_ST_Capacity_2Low;// SET error capacity value is to low
+      JU CA99;
+
+CA01:      CLR;
+      = #o_ST_Capacity_2Low;// RESET error capacity value is to low
+CA99:      NOP 0;
+NETWORK
+TITLE = DA: Determine capacity too high
+
+      A(;
+      L #t_Capacity;// IF capacity is lower then the minimum capacity
+      L #i_CFG_Maximum_Capacity;
+      >I;
+      );
+      JCN DA01;
+
+      L #i_CFG_Maximum_Capacity;// THEN capacity is set to maximum capacity
+      T #t_Capacity;
+
+      SET;
+      = #o_ST_Capacity_2High;// SET error capacity value is to low
+      JU DA99;
+
+DA01:      CLR;
+      = #o_ST_Capacity_2High;// RESET error capacity value is to low
+DA99:      NOP 0;
+NETWORK
+TITLE = EA: Calculate H2H distance
+
+      L #t_Capacity;
+      T #o_Current_Capacity;
+
+      L #i_CFG_Conveyor_Speed;// Multiply actual speed by 360
+      L 360;
+      *D;
+      T #t_Calc_Conv_Speed;// Conveyor speed in cm/hour
+
+      L #t_Calc_Conv_Speed;// Conveyor speed in cm/hour
+      L #t_Capacity;// Capacity in items/hour
+      /D;
+      T #o_H2H_Length;// Calculate H2H distance in cm
+
+      L #o_H2H_Length;// IF H2H distance is not positive
+      L 0;
+      <=I;
+      JCN EA99;
+
+EA01:      L 0;// THEN H2H distance is 0
+      T #o_H2H_Length;
+EA99:      NOP 0;// ELSE H2H distance is calculate H2H distance
+END_FUNCTION

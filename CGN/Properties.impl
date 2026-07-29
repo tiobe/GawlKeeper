@@ -4,7 +4,6 @@ use
 
 Comments. Flatten, GetComments
 FunctionPrelude. $, $$
-ScanIO. FindLocation
 SetPrelude
 StringTokenizer. IndexOf, Trim
 Syntactics. ContainsSubString, IndexOf, TrimQuotes, FilterComments

@@ -42,6 +42,12 @@ GetFields(locals : LocalVars|NIL): List(Field)
 GetName(expr: InitExpression): String
 GetName(fld: Field): String
 
+// Only implemented for GoodArgIdentifiers
+GetName(id : ArgumentIdentifier): String
+
+// Only implemented for References
+GetValue(ass : Assignment): String
+
 // Remove quotes if present
 GetRawName(ref: Reference): String
 

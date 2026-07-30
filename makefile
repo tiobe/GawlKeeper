@@ -150,9 +150,52 @@ BUILDCFG := optimize
 
 .PHONY: default version common txc realclean patch_scanfile patch_scanner \
         make_scanfile_patch make_scanner_patch make_frontfile_patch test \
-        resources info clean_info package clean_package build_version
+        resources info clean_info package clean_package build_version \
+        check-companions
 
-default: version common resources build_version txc
+default: check-companions version common resources build_version txc
+
+## Compares the elegant-sdk/elegant-common checkouts sitting beside this repo
+## (ELEGANTROOT/ELEGANTCOMMON) against the versions this repo is pinned to
+## (.elegant-sdk-version / .elegant-common-version, kept current by
+## check-elegant-common-release.yml's family of bump PRs). A companion
+## checkout older than the pin may be missing fixes/behavior the pinned
+## version assumes, so the build stops; one that's ahead only gets a
+## warning, since a companion's main is expected to normally run ahead of
+## the last version it was pinned at.
+##
+## Best-effort: silently skipped (with a warning) for a dependency that has
+## no pin file yet, isn't a git checkout, or has no tag history reachable
+## (e.g. a shallow clone) -- this check is aimed at local builds against a
+## persistent sibling checkout, not CI, which always clones a fresh ref.
+check-companions:
+	for dep in elegant-sdk:$(ELEGANTROOT) elegant-common:$(ELEGANTCOMMON); do \
+	  name=$${dep%%:*}; path=$${dep#*:}; \
+	  pinned=$$(cat "$(CURDIR)/.$$name-version" 2>/dev/null || true); \
+	  if [ -z "$$pinned" ]; then \
+	    echo "warning: no .$$name-version pin recorded, skipping companion check for $$name"; \
+	    continue; \
+	  fi; \
+	  if [ ! -d "$$path/.git" ]; then \
+	    echo "warning: $$path is not a git checkout, skipping companion check for $$name"; \
+	    continue; \
+	  fi; \
+	  current=$$(git -C "$$path" describe --tags --abbrev=0 2>/dev/null || true); \
+	  if [ -z "$$current" ]; then \
+	    echo "warning: could not determine $$name's checked-out version at $$path (shallow clone or no tags?), skipping companion check"; \
+	    continue; \
+	  fi; \
+	  if [ "$$current" = "$$pinned" ]; then \
+	    continue; \
+	  fi; \
+	  highest=$$(printf '%s\n%s\n' "$$pinned" "$$current" | sort -V | tail -1); \
+	  if [ "$$highest" = "$$pinned" ]; then \
+	    echo "error: $$name at $$path is $$current, older than the pinned $$pinned -- update that checkout (e.g. git -C $$path checkout $$pinned) before building"; \
+	    exit 1; \
+	  else \
+	    echo "warning: $$name at $$path is $$current, newer than the pinned $$pinned -- continuing anyway"; \
+	  fi; \
+	done
 
 ## Bake SEMVER into the binary as a CGN unit (see elegant-common's
 ## BuildVersion.spec) instead of the old approach of reading it from the

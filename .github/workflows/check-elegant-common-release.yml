@@ -1,4 +1,4 @@
-name: Check elegant-common release
+name: Check dependency releases
 
 on:
   schedule:
@@ -10,6 +10,18 @@ permissions:
   pull-requests: write
 
 jobs:
-  check:
-    uses: tiobe/public-workflows/.github/workflows/elegant-checkers-check-elegant-common-release.yml@28cb26db8204b09de47e8c0d1c98507662f9daa3 # v1.0.1
-    secrets: inherit
+  check-elegant-common:
+    uses: tiobe/public-workflows/.github/workflows/elegant-checkers-dependency-check.yml@v1.0.2
+    with:
+      dependency-name: elegant-common
+    secrets:
+      deploy-key: ${{ secrets.ELEGANT_COMMON_DEPLOY_KEY }}
+      gh-pat: ${{ secrets.GH_PAT }}
+
+  check-elegant-sdk:
+    uses: tiobe/public-workflows/.github/workflows/elegant-checkers-dependency-check.yml@v1.0.2
+    with:
+      dependency-name: elegant-sdk
+    secrets:
+      deploy-key: ${{ secrets.ELEGANT_SDK_DEPLOY_KEY }}
+      gh-pat: ${{ secrets.GH_PAT }}

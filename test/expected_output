@@ -639,6 +639,24 @@
 
 ../GawlKeeper.linux64 --G003 ./G003/type/G003_type.awl
 
+ ----- Rule G006 ------------------------------------
+
+../GawlKeeper.linux64 --G006 ./G006/G006-a.awl
+
+./G006/G006-a.awl(2):
+    Parameter S7_Optimized_Access shall be set to FALSE.
+    Rule ID: G006
+    The header block doesn't contain '{ S7_Optimized_Access := 'FALSE' }'.
+
+../GawlKeeper.linux64 --G006 ./G006/G006-b.awl
+
+./G006/G006-b.awl(2):
+    Parameter S7_Optimized_Access shall be set to FALSE.
+    Rule ID: G006
+    The header block doesn't contain '{ S7_Optimized_Access := 'FALSE' }'.
+
+../GawlKeeper.linux64 --G006 ./G006/G006.awl
+
  ----- Rule G012 ------------------------------------
 
 ../GawlKeeper.linux64 --G012 ./G012/G012_DB.awl

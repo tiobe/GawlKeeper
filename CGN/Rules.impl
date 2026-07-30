@@ -15,7 +15,8 @@ Properties. GetName, GetRawName, GetReferences, GetTitle, GetComments, GetLabel,
             IsOutputInstruction, IsUsed, IsAccessingAR2, IsModifyingAR2, IsRestoringAR2,
             GetBlockType, HasComment, IsLoadingAR1, IsUsingAR1, IsSymbolicReference,
             GetFullComments, IsConditionalJump, IsUnconditionalJump, GetFields, 
-            IsFlankInstruction, OUTPUTVARS, TEMPVARS, GetType, <-, Variable
+            IsFlankInstruction, OUTPUTVARS, TEMPVARS, GetType, <-, Variable, GetName,
+            GetValue
 RuleConfig. IsRuleEnabled
 RuleViolation. ', AddViolation
 ScanIO. FindFileName, FindLocation
@@ -833,6 +834,23 @@ conditions rule == "G003"
   if ~(title == filename) then
     AddViolation(rule, loc, [filename, title])
   fi
+}
+
+Check(rule : String, loc : Int, me : (HeaderBlock, params # NIL))
+conditions rule == "G006" & CheckG006(me.params.params.args)
+{ }
+
+Check(rule : String, loc : Int, me : HeaderBlock)
+conditions rule == "G006" 
+{ AddViolation(rule, loc, []) }
+
+CheckG006(args : List(ArgumentsAssignment)): Bool
+{ return Any(CheckG006, args) }
+
+CheckG006(arg : ArgumentsAssignment): Bool
+{ return 
+   GetName(arg.name) == "S7_Optimized_Access" & 
+   GetValue(arg.value) == "FALSE" 
 }
 
 Check(rule : String, loc : Int, me : Block)

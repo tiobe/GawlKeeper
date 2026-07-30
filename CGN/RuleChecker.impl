@@ -133,6 +133,7 @@ Check_FunctionBody(me : FunctionBody)
   Rules.Check("C052", LOC, me)
   Rules.Check("C076", LOC, me)
   Rules.Check("C078", LOC, me)
+  Rules.Check("G006", LOC, me.header)
   Rules.Check("G040", LOC, me)
   if me.inputs # NIL then
     Check_String("VAR_INPUT")

@@ -19,9 +19,6 @@ on:
       semver:
         value: ${{ jobs.build.outputs.semver }}
 
-env:
-  ELEGANT_SDK_REF: main
-
 jobs:
   gitversion:
     uses: tiobe/public-workflows/.github/workflows/elegant-checkers-gitversion.yml@28cb26db8204b09de47e8c0d1c98507662f9daa3 # v1.0.1
@@ -100,7 +97,7 @@ jobs:
 
       - name: Clone elegant-sdk and elegant-common
         run: |
-          git clone --depth 1 --branch "$ELEGANT_SDK_REF" \
+          git clone --depth 1 --branch "$(cat .elegant-sdk-version)" \
             git@elegant-sdk.github.com:tiobe/elegant-sdk.git "$HOME/elegant-sdk"
           git clone --depth 1 --branch "$(cat .elegant-common-version)" \
             git@elegant-common.github.com:tiobe/elegant-common.git "$HOME/elegant-common"

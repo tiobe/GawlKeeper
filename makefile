@@ -190,7 +190,7 @@ check-companions:
 	  fi; \
 	  highest=$$(printf '%s\n%s\n' "$$pinned" "$$current" | sort -V | tail -1); \
 	  if [ "$$highest" = "$$pinned" ]; then \
-	    echo "error: $$name at $$path is $$current, older than the pinned $$pinned -- update that checkout (e.g. git -C $$path checkout $$pinned) before building"; \
+	    echo "error: $$name at $$path is $$current, older than the pinned $$pinned -- update the checkout at $$path to $$pinned before building"; \
 	    exit 1; \
 	  else \
 	    echo "warning: $$name at $$path is $$current, newer than the pinned $$pinned -- continuing anyway"; \

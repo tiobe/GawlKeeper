@@ -259,7 +259,19 @@ GetName(expr : ConstExpression): String
 
 GetName(expr : InitExpression): String
 { return "" }
+
+GetName(id : GoodArgIdentifier): String
+{ return GetName(id.arg) }
+
+GetName(id : BadArgIdentifier): String
+{ return "" }
 	
+GetValue(ass : (Assignment, expr : Reference)): String
+{ return GetRawName(ass.expr) }
+
+GetValue(ass : Assignment): String
+{ return "" }
+
 GetRawName(ref : Reference): String
 { return TrimQuotes(GetName(ref)) }
 

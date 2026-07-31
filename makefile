@@ -169,7 +169,7 @@ default: check-companions version common resources build_version txc
 ## (e.g. a shallow clone) -- this check is aimed at local builds against a
 ## persistent sibling checkout, not CI, which always clones a fresh ref.
 check-companions:
-	for dep in elegant-sdk:$(ELEGANTROOT) elegant-common:$(ELEGANTCOMMON); do \
+	@for dep in elegant-sdk:$(ELEGANTROOT) elegant-common:$(ELEGANTCOMMON); do \
 	  name=$${dep%%:*}; path=$${dep#*:}; \
 	  pinned=$$(cat "$(CURDIR)/.$$name-version" 2>/dev/null || true); \
 	  if [ -z "$$pinned" ]; then \

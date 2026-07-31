@@ -13,3 +13,4 @@ Generated/*
 Grammar/GawlKeeper.*
 !Grammar/GawlKeeper.front
 /Print.*
+CLAUDE.local.md

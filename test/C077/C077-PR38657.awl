@@ -1,0 +1,220 @@
+FUNCTION "FC_Check_Empty" : Void
+TITLE = %version: 0.01 % CN: 55
+{ S7_Optimized_Access := 'FALSE' }
+FAMILY : GEN
+VERSION : 0.1
+//Function: Search for virtual window
+//
+//
+//SOURCE
+//%Project:       acph %
+//%Repo:          a_cph_aw_conveying_eto %
+//%Commit:        677fcba0 %
+//%DateTimeUTC:   2025-06-16T09:12:45 %
+//
+//%HISTORY%
+//Issue:        Commit:  Date:      Version: Author:              Description:
+//------------- -------- ---------- -------- -------------------- -----------------------------------------------------
+//ACPH-1300     <----->  2026-05-11  0.01     Fernando Finatte    Initial release
+//
+//Description:
+//This block checks whether a defined range of  sections (PLT DBs) is empty or contains any items. The range is defined by a first and last section, which are linked through downstream DB PLT references.
+//
+//The function starts by initializing status flags and loading the DB numbers for the first and last sections. It then validates these references; if invalid, it stops execution and sets a configuration error flag.
+//
+//After validation, the block iterates through each conveyor section in the range.
+//
+//Each section is evaluated using four detection methods:
+//
+//Direct EOS PEC check
+//Handover area check 
+//Search for leading edges within the section range
+//Search for trailing edges within the section range
+//
+//If any of these methods detect an item, the range is marked as not empty and the process stops immediately.
+//
+//The loop continues downstream until an item is found, the last section is reached, or a safety limit is exceeded.
+//
+//The final output indicates whether the range is empty, contains items, or if a configuration error occurred.
+   VAR_INPUT 
+      i_CFG_DB_PLT_First_Section : DB_ANY;   //  Data Structure: Position DataBlock first section
+      i_CFG_DB_PLT_Last_Section : DB_ANY;   //  Data Structure: Position DataBlock first section
+   END_VAR
+
+   VAR_OUTPUT 
+      o_Empty : Bool;   // PLT DB range is valid and empty
+      o_DB_PLT_ConfigError : Bool;   // At least one PLT DB in range has an invalid value (not higher than 1)
+      o_Last_DB_PLT_NotFound : Bool;   // PLT DB configured in i_CFG_DB_PLT_Last_Section was not found after "n" search loop
+   END_VAR
+
+   VAR_TEMP 
+      t_Not_Used_Int : Int;   // Not used
+      t_DB_PLT_Num_Dwnstr : Int;   // Downstream PLT DB Number
+      t_Section_Length : Int;   // Section length
+      t_DB_PLT_Num : Int;   // PLT DB number
+      t_DB_PLT_Num_LastSection : Int;   // PLT DB number
+      t_Section_n_Fnd_DB_PLT_Num_Trailing : Int;   // Finding trailing edge within search window
+      t_Section_n_Fnd_DB_PLT_Num_Leading : Int;   // Finding leading edge within search window
+      t_window : Int;   // Window length for search
+      t_Loop_Counter : Int;   // Loop counter
+   END_VAR
+
+
+BEGIN
+NETWORK
+TITLE = AA: Initialize and Load PLT DB Range
+//Initializes output flags and loop counter, then loads the DB numbers for the first and last conveyor sections to define the PLT range to be evaluated.
+
+// -------------------------------
+// INIT
+// -------------------------------
+      SET;
+      S #o_Empty                   ;// Assume conveyor range is empty by default
+      R #o_DB_PLT_ConfigError      ;// Reset configuration error flag
+      R #o_Last_DB_PLT_NotFound    ;// Reset "last DB not found" flag
+
+      L 0;
+      T #t_Loop_Counter            ;// Initialize loop counter to 0
+
+// -------------------------------
+// LOAD CONFIGURATION
+// -------------------------------
+// Copy PLT information (Last Section)
+      OPN #i_CFG_DB_PLT_Last_Section ;// Open DB of the last conveyor section in the range
+      L DBNO;
+      T #t_DB_PLT_Num_LastSection  ;// Store DB number of the last section
+
+// Copy PLT information (First Section)
+      OPN #i_CFG_DB_PLT_First_Section;// Open DB of the first conveyor section in the range
+      L DBNO;
+      T #t_DB_PLT_Num              ;// Store DB number of the current (first) section
+NETWORK
+TITLE = BA:Validate PLT DB Range
+//Checks if the first and last PLT DB numbers are valid (> 1) before proceeding with range evaluation.
+
+// -------------------------------
+// VALIDATION
+// -------------------------------
+      L #t_DB_PLT_Num              ;// Load DB number of first PLT section
+      L 1;
+      >I                              ;// Check if DB number > 1 (valid DB numbers must be > 0)
+      JCN BB03                      ;// Jump to error handling if condition is NOT met
+
+      L #t_DB_PLT_Num_LastSection ;// Load DB number of last PLT section
+      L 1;
+      >I                              ;// Check if DB number > 1
+      JCN BB03                      ;// Jump to error handling if invalid
+NETWORK
+TITLE = BB : Section n : Scan PLT Sections for Item Presence
+// Search the complete length for items (leading edge , trailing edge and leading edge in run-out distance)
+
+// =======================================================
+// MAIN LOOP
+// =======================================================
+// --- Section Loop Start ---
+BB02:      L #t_DB_PLT_Num;// Current PLT DB number
+      L 1;
+      >I;// Validate DB number (> 0)
+      JCN BB03               ;// Jump to configuration error if invalid
+      OPN DB[ #t_DB_PLT_Num] ;// Open current PLT DB
+      L %DBW8;
+      T #t_DB_PLT_Num_Dwnstr;// Read downstream PLT DB number
+
+      L %DBW12;
+      T #t_Section_Length;// Read conveyor section length
+
+      L #t_Section_Length;
+      L 40;
+      +I;
+      T #t_window ;// Define search window (section length + safety margin)
+
+// -------------------------------
+// FAST DETECTION (HANDOVER / EOS PEC)
+// -------------------------------
+      A %DBX10.6;// Handover zone occupied (item between conveyors)
+      O %DBX10.7           ;// OR end-of-section photoeye occupied
+      JCN BB04 ;// If no presence detected, continue with search
+      SET;
+      R #o_Empty           ;// Item detected → mark PLT range as NOT empty
+      JU BB99;// Exit immediately
+
+// -------------------------------
+// SEARCH LEADING EDGE
+// -------------------------------
+// --- (upstream direction) ---
+BB04:      CALL "FC_PLT_Srch_Inf_Up"
+      (  i_DB_PLT_Num                := #t_DB_PLT_Num , 
+         i_Position                  := -40 , // Start before section
+         i_Window                    := #t_window , // Search window
+         i_Info                      := 1 , // 1 = Leading Edge
+         o_Position                  := #t_Not_Used_Int , 
+         o_Info                      := #t_Not_Used_Int , 
+         o_LNK                       := #t_Not_Used_Int , 
+         o_DB_PLT_Num                := #t_Not_Used_Int , 
+         o_Number_Items_Found        := #t_Section_n_Fnd_DB_PLT_Num_Leading
+      );
+
+      L #t_Section_n_Fnd_DB_PLT_Num_Leading;
+      L 0;
+      >I;// Check if any leading edge found
+      JCN BB01;
+      SET;
+      R #o_Empty;// Item detected → mark system as NOT empty
+      JU BB99 ;// Exit
+
+// -------------------------------
+// SEARCH TRAILING EDGE
+// -------------------------------
+// --- (downstream direction) ---
+BB01:      CALL "FC_PLT_Srch_Inf_Dwn"
+      (  i_DB_PLT_Num                := #t_DB_PLT_Num , 
+         i_Position                  := #t_Section_Length , 
+         i_Window                    := #t_Section_Length , 
+         i_Info                      := 2 , // 2 = Trailing Edge
+         o_Position                  := #t_Not_Used_Int , 
+         o_Info                      := #t_Not_Used_Int , 
+         o_LNK                       := #t_Not_Used_Int , 
+         o_DB_PLT_Num                := #t_Not_Used_Int , 
+         o_Number_Items_Found        := #t_Section_n_Fnd_DB_PLT_Num_Trailing
+      );
+
+      L #t_Section_n_Fnd_DB_PLT_Num_Trailing;
+      L 0;
+      >I;// Check if any trailing edge found
+      JCN BB98;
+      SET;
+      R #o_Empty           ;// Item detected → mark PLT Range as NOT empty
+      JU BB99;// Exit
+// -------------------------------
+// MOVE TO NEXT SECTION
+// -------------------------------
+BB98:      L #t_DB_PLT_Num;
+      L #t_DB_PLT_Num_LastSection;
+      ==I;
+      JC BB99;// If last section reached → exit loop
+      L #t_DB_PLT_Num_Dwnstr;
+      T #t_DB_PLT_Num;// Move to downstream section
+
+// LOOP SAFETY COUNTER
+      L #t_Loop_Counter;
+      INC 1;
+      T #t_Loop_Counter ;// Increment loop counter
+      L 100;
+      >I;
+      JC BB05;// Safety: loop overflow protection
+      JU BB02;// Continue loop with next section
+// =======================================================
+// RESULTS
+// =======================================================
+BB99:      BEC ;// Item fownd
+// --- Configuration error (invalid DB reference) ---
+BB03:      SET;
+      R #o_Empty;
+      S #o_DB_PLT_ConfigError;// Configuration error detected
+      JU BB06;
+// --- Loop protection triggered (last DB not reachable) ---
+BB05:      SET;
+      R #o_Empty;
+      S #o_Last_DB_PLT_NotFound;// Chain broken or misconfigured
+BB06:      NOP 0;
+END_FUNCTION

@@ -652,7 +652,7 @@
 
 ../GawlKeeper.linux64 --G006 ./G006/G006-b.awl
 
-./G006/G006-b.awl(2):
+./G006/G006-b.awl(3):
     Parameter S7_Optimized_Access shall be set to FALSE.
     Rule ID: G006
     The header block doesn't contain '{ S7_Optimized_Access := 'FALSE' }'.

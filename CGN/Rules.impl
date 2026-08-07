@@ -846,10 +846,16 @@ CheckG006(args : List(ArgumentsAssignment)): Bool
 { return Any(CheckG006, args) }
 
 CheckG006(arg : ArgumentsAssignment): Bool
-{ return 
-   GetName(arg.name) == "S7_Optimized_Access" & 
-   GetValue(arg.value) == "FALSE" 
+conditions GetName(arg.name) == "S7_Optimized_Access"
+{
+  if ~(GetValue(arg.value) == "FALSE")
+    AddViolation("G006", arg.src_info.loc, [])
+  fi
+  return TRUE 
 }
+
+CheckG006(arg : ArgumentsAssignment): Bool
+{ return FALSE }
 
 Check(rule : String, loc : Int, me : Block)
 conditions rule == "G012"

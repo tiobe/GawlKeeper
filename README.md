@@ -121,3 +121,4 @@ GawlKeeper [<option>|<rule>]... <file>
 | **G040** | All unused variables are removed. |
 | **G041** | No empty networks in the block. |
 | **G043** | Every network has network comments. |
+| **T001** | Avoid unreachable code. |

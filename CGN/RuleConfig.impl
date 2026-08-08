@@ -12,7 +12,7 @@ FunctionPrelude. $$
 UnixProcess. Exit, Failure
 
 StringTokenizer. Split, Trim
-TextFile. SplitKeyValue, Pair, ApplyCommonFilters, GetLinesFromFile
+TextFile. SplitKeyValue, ApplyCommonFilters, GetLinesFromFile
 
 constant
 
@@ -189,6 +189,10 @@ GetRules() : [([String])]
     [ "G043",
       "Every network has network comments.",
       "Network '\027' does not have documentation comments."
+    ],
+    [ "T001",
+      "Avoid unreachable code.",
+      "This line of code is not reachable."
     ]
   ]
 

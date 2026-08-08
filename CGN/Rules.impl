@@ -376,21 +376,32 @@ Check(rule : String, loc : Int, me : HeaderBlock)
 conditions rule == "C066" & ContainsSubString(ToLower(StripSpaces(me.title)), "%version:q")
 { AddViolation(rule, loc, [me.title]) }
 
+typedef
+
+T001Candidate == Pair(Int, Ident) // Pair of instruction line and label
+
 global
 
 LABELS : List(String) := [] // labels already encountered
+JUMPBACKLABELS : List(String) := [] // labels that jump back
 INSTRLOC : Int := 0
+INDEADCODECANDIDATESCOPE : Ident := Ident("")
+T001CANDIDATES : List(T001Candidate) := []
 
 functions
 
 Check(rule : String, loc : Int, me : FunctionBody)
-conditions rule == "C076" | rule == "C077" | rule == "C078"
+conditions rule == "C076" | rule == "C077" | rule == "C078" | rule == "T001"
 { 
   LABELS := []
+  JUMPBACKLABELS := []
   INSTRLOC := me.src_info.loc
   PATHS := [Path("", NIL)]
+  INDEADCODECANDIDATESCOPE := Ident("")
+  T001CANDIDATES := []
   me.networks * CheckPathRule $ rule
   CheckC77(rule, INSTRLOC) 
+  T001CANDIDATES * CheckT001
 }
 
 IsActivePath(path : Path): Bool
@@ -437,10 +448,31 @@ CheckPathLabel(rule : String, me : Instruction)
   CheckPathRule(rule, me) 
 }
 
+CheckPathRule(rule : String, me : Instruction)
+conditions rule == "T001" & (PATHS / "") = NIL
+{
+  // There are 3 cases:
+  // 1. It seems dead code but there is a label, hence it could be that later on there is a back jump
+  // 2. It seems dead code and there is no label, hence nobody can reach it 
+  // 3. There was a label before, hence it could be that later on there is a back jump
+  switch me.label {
+    case label : Identifier 
+      T001CANDIDATES := T001CANDIDATES + Pair(me.src_info.loc, label.id)
+      INDEADCODECANDIDATESCOPE := label.id
+    else 
+      if INDEADCODECANDIDATESCOPE == ""
+        AddViolation(rule, me.src_info.loc, []) // case 2
+      else 
+        T001CANDIDATES := T001CANDIDATES + Pair(me.src_info.loc, INDEADCODECANDIDATESCOPE) // case 3
+      fi
+  }  
+}
+
 CheckPathRule(rule : String, me : (Instruction, instruction : (BeInstr | BeuInstr)))
 { 
   CheckC77(rule, me.src_info.loc)
   PATHS := PATHS /~ ""
+  INDEADCODECANDIDATESCOPE := Ident("")
 }
 
 CheckPathRule(rule : String, me : (Instruction, instruction : (CallInstr, args : (FunctionCallParts, arguments # NIL))))
@@ -477,6 +509,7 @@ conditions IsUnconditionalJump(me.instruction) & ~(me.arg.vbl.id <- LABELS)
   [ { path.label := me.arg.vbl.id }
   | path : Path <- PATHS, (IsActivePath(path)) 
   ] 
+  INDEADCODECANDIDATESCOPE := Ident("")
 }
 
 CheckPathRule(rule : String, me : (Instruction, arg : LocalVariable))
@@ -485,6 +518,8 @@ conditions IsUnconditionalJump(me.instruction) & me.arg.vbl.id <- LABELS
 { 
   // remove the active path because the path will not continue from here
   PATHS := PATHS /~ ""
+  INDEADCODECANDIDATESCOPE := Ident("")
+  JUMPBACKLABELS := JUMPBACKLABELS + me.arg.vbl.id
 }
 
 CheckPathRule(rule : String, me : (Instruction, arg : LocalVariable))
@@ -493,6 +528,7 @@ conditions IsConditionalJump(me.instruction) & ~(me.arg.vbl.id <- LABELS)
 { 
   // if a conditional jump happens add the intersect of all active paths for the jump label
   PATHS := PATHS + Path(me.arg.vbl.id, GetVars(PATHS / ""))
+  INDEADCODECANDIDATESCOPE := Ident("")
 }
 
 CheckPathRule(rule : String, me : (Instruction, arg : LocalVariable))
@@ -500,6 +536,8 @@ CheckPathRule(rule : String, me : (Instruction, arg : LocalVariable))
 conditions IsConditionalJump(me.instruction) & me.arg.vbl.id <- LABELS
 { 
   // if a conditional backward jump happens treat it as if nothing happened
+  INDEADCODECANDIDATESCOPE := Ident("")
+  JUMPBACKLABELS := JUMPBACKLABELS + me.arg.vbl.id
 }
 
 CheckPathRule(rule : String, me : Instruction)
@@ -559,6 +597,13 @@ CheckC77(loc : Int, v : Variable)
   | path : Path <- PATHS, (path.label == ""), (~(Ident(v.name) <- path.vars))
   ]
 }
+
+CheckT001(candidate : T001Candidate)
+conditions candidate.snd <- JUMPBACKLABELS
+{}
+
+CheckT001(candidate : T001Candidate)
+{ AddViolation("T001", candidate.fst, []) } 
 
 /* For debugging checking path related rules
 PrintPaths() 

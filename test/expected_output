@@ -778,3 +778,12 @@
     Rule ID: G043
     Network 'EA: Assign carrier to a destination' does not have documentation comments.
 
+ ----- Rule T001 ------------------------------------
+
+../GawlKeeper.linux64 --T001 ./T001/T001.awl
+
+./T001/T001.awl(1612):
+    Avoid unreachable code.
+    Rule ID: T001
+    This line of code is not reachable.
+

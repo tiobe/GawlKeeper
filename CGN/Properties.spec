@@ -17,6 +17,7 @@ OUTPUTVARS : List(Variable)
 INPUTOUTPUTVARS : List(Variable)
 VARS : List(Variable)
 TEMPVARS : List(Variable)
+INJUMPLABEL : Bool // Keep track whether this is still part of a JL instruction
 
 functions
 
@@ -77,5 +78,6 @@ IsOutputInstruction(instr: InstructionName): Bool
 
 IsConditionalJump(instr: InstructionName): Bool
 IsUnconditionalJump(instr: InstructionName): Bool
+SetJumpLabel(instr: InstructionName)
 
 IsUsed(ref : String, networks: List(Network)): Bool

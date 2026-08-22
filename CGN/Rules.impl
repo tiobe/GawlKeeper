@@ -16,7 +16,7 @@ Properties. GetName, GetRawName, GetReferences, GetTitle, GetComments, GetLabel,
             GetBlockType, HasComment, IsLoadingAR1, IsUsingAR1, IsSymbolicReference,
             GetFullComments, IsConditionalJump, IsUnconditionalJump, GetFields, 
             IsFlankInstruction, OUTPUTVARS, TEMPVARS, GetType, <-, Variable, GetName,
-            GetValue
+            GetValue, INJUMPLABEL, SetJumpLabel
 RuleConfig. IsRuleEnabled
 RuleViolation. ', AddViolation
 ScanIO. FindFileName, FindLocation
@@ -399,6 +399,7 @@ conditions rule == "C076" | rule == "C077" | rule == "C078" | rule == "T001"
   PATHS := [Path("", NIL)]
   INDEADCODECANDIDATESCOPE := Ident("")
   T001CANDIDATES := []
+  INJUMPLABEL := FALSE
   me.networks * CheckPathRule $ rule
   CheckC77(rule, INSTRLOC) 
   T001CANDIDATES * CheckT001
@@ -417,6 +418,7 @@ conditions (PATHS / "") = NIL
   // PrintPaths()
   SetLabel(me.label.id, "")
   LABELS := LABELS + me.label.id
+  SetJumpLabel(me.instruction)
   CheckPathRule(rule, me)
 }
 
@@ -427,6 +429,7 @@ conditions (PATHS / me.label.id) = NIL
 { 
   // PrintPaths()
   LABELS := LABELS + me.label.id
+  SetJumpLabel(me.instruction)
   CheckPathRule(rule, me) 
 }
 
@@ -437,6 +440,7 @@ CheckPathLabel(rule : String, me : (Instruction, label # NIL))
   // intersect it with the existing active code
   Intersect(Ident(""), me.label.id)
   LABELS := LABELS + me.label.id
+  SetJumpLabel(me.instruction)
   CheckPathRule(rule, me)
   INSTRLOC := me.src_info.loc
 }
@@ -445,6 +449,7 @@ CheckPathLabel(rule : String, me : Instruction)
 { 
   // PrintPaths()
   INSTRLOC := me.src_info.loc
+  SetJumpLabel(me.instruction)
   CheckPathRule(rule, me) 
 }
 

@@ -780,6 +780,8 @@
 
  ----- Rule T001 ------------------------------------
 
+../GawlKeeper.linux64 --T001 ./T001/T001-JL.awl
+
 ../GawlKeeper.linux64 --T001 ./T001/T001.awl
 
 ./T001/T001.awl(1612):

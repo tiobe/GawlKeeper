@@ -15,6 +15,7 @@ OUTPUTVARS : List(Variable) := []
 INPUTOUTPUTVARS : List(Variable) := []
 VARS : List(Variable) := []
 TEMPVARS : List(Variable) := []
+INJUMPLABEL : Bool := FALSE
 
 functions
 
@@ -414,14 +415,30 @@ IsOutputInstruction(instr : InstructionName): Bool
 IsConditionalJump(instr : (JbiInstr | JcInstr | JcbInstr | JcnInstr | JlInstr | JmInstr | JmzInstr | JnbiInstr | JoInstr | JpInstr | JpzInstr | JzInstr)): Bool
 { return TRUE }
 
+IsConditionalJump(instr : JuInstr): Bool
+conditions INJUMPLABEL
+{ return TRUE } 
+
 IsConditionalJump(instr : InstructionName): Bool
 { return FALSE } 
 
 IsUnconditionalJump(instr : JuInstr): Bool
+conditions ~INJUMPLABEL
 { return TRUE }
 
 IsUnconditionalJump(instr : InstructionName): Bool
 { return FALSE }
+
+SetJumpLabel(instr : JlInstr)
+{ INJUMPLABEL := TRUE }
+
+// Keep the same if it is a direct follow up of a jump label
+SetJumpLabel(instr : InstructionName)
+conditions IsConditionalJump(instr) | IsUnconditionalJump(instr)
+{ }
+
+SetJumpLabel(instr : InstructionName)
+{ INJUMPLABEL := FALSE }
 
 IsUsed(ref: String, networks: List(Network)): Bool
 { return Any(IsUsed $ ref, networks) } 

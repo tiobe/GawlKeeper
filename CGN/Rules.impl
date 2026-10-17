@@ -21,6 +21,7 @@ RuleConfig. IsRuleEnabled
 RuleViolation. ', AddViolation
 ScanIO. FindFileName, FindLocation
 StringTokenizer. Split, Trim
+Switches. MIFB, MIFBGEN
 Syntactics. IsCommentWellFormatted, IsLabelWellFormed, IsNetwTitleWellFormed,
             IsExceptionNetwork, IsNewline, IsOperandChanging, FilterComments,
             TrimQuotes, GetAwlBaseFileName, GetLabelNumber, StartsWithCap,
@@ -93,12 +94,12 @@ conditions rule == "C014"
 
 CheckBlockC14(loc: Int, name: StringLiteral)
 {
-  if ~CheckC14(loc, TrimQuotes(name.str)) then
+  if ~CheckC14(TrimQuotes(name.str)) then
     AddViolation("C014", loc, ["block", name.str])
   fi
 }
 
-CheckC14(loc: Int, name: String): Bool
+CheckC14(name: String): Bool
 { return All(StartsWithCap, Split(name, '_')) }
 
 Check(rule : String, loc : Int, me : Field)
@@ -106,7 +107,7 @@ conditions rule == "C014"
 {
   name: String = GetName(me.name)
   start: Int = if name@0 <- ['i', 'o', 's', 't'] & name@1 = '_' then 2 else 0 fi
-  if ~ CheckC14(loc, SubString(name, start, #name-1)) then
+  if ~ CheckC14(SubString(name, start, #name-1)) then
     AddViolation("C014", loc, ["local variable", name])
   fi
 }
@@ -148,6 +149,22 @@ CheckC30(globVar: Ident, netwPrefix: String, loc: Int, netw: Network)
     AddViolation("C030", loc, [globVar, GetTitle(netw)])
   fi
 }
+
+Check(rule : String, loc : Int, me : FunctionBlock)
+conditions rule == "C033" & TrimQuotes(me.function_name.str) <- Switches.MIFB
+{ me.body.networks * CheckC033 }
+
+CheckC033(me : Network)
+{ me.instructions * CheckC033 }
+
+CheckC033(instr : (Instruction, instruction : AccuToAR1))
+{ AddViolation("C033", instr.src_info.loc, ["+AR1"]) }
+
+CheckC033(instr : (Instruction, instruction : AccuToAR2))
+{ AddViolation("C033", instr.src_info.loc, ["+AR2"]) }
+
+CheckC033(instr : Instruction)
+{ }
 
 Check(rule : String, loc : Int, me : FunctionBody)
 conditions rule == "C034"
@@ -975,3 +992,16 @@ Check(rule : String, loc : Int, me : InitExpression) { }
 Check(rule : String, loc : Int, me : Instruction) { }
 Check(rule : String, loc : Int, me : Network) { }
 Check(rule : String, loc : Int, me : List(Network)) { }
+
+CheckMIFB(body : FunctionBody)
+conditions Switches.MIFBGEN
+{ body.locals * GetFields * CheckMIFB }
+
+CheckMIFB(body : FunctionBody)
+{ }
+
+CheckMIFB(field : (Field, type : (StrLitAsType, type : GlobalVariable)))
+{ { TrimQuotes(field.type.type.vbl.str) "\n" } astype Output } 
+
+CheckMIFB(field : Field)
+{ }

@@ -1,13 +1,13 @@
  ----- Rule C001 ------------------------------------
 
-../GawlKeeper.linux64 --C001 ./C001/C001_a.awl
+../GawlKeeper.linux64 --C001 -mifb=C033/mifb.txt ./C001/C001_a.awl
 
 ./C001/C001_a.awl(3):
     Name (Header) and Author are not used and must be empty.
     Rule ID: C001
     Do not use header field 'AUTHOR'; it must be empty.
 
-../GawlKeeper.linux64 --C001 ./C001/C001_b.awl
+../GawlKeeper.linux64 --C001 -mifb=C033/mifb.txt ./C001/C001_b.awl
 
 ./C001/C001_b.awl(4):
     Name (Header) and Author are not used and must be empty.
@@ -16,7 +16,7 @@
 
  ----- Rule C006 ------------------------------------
 
-../GawlKeeper.linux64 --C006 ./C006/C006.awl
+../GawlKeeper.linux64 --C006 -mifb=C033/mifb.txt ./C006/C006.awl
 
 ./C006/C006.awl(12):
     Each network must have a Network Title, which must indicate its functionality, and it must begin with 2 uppercase letters, a colon and a space.
@@ -45,7 +45,7 @@
 
  ----- Rule C007 ------------------------------------
 
-../GawlKeeper.linux64 --C007 ./C007/C007.awl
+../GawlKeeper.linux64 --C007 -mifb=C033/mifb.txt ./C007/C007.awl
 
 ./C007/C007.awl(32):
     The 2 capital letters at the start of network titles must reflect the order in which they are defined.
@@ -54,7 +54,7 @@
 
  ----- Rule C011 ------------------------------------
 
-../GawlKeeper.linux64 --C011 ./C011/C011.awl
+../GawlKeeper.linux64 --C011 -mifb=C033/mifb.txt ./C011/C011.awl
 
 ./C011/C011.awl(13):
     Jump labels.
@@ -113,7 +113,7 @@
 
  ----- Rule C014 ------------------------------------
 
-../GawlKeeper.linux64 --C014 ./C014/C014.awl
+../GawlKeeper.linux64 --C014 -mifb=C033/mifb.txt ./C014/C014.awl
 
 ./C014/C014.awl(46):
     All Symbolic Operand Names are a concatenation of nouns, which each start with a Capital, connected by underscores.
@@ -130,7 +130,7 @@
     Rule ID: C014
     Name of local variable 's_FB_dat_T' does not match the required pattern.
 
-../GawlKeeper.linux64 --C014 ./C014/C014_db.awl
+../GawlKeeper.linux64 --C014 -mifb=C033/mifb.txt ./C014/C014_db.awl
 
 ./C014/C014_db.awl(1):
     All Symbolic Operand Names are a concatenation of nouns, which each start with a Capital, connected by underscores.
@@ -157,21 +157,21 @@
     Rule ID: C014
     Name of local variable 'Item_at_Handover' does not match the required pattern.
 
-../GawlKeeper.linux64 --C014 ./C014/C014_fb.awl
+../GawlKeeper.linux64 --C014 -mifb=C033/mifb.txt ./C014/C014_fb.awl
 
 ./C014/C014_fb.awl(1):
     All Symbolic Operand Names are a concatenation of nouns, which each start with a Capital, connected by underscores.
     Rule ID: C014
     Name of block '"FB_Dispatch_Point_T_this_is_a_pretty_long_title"' does not match the required pattern.
 
-../GawlKeeper.linux64 --C014 ./C014/C014_fun.awl
+../GawlKeeper.linux64 --C014 -mifb=C033/mifb.txt ./C014/C014_fun.awl
 
 ./C014/C014_fun.awl(1):
     All Symbolic Operand Names are a concatenation of nouns, which each start with a Capital, connected by underscores.
     Rule ID: C014
     Name of block '"FC_Local_Class_Dir_T_this_is_a_pretty_long_title"' does not match the required pattern.
 
-../GawlKeeper.linux64 --C014 ./C014/C014_type.awl
+../GawlKeeper.linux64 --C014 -mifb=C033/mifb.txt ./C014/C014_type.awl
 
 ./C014/C014_type.awl(1):
     All Symbolic Operand Names are a concatenation of nouns, which each start with a Capital, connected by underscores.
@@ -185,30 +185,30 @@
 
  ----- Rule C015 ------------------------------------
 
-../GawlKeeper.linux64 --C015 ./C015/C015_db.awl
+../GawlKeeper.linux64 --C015 -mifb=C033/mifb.txt ./C015/C015_db.awl
 
 ./C015/C015_db.awl(1):
     The length of a block title has a maximum of 20 characters.
     Rule ID: C015
     Block title 'DB_PLT_Non_Trk_Tmp_T_this_is_a_pretty_long_title' is too long.
 
-../GawlKeeper.linux64 --C015 ./C015/C015_fb.awl
+../GawlKeeper.linux64 --C015 -mifb=C033/mifb.txt ./C015/C015_fb.awl
 
 ./C015/C015_fb.awl(1):
     The length of a block title has a maximum of 20 characters.
     Rule ID: C015
     Block title 'FB_Dispatch_Point_T_this_is_a_pretty_long_title' is too long.
 
-../GawlKeeper.linux64 --C015 ./C015/C015_fun.awl
+../GawlKeeper.linux64 --C015 -mifb=C033/mifb.txt ./C015/C015_fun.awl
 
 ./C015/C015_fun.awl(1):
     The length of a block title has a maximum of 20 characters.
     Rule ID: C015
     Block title 'FC_Local_Class_Dir_T_this_is_a_pretty_long_title' is too long.
 
-../GawlKeeper.linux64 --C015 ./C015/C015_ok.awl
+../GawlKeeper.linux64 --C015 -mifb=C033/mifb.txt ./C015/C015_ok.awl
 
-../GawlKeeper.linux64 --C015 ./C015/C015_type.awl
+../GawlKeeper.linux64 --C015 -mifb=C033/mifb.txt ./C015/C015_type.awl
 
 ./C015/C015_type.awl(1):
     The length of a block title has a maximum of 20 characters.
@@ -217,7 +217,7 @@
 
  ----- Rule C020 ------------------------------------
 
-../GawlKeeper.linux64 --C020 ./C020/C020_fb.awl
+../GawlKeeper.linux64 --C020 -mifb=C033/mifb.txt ./C020/C020_fb.awl
 
 ./C020/C020_fb.awl(46):
     The names of local variables (other than the preset local variables of OB's) shall start with a lower-case prefix character according to its type.
@@ -264,7 +264,7 @@
     Rule ID: C020
     Variable 'LNK' must start with 't'.
 
-../GawlKeeper.linux64 --C020 ./C020/C020_fun.awl
+../GawlKeeper.linux64 --C020 -mifb=C033/mifb.txt ./C020/C020_fun.awl
 
 ./C020/C020_fun.awl(40):
     The names of local variables (other than the preset local variables of OB's) shall start with a lower-case prefix character according to its type.
@@ -286,20 +286,20 @@
     Rule ID: C020
     Variable 'FailedReason_A' must start with 't'.
 
-../GawlKeeper.linux64 --C020 ./C020/C020_ob.awl
+../GawlKeeper.linux64 --C020 -mifb=C033/mifb.txt ./C020/C020_ob.awl
 
  ----- Rule C023 ------------------------------------
 
-../GawlKeeper.linux64 --C023 ./C023/C023.1.awl
+../GawlKeeper.linux64 --C023 -mifb=C033/mifb.txt ./C023/C023.1.awl
 
 ./C023/C023.1.awl(4):
     Using an IO as interface is not allowed.
     Rule ID: C023
     VAR_IN_OUT variable 'foo' encountered.
 
-../GawlKeeper.linux64 --C023 ./C023/C023.2.awl
+../GawlKeeper.linux64 --C023 -mifb=C033/mifb.txt ./C023/C023.2.awl
 
-../GawlKeeper.linux64 --C023 ./C023/C023.3.awl
+../GawlKeeper.linux64 --C023 -mifb=C033/mifb.txt ./C023/C023.3.awl
 
 ./C023/C023.3.awl(11):
     Using an IO as interface is not allowed.
@@ -313,7 +313,7 @@
 
  ----- Rule C030 ------------------------------------
 
-../GawlKeeper.linux64 --C030 ./C030/C030.awl
+../GawlKeeper.linux64 --C030 -mifb=C033/mifb.txt ./C030/C030.awl
 
 ./C030/C030.awl(159):
     If a global variable is changed more than once in a block, the changes should be made within the same Network.
@@ -330,16 +330,42 @@
     Rule ID: C030
     Global variable '"DB_Outgoing_Msgs"' was already modified in network 'DA: Check the non tracking DB PLT buffer for data'.
 
+ ----- Rule C033 ------------------------------------
+
+../GawlKeeper.linux64 --C033 -mifb=C033/mifb.txt ./C033/C033-fail.awl
+
+./C033/C033-fail.awl(382):
+    It is not allowed to use the +AR1 and +AR2 instructions in a Function Block, which is multi-instance capable
+    Rule ID: C033
+    '+AR1' instruction encountered in a multi-instance Function Block
+
+./C033/C033-fail.awl(385):
+    It is not allowed to use the +AR1 and +AR2 instructions in a Function Block, which is multi-instance capable
+    Rule ID: C033
+    '+AR2' instruction encountered in a multi-instance Function Block
+
+./C033/C033-fail.awl(451):
+    It is not allowed to use the +AR1 and +AR2 instructions in a Function Block, which is multi-instance capable
+    Rule ID: C033
+    '+AR1' instruction encountered in a multi-instance Function Block
+
+./C033/C033-fail.awl(454):
+    It is not allowed to use the +AR1 and +AR2 instructions in a Function Block, which is multi-instance capable
+    Rule ID: C033
+    '+AR2' instruction encountered in a multi-instance Function Block
+
+../GawlKeeper.linux64 --C033 -mifb=C033/mifb.txt ./C033/C033.awl
+
  ----- Rule C034 ------------------------------------
 
-../GawlKeeper.linux64 --C034 ./C034/C034_1.awl
+../GawlKeeper.linux64 --C034 -mifb=C033/mifb.txt ./C034/C034_1.awl
 
 ./C034/C034_1.awl(192):
     When using AR1 make sure that after loading and before use no other blocks are called and no higher data types are accessed
     Rule ID: C034
     Symbolic reference has been accessed before using AR1.
 
-../GawlKeeper.linux64 --C034 ./C034/C034_2.awl
+../GawlKeeper.linux64 --C034 -mifb=C033/mifb.txt ./C034/C034_2.awl
 
 ./C034/C034_2.awl(146):
     When using AR1 make sure that after loading and before use no other blocks are called and no higher data types are accessed
@@ -348,9 +374,9 @@
 
  ----- Rule C035 ------------------------------------
 
-../GawlKeeper.linux64 --C035 ./C035/C035-AR2.awl
+../GawlKeeper.linux64 --C035 -mifb=C033/mifb.txt ./C035/C035-AR2.awl
 
-../GawlKeeper.linux64 --C035 ./C035/C035.awl
+../GawlKeeper.linux64 --C035 -mifb=C033/mifb.txt ./C035/C035.awl
 
 ./C035/C035.awl(29):
     When using AR2 in a FB; first save the contents and then restore them after use. In the meantime no symbolic access to the instance is allowed
@@ -384,7 +410,7 @@
 
  ----- Rule C039 ------------------------------------
 
-../GawlKeeper.linux64 --C039 ./C039/C039.awl
+../GawlKeeper.linux64 --C039 -mifb=C033/mifb.txt ./C039/C039.awl
 
 ./C039/C039.awl(5):
     Siemens Timers should never be used in relation with physical movements in a conveyor system that can be stopped.
@@ -408,7 +434,7 @@
 
  ----- Rule C040 ------------------------------------
 
-../GawlKeeper.linux64 --C040 ./C040/C040.awl
+../GawlKeeper.linux64 --C040 -mifb=C033/mifb.txt ./C040/C040.awl
 
 ./C040/C040.awl(6):
     Writing in instance blocks is in principle forbidden.
@@ -452,7 +478,7 @@
 
  ----- Rule C041 ------------------------------------
 
-../GawlKeeper.linux64 --C041 ./C041/C041.awl
+../GawlKeeper.linux64 --C041 -mifb=C033/mifb.txt ./C041/C041.awl
 
 ./C041/C041.awl(29):
     The DEC (Decrement) and INC (Increment) instructions may only be used on variables of data type BYTE.
@@ -466,7 +492,7 @@
 
  ----- Rule C042 ------------------------------------
 
-../GawlKeeper.linux64 --C042 ./C042/C042.awl
+../GawlKeeper.linux64 --C042 -mifb=C033/mifb.txt ./C042/C042.awl
 
 ./C042/C042.awl(31):
     All arrays must start from zero.
@@ -475,7 +501,7 @@
 
  ----- Rule C048 ------------------------------------
 
-../GawlKeeper.linux64 --C048 ./C048/C048.awl
+../GawlKeeper.linux64 --C048 -mifb=C033/mifb.txt ./C048/C048.awl
 
 ./C048/C048.awl(534):
     Reading of global data from global DB's must be done in the first network (AA).
@@ -484,7 +510,7 @@
 
  ----- Rule C049 ------------------------------------
 
-../GawlKeeper.linux64 --C049 ./C049/C049.awl
+../GawlKeeper.linux64 --C049 -mifb=C033/mifb.txt ./C049/C049.awl
 
 ./C049/C049.awl(468):
     Writing of global data into global DB's must be done in the last network (ZA).
@@ -508,7 +534,7 @@
 
  ----- Rule C052 ------------------------------------
 
-../GawlKeeper.linux64 --C052 ./C052/C052.awl
+../GawlKeeper.linux64 --C052 -mifb=C033/mifb.txt ./C052/C052.awl
 
 ./C052/C052.awl(141):
     Outputs only written once and preferred in the last network of a block, exception can be made if the condition is that simple.
@@ -527,23 +553,23 @@
 
  ----- Rule C066 ------------------------------------
 
-../GawlKeeper.linux64 --C066 ./C066/C066.1.awl
+../GawlKeeper.linux64 --C066 -mifb=C033/mifb.txt ./C066/C066.1.awl
 
 ./C066/C066.1.awl(2):
     Temporary modifications to a standard block due to an approved Problem Report or Change Request, in advance of the next release, need to be indicated as a Q-Version.
     Rule ID: C066
     The version number in the block title 'TITLE = "%Version: Q 1.4 %" // Violation ' starts with the letter 'q'.
 
-../GawlKeeper.linux64 --C066 ./C066/C066.2.awl
+../GawlKeeper.linux64 --C066 -mifb=C033/mifb.txt ./C066/C066.2.awl
 
 ./C066/C066.2.awl(2):
     Temporary modifications to a standard block due to an approved Problem Report or Change Request, in advance of the next release, need to be indicated as a Q-Version.
     Rule ID: C066
     The version number in the block title 'TITLE = "%version: q5.13" // Violation ' starts with the letter 'q'.
 
-../GawlKeeper.linux64 --C066 ./C066/C066.3.awl
+../GawlKeeper.linux64 --C066 -mifb=C033/mifb.txt ./C066/C066.3.awl
 
-../GawlKeeper.linux64 --C066 ./C066/C066.4.awl
+../GawlKeeper.linux64 --C066 -mifb=C033/mifb.txt ./C066/C066.4.awl
 
 ./C066/C066.4.awl(2):
     Temporary modifications to a standard block due to an approved Problem Report or Change Request, in advance of the next release, need to be indicated as a Q-Version.
@@ -552,16 +578,16 @@
 
  ----- Rule C076 ------------------------------------
 
-../GawlKeeper.linux64 --C076 ./C076/C076-BE.awl
+../GawlKeeper.linux64 --C076 -mifb=C033/mifb.txt ./C076/C076-BE.awl
 
 ./C076/C076-BE.awl(40):
     A temporary variable shall always be assigned a value before it is read.
     Rule ID: C076
     Temporary variable 'Wrong' is read before it is assigned to.
 
-../GawlKeeper.linux64 --C076 ./C076/C076-BackJump.awl
+../GawlKeeper.linux64 --C076 -mifb=C033/mifb.txt ./C076/C076-BackJump.awl
 
-../GawlKeeper.linux64 --C076 ./C076/C076.awl
+../GawlKeeper.linux64 --C076 -mifb=C033/mifb.txt ./C076/C076.awl
 
 ./C076/C076.awl(33):
     A temporary variable shall always be assigned a value before it is read.
@@ -575,7 +601,7 @@
 
  ----- Rule C077 ------------------------------------
 
-../GawlKeeper.linux64 --C077 ./C077/C077-PR38623-1.awl
+../GawlKeeper.linux64 --C077 -mifb=C033/mifb.txt ./C077/C077-PR38623-1.awl
 
 ./C077/C077-PR38623-1.awl(168):
     An output variable of a Function (FC) shall always have a value assigned.
@@ -592,13 +618,13 @@
     Rule ID: C077
     We are leaving the function while no value has been assigned to output variable 'o_ST_Capacity_2High'.
 
-../GawlKeeper.linux64 --C077 ./C077/C077-PR38623.awl
+../GawlKeeper.linux64 --C077 -mifb=C033/mifb.txt ./C077/C077-PR38623.awl
 
-../GawlKeeper.linux64 --C077 ./C077/C077-PR38657.awl
+../GawlKeeper.linux64 --C077 -mifb=C033/mifb.txt ./C077/C077-PR38657.awl
 
-../GawlKeeper.linux64 --C077 ./C077/C077-bool.awl
+../GawlKeeper.linux64 --C077 -mifb=C033/mifb.txt ./C077/C077-bool.awl
 
-../GawlKeeper.linux64 --C077 ./C077/C077.awl
+../GawlKeeper.linux64 --C077 -mifb=C033/mifb.txt ./C077/C077.awl
 
 ./C077/C077.awl(35):
     An output variable of a Function (FC) shall always have a value assigned.
@@ -612,9 +638,9 @@
 
  ----- Rule C078 ------------------------------------
 
-../GawlKeeper.linux64 --C078 ./C078/C078-slow.awl
+../GawlKeeper.linux64 --C078 -mifb=C033/mifb.txt ./C078/C078-slow.awl
 
-../GawlKeeper.linux64 --C078 ./C078/C078.awl
+../GawlKeeper.linux64 --C078 -mifb=C033/mifb.txt ./C078/C078.awl
 
 ./C078/C078.awl(823):
     Flank instructions shall always be executed unconditionally.
@@ -623,56 +649,56 @@
 
  ----- Rule G003 ------------------------------------
 
-../GawlKeeper.linux64 --G003 ./G003/db/G003.awl
+../GawlKeeper.linux64 --G003 -mifb=C033/mifb.txt ./G003/db/G003.awl
 
-../GawlKeeper.linux64 --G003 ./G003/fb/G003.awl
+../GawlKeeper.linux64 --G003 -mifb=C033/mifb.txt ./G003/fb/G003.awl
 
 ./G003/fb/G003.awl(1):
     Block name is filename.
     Rule ID: G003
     File 'G003' should be named 'FB_Dispatch_Point_T', like the block it contains.
 
-../GawlKeeper.linux64 --G003 ./G003/fun/G003_fun.awl
+../GawlKeeper.linux64 --G003 -mifb=C033/mifb.txt ./G003/fun/G003_fun.awl
 
 ./G003/fun/G003_fun.awl(1):
     Block name is filename.
     Rule ID: G003
     File 'G003_fun' should be named 'g003_Fun', like the block it contains.
 
-../GawlKeeper.linux64 --G003 ./G003/type/G003_type.awl
+../GawlKeeper.linux64 --G003 -mifb=C033/mifb.txt ./G003/type/G003_type.awl
 
  ----- Rule G006 ------------------------------------
 
-../GawlKeeper.linux64 --G006 ./G006/G006-a.awl
+../GawlKeeper.linux64 --G006 -mifb=C033/mifb.txt ./G006/G006-a.awl
 
 ./G006/G006-a.awl(2):
     Parameter S7_Optimized_Access shall be set to FALSE.
     Rule ID: G006
     The header block doesn't contain '{ S7_Optimized_Access := 'FALSE' }'.
 
-../GawlKeeper.linux64 --G006 ./G006/G006-b.awl
+../GawlKeeper.linux64 --G006 -mifb=C033/mifb.txt ./G006/G006-b.awl
 
 ./G006/G006-b.awl(3):
     Parameter S7_Optimized_Access shall be set to FALSE.
     Rule ID: G006
     The header block doesn't contain '{ S7_Optimized_Access := 'FALSE' }'.
 
-../GawlKeeper.linux64 --G006 ./G006/G006.awl
+../GawlKeeper.linux64 --G006 -mifb=C033/mifb.txt ./G006/G006.awl
 
  ----- Rule G012 ------------------------------------
 
-../GawlKeeper.linux64 --G012 ./G012/G012_DB.awl
+../GawlKeeper.linux64 --G012 -mifb=C033/mifb.txt ./G012/G012_DB.awl
 
-../GawlKeeper.linux64 --G012 ./G012/G012_FB.awl
+../GawlKeeper.linux64 --G012 -mifb=C033/mifb.txt ./G012/G012_FB.awl
 
-../GawlKeeper.linux64 --G012 ./G012/G012_FC.awl
+../GawlKeeper.linux64 --G012 -mifb=C033/mifb.txt ./G012/G012_FC.awl
 
 ./G012/G012_FC.awl(1):
     An explanation of the variables and/or parameters must be given in the comment area of the Variable Declaration list.
     Rule ID: G012
     FUNCTION 'FC_Zone_Template_T' should have a '//Description:' comment.
 
-../GawlKeeper.linux64 --G012 ./G012/G012_UDT.awl
+../GawlKeeper.linux64 --G012 -mifb=C033/mifb.txt ./G012/G012_UDT.awl
 
 ./G012/G012_UDT.awl(1):
     An explanation of the variables and/or parameters must be given in the comment area of the Variable Declaration list.
@@ -681,7 +707,7 @@
 
  ----- Rule G021 ------------------------------------
 
-../GawlKeeper.linux64 --G021 ./G021/G021.awl
+../GawlKeeper.linux64 --G021 -mifb=C033/mifb.txt ./G021/G021.awl
 
 ./G021/G021.awl(39):
     Comments for declarations.
@@ -700,7 +726,7 @@
 
  ----- Rule G022 ------------------------------------
 
-../GawlKeeper.linux64 --G022 ./G022/G022.awl
+../GawlKeeper.linux64 --G022 -mifb=C033/mifb.txt ./G022/G022.awl
 
 ./G022/G022.awl(104):
     Multi instance block calls
@@ -714,7 +740,7 @@
 
  ----- Rule G028 ------------------------------------
 
-../GawlKeeper.linux64 --G028 ./G028/G028.awl
+../GawlKeeper.linux64 --G028 -mifb=C033/mifb.txt ./G028/G028.awl
 
 ./G028/G028.awl(56):
     Comment line.
@@ -733,7 +759,7 @@
 
  ----- Rule G040 ------------------------------------
 
-../GawlKeeper.linux64 --G040 ./G040/G040.awl
+../GawlKeeper.linux64 --G040 -mifb=C033/mifb.txt ./G040/G040.awl
 
 ./G040/G040.awl(84):
     All unused variables are removed
@@ -747,7 +773,7 @@
 
  ----- Rule G041 ------------------------------------
 
-../GawlKeeper.linux64 --G041 ./G041/G041.awl
+../GawlKeeper.linux64 --G041 -mifb=C033/mifb.txt ./G041/G041.awl
 
 ./G041/G041.awl(62):
     No empty networks in the block.
@@ -761,7 +787,7 @@
 
  ----- Rule G043 ------------------------------------
 
-../GawlKeeper.linux64 --G043 ./G043/G043.awl
+../GawlKeeper.linux64 --G043 -mifb=C033/mifb.txt ./G043/G043.awl
 
 ./G043/G043.awl(47):
     Every network has network comments.
@@ -780,9 +806,9 @@
 
  ----- Rule T001 ------------------------------------
 
-../GawlKeeper.linux64 --T001 ./T001/T001-JL.awl
+../GawlKeeper.linux64 --T001 -mifb=C033/mifb.txt ./T001/T001-JL.awl
 
-../GawlKeeper.linux64 --T001 ./T001/T001.awl
+../GawlKeeper.linux64 --T001 -mifb=C033/mifb.txt ./T001/T001.awl
 
 ./T001/T001.awl(1612):
     Avoid unreachable code.

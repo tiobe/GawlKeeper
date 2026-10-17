@@ -24,6 +24,7 @@ functions
 CollectVariables(me : FunctionBody)
 GetType(name : String): Type|NIL
 <- (name : String, vars : List(Variable)): Bool
+<- (name : String, vars : List(String)): Bool
 GetName(type : Type): String
 
 GetBlockType(block : Block): String

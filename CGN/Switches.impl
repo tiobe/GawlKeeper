@@ -16,7 +16,7 @@ UnixProcess. Exit, Failure, Success
 
 Cyclox
 RuleChecker
-RuleConfig. InitRules, IsRule, ShowRules
+RuleConfig. InitRules, IsRule, IsRuleEnabled, ShowRules
 StringTokenizer. Trim, Join
 Version. LongVersion
 
@@ -36,6 +36,8 @@ global
 MySelf : String = "GawlKeeper"
 NL: String = "\n"
 SRCFILE : String|NIL := NIL
+MIFB : List(String) := NIL 
+MIFBGEN : Bool := FALSE
 
 functions
 
@@ -51,7 +53,18 @@ ReadSwitches()
   if SRCFILE = NIL then
     Usage()
     Exit(Failure)
+  fi 
+  if IsRuleEnabled("C033") & MIFB = NIL 
+    { "E004: Argument '-mifb' is required to specify the available multi instance function blocks for rule C033\n" } astype Message
+    Exit(Failure)
   fi
+  if MIFBGEN & RuleChecker.IS_ENABLED
+    { "E005: It is not possible to specify '-genmifb' and check rules at the same time\n" } astype Message
+    Exit(Failure)
+  else
+    RuleChecker.IS_ENABLED := TRUE
+  fi
+    
 }
 
 ReadSwitch(sw : String)
@@ -66,18 +79,24 @@ ReadSwitch(sw : String)
 GetSwitch(opt : String) {
   i : Int = opt > '='
   sw : String := opt
+  arg : String := ""
 
   if i # -1 then
     sw := SubString(opt, 0, i - 1)
+    arg := SubString(opt, i + 1, #opt - 1)
   fi
   if IsRule(sw) then
     // side effects are handled by IsRule function
     RuleChecker.IS_ENABLED := TRUE
   elsif sw == "-cyclox" then
     Cyclox.IS_ENABLED := TRUE
+  elsif sw == "-genmifb" then
+    MIFBGEN := TRUE
   elsif sw == "-help" then
     Usage()
     Exit(Success)
+  elsif sw == "-mifb" then
+    MIFB := ReadLines(arg)
   elsif sw == "-showrules" then
     ShowRules()
     Exit(Success)
@@ -102,10 +121,13 @@ Usage(): Message
   "where <rule> is of the form" NL
   "  --<rule_nr> enables rule nr <rule_nr>" NL
   "  Example: --C007" NL
-  "  -cyclox    calculate cyclomatic complexity of a file" NL
-  "  -help      show all possible options" NL
-  "  -showrules show a table of rules" NL
-  "  -version   print version info and terminate" NL
+  "where <option> is of the form" NL
+  "  -cyclox      calculate cyclomatic complexity of a file" NL
+  "  -genmifb     generate multi-instance function blocks for a file" NL
+  "  -help        show all possible options" NL
+  "  -mifb=<file> file containing all multi-instance function blocks" NL
+  "  -showrules   show a table of rules" NL
+  "  -version     print version info and terminate" NL
   "and <file> is an AWL file" NL
 }
 
@@ -121,3 +143,25 @@ conditions SRCFILE = NIL
 
 GetFile(file : String)
 { { "E002: Only one input file is allowed\n"  } astype Message }
+
+ReadLines(file : String): List(String)
+{
+  f : ReadFile := f
+
+  if Create(file, f) then
+    lines : List(String) := NIL
+
+    while ~Eof(f) {
+      line : String = Trim(Read(f))
+      if line@0 # '\000' & line@0 # '/' then
+        lines := line + lines
+      fi
+    }
+    Close(f)
+    //return Reverse(lines)
+    return lines
+  else
+    { "E003: Failed to open file '" file "'" NL } astype Message
+    return NIL
+  fi
+}

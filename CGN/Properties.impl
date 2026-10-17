@@ -51,7 +51,13 @@ GetType(name : String): Type|NIL
 
 <- (name : String, vars : List(Variable)): Bool
 {
-  [ { return TRUE } |  v : Variable <- vars, (v.name == name) ]
+  [ { return TRUE } | v : Variable <- vars, (v.name == name) ]
+  return FALSE
+}
+
+<- (name : String, strings : List(String)): Bool
+{
+  [ { return TRUE } | str : String <- strings, (str == name) ]
   return FALSE
 }
 

@@ -10,3 +10,7 @@ functions
 
 Init()
 
+global
+
+MIFB : List(String)
+MIFBGEN : Bool

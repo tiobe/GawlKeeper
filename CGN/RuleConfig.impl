@@ -102,6 +102,10 @@ GetRules() : [([String])]
       "If a global variable is changed more than once in a block, the changes should be made within the same Network.",
       "Global variable '\027' was already modified in network '\027'."
     ],
+    [ "C033",
+      "It is not allowed to use the +AR1 and +AR2 instructions in a Function Block, which is multi-instance capable",
+      "'\027' instruction encountered in a multi-instance Function Block"
+    ],
     [ "C034",
       "When using AR1 make sure that after loading and before use no other blocks are called and no higher data types are accessed",
       "Symbolic reference has been accessed before using AR1."

@@ -6,8 +6,8 @@ gk=../GawlKeeper.linux64
 for id in $($gk -showrules 2>&1 | cut -d'|' -f 1); do
     echo -e " ----- Rule $id ------------------------------------\n";
     for f in $(find ! -type d -name "${id}*" | LC_ALL=C sort); do
-        echo -e "$gk --$id $f\n"
-        $gk --$id $f
+        echo -e "$gk --$id -mifb=C033/mifb.txt $f\n"
+        $gk --$id -mifb=C033/mifb.txt $f
     done
 done
 } > output

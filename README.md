@@ -81,7 +81,9 @@ GawlKeeper [<option>|<rule>]... <file>
 - `--<rule_nr>` &mdash; Enables rule number `<rule_nr>`.
   - **Example:** `--C007`
 - `-cyclox` &mdash; Calculate the cyclomatic complexity of a file.
+- `-genmifb` &mdash; Generate multi-instance function blocks for a file.
 - `-help` &mdash; Show all available options.
+-  `-mifb=<file>` &mdash; File containing all multi-instance function blocks.
 - `-showrules` &mdash; Display a table of rules.
 - `-version` &mdash; Print version information and terminate.
 
@@ -100,6 +102,7 @@ GawlKeeper [<option>|<rule>]... <file>
 | **C020** | The names of local variables (other than the preset local variables of OBs) shall start with a lowercase prefix character according to their type. |
 | **C023** | Using an IO as an interface is not allowed. |
 | **C030** | If a global variable is changed more than once in a block, the changes should be made within the same network. |
+| **C033** | It is not allowed to use the +AR1 and +AR2 instructions in a Function Block, which is multi-instance capable. |
 | **C034** | When using AR1, make sure that after loading and before use no other blocks are called and no higher data types are accessed. |
 | **C035** | When using AR2 in an FB, first save the contents and then restore them after use. In the meantime, no symbolic access to the instance is allowed. |
 | **C039** | Siemens Timers should never be used in relation to physical movements in a conveyor system that can be stopped. |
